@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+}
+
+:root {
+  --bg: #0f0f14;
+  --bg-secondary: #1a1a24;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --border: #27272a;
+  --accent: #6366f1;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Radix tabs — Tailwind data variants can miss in monorepo dev builds */
+[role="tablist"] [role="tab"][data-state="active"] {
+  background-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+
+[role="tablist"] [role="tab"][data-state="inactive"] {
+  color: var(--text-muted);
+}
+
+/* Radix switch — all styling here; Tailwind data variants are unreliable in the monorepo */
+.together-switch {
+  position: relative;
+  display: inline-flex;
+  height: 24px;
+  width: 44px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 9999px;
+  border: 2px solid var(--border);
+  background-color: var(--bg-secondary);
+  padding: 2px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.together-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.together-switch[data-state="checked"] {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.together-switch[data-state="unchecked"] {
+  background-color: var(--bg-secondary);
+  border-color: color-mix(in srgb, var(--text-muted) 50%, var(--border));
+}
+
+.together-switch-thumb {
+  pointer-events: none;
+  display: block;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  transition: transform 0.15s ease;
+  transform: translateX(0);
+}
+
+.together-switch[data-state="checked"] .together-switch-thumb {
+  transform: translateX(20px);
+}

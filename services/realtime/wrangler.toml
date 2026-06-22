@@ -1,0 +1,30 @@
+name = "together-realtime"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# SQLite-backed DOs (required on Workers Free plan)
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDurableObject"]
+
+[durable_objects]
+bindings = [
+  { name = "ROOM", class_name = "RoomDurableObject" }
+]
+
+[vars]
+ENVIRONMENT = "development"
+
+# Production: npx wrangler deploy --env production
+[env.production]
+routes = [
+  { pattern = "realtime.together.chtnnhfoundation.org", custom_domain = true }
+]
+
+[env.production.durable_objects]
+bindings = [
+  { name = "ROOM", class_name = "RoomDurableObject" }
+]
+
+[env.production.vars]
+ENVIRONMENT = "production"

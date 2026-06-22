@@ -1,0 +1,98 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button, Input, Label } from "@together/ui";
+import Link from "next/link";
+import { createSupabaseBrowserClient } from "@/lib/supabase-client";
+
+export default function SettingsPage() {
+  const [email, setEmail] = useState("");
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
+      setUser(data.user);
+      if (data.user?.email) setEmail(data.user.email);
+    });
+  }, []);
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/settings`,
+      },
+    });
+
+    setLoading(false);
+    setMessage(error ? error.message : "Check your email for a sign-in link!");
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    setMessage("Signed out");
+  };
+
+  return (
+    <div className="mx-auto max-w-md px-4 py-12">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Account</h1>
+        <Link href="/">
+          <Button variant="ghost" size="sm">Home</Button>
+        </Link>
+      </div>
+
+      {user ? (
+        <div className="space-y-4 rounded-xl border border-[var(--border)] p-6">
+          <p className="text-sm text-[var(--text-muted)]">
+            Signed in as <span className="text-[var(--text)]">{user.email}</span>
+          </p>
+          <p className="text-sm text-[var(--text-muted)]">
+            Your account lets you save playlists and persist room settings.
+          </p>
+          <Link href="/playlists">
+            <Button variant="secondary" className="w-full">View playlists</Button>
+          </Link>
+          <Button variant="destructive" className="w-full" onClick={handleSignOut}>
+            Sign out
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleMagicLink} className="space-y-4 rounded-xl border border-[var(--border)] p-6">
+          <p className="text-sm text-[var(--text-muted)]">
+            Optional account to save playlists and room settings. Anonymous use works without signing in.
+          </p>
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="mt-1"
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Sending..." : "Send magic link"}
+          </Button>
+        </form>
+      )}
+
+      {message && (
+        <p className="mt-4 text-center text-sm text-[var(--text-muted)]">{message}</p>
+      )}
+    </div>
+  );
+}
