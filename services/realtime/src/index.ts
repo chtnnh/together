@@ -10,17 +10,22 @@ export default {
       return Response.json({ ok: true, service: "together-realtime" });
     }
 
-    const roomMatch = url.pathname.match(/^\/room\/([^/]+)/);
+    const roomMatch = url.pathname.match(/^\/room\/([^/]+)(\/.*)?$/);
     if (!roomMatch) {
       return new Response("Not found", { status: 404 });
     }
 
     const roomId = roomMatch[1]!;
-    const id = env.ROOM.idFromName(roomId);
-    const stub = env.ROOM.get(id);
+    const subPath = roomMatch[2] ?? "";
+    const stub = env.ROOM.get(env.ROOM.idFromName(roomId));
+
+    // WebSocket upgrades must be forwarded unchanged — rewrites break the handshake.
+    if (request.headers.get("Upgrade")?.toLowerCase() === "websocket") {
+      return stub.fetch(request);
+    }
 
     const doUrl = new URL(request.url);
-    doUrl.pathname = url.pathname.replace(`/room/${roomId}`, "") || "/";
+    doUrl.pathname = subPath || "/";
 
     return stub.fetch(new Request(doUrl.toString(), request));
   },

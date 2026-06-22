@@ -55,7 +55,11 @@ export function setDisplayName(name: string) {
 }
 
 export function getRealtimeUrl(roomId: string): string {
-  const base = process.env.NEXT_PUBLIC_REALTIME_URL ?? "ws://127.0.0.1:8787";
-  const wsBase = base.replace(/^http/i, "ws");
-  return `${wsBase.replace(/\/$/, "")}/room/${roomId}`;
+  let base = process.env.NEXT_PUBLIC_REALTIME_URL ?? "ws://127.0.0.1:8787";
+  if (base.startsWith("https://")) {
+    base = `wss://${base.slice("https://".length)}`;
+  } else if (base.startsWith("http://")) {
+    base = `ws://${base.slice("http://".length)}`;
+  }
+  return `${base.replace(/\/$/, "")}/room/${roomId}`;
 }
