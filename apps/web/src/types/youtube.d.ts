@@ -8,12 +8,27 @@ declare namespace YT {
     CUED = 5,
   }
 
+  interface PlayerVars {
+    autoplay?: 0 | 1;
+    controls?: 0 | 1;
+    disablekb?: 0 | 1;
+    fs?: 0 | 1;
+    iv_load_policy?: 1 | 3;
+    modestbranding?: 0 | 1;
+    rel?: 0 | 1;
+    playsinline?: 0 | 1;
+    cc_load_policy?: 0 | 1;
+    enablejsapi?: 0 | 1;
+    origin?: string;
+    [key: string]: string | number | undefined;
+  }
+
   interface PlayerOptions {
     height?: string | number;
     width?: string | number;
     videoId?: string;
     host?: string;
-    playerVars?: Record<string, string | number>;
+    playerVars?: PlayerVars;
     events?: {
       onReady?: (event: { target: Player }) => void;
       onStateChange?: (event: { data: PlayerState; target: Player }) => void;
@@ -25,8 +40,10 @@ declare namespace YT {
     destroy(): void;
     playVideo(): void;
     pauseVideo(): void;
+    stopVideo(): void;
     seekTo(seconds: number, allowSeekAhead: boolean): void;
     loadVideoById(videoId: string, startSeconds?: number): void;
+    cueVideoById(videoId: string, startSeconds?: number): void;
     getCurrentTime(): number;
     getPlayerState(): PlayerState;
     getVideoData(): { video_id: string };

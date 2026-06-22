@@ -38,7 +38,7 @@ import { SettingsDrawer } from "@/components/room-settings";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { AlternatePicker } from "@/components/alternate-picker";
 import { ParticipantsPanel } from "@/components/participants-panel";
-import { getAnonId, getDisplayName, setDisplayName } from "@/lib/utils";
+import { getDisplayName, setDisplayName } from "@/lib/utils";
 import { ShareInviteButton } from "@/components/share-invite-button";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
@@ -93,7 +93,6 @@ export function RoomClient({
   initialTitle = "",
   initialDisplayName = "",
   hasOwner = false,
-  privacy = "unlisted",
 }: RoomClientProps) {
   const router = useRouter();
   const { toast } = useToast();

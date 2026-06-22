@@ -84,7 +84,6 @@ export async function createRoom(input: {
   }
 
   const { getDb, rooms } = await import("@together/db");
-  const { eq } = await import("drizzle-orm");
   const db = getDb();
 
   const slug = input.slug ?? (await generateUniqueSlug());
