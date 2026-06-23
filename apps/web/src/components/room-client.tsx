@@ -836,7 +836,11 @@ export function RoomClient({
           hasOwner={hasOwner}
           onRoomUpdate={(s) => {
             send({ type: "settings:update", settings: s });
-            if (hasOwner && isHost) {
+            // Persist to the DB so it stays in sync with the Durable Object.
+            // The settings route authorizes ownership server-side (owner-only
+            // for claimed rooms), which also keeps settings durable for rooms
+            // claimed later in the session.
+            if (isHost) {
               void fetch(`/api/rooms/${slug}/settings`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
