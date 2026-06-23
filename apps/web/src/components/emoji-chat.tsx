@@ -4,6 +4,46 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
+import type { ChatMessage } from "@together/shared";
+
+/**
+ * Scrollable chat log that keeps the newest message in view. Auto-scrolls only
+ * when the viewer is already pinned to the bottom, so scrolling up to re-read
+ * history is not interrupted by incoming messages.
+ */
+export function ChatMessages({ messages }: { messages: ChatMessage[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pinnedToBottomRef = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    pinnedToBottomRef.current = distanceFromBottom < 48;
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !pinnedToBottomRef.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  return (
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
+    >
+      {messages.map((msg) => (
+        <div key={msg.id} className="text-sm">
+          <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
+          <span className="mx-1 text-[var(--text-muted)]">·</span>
+          <span>{msg.body}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface EmojiPickerButtonProps {
   onSelect: (emoji: string) => void;

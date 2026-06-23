@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
-import { ChatInput } from "@/components/emoji-chat";
+import { ChatInput, ChatMessages } from "@/components/emoji-chat";
 import { PlaybackSeekBar } from "@/components/playback-seek-bar";
 import { SettingsDrawer } from "@/components/room-settings";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
@@ -410,15 +410,7 @@ export function RoomClient({
 
   const chatPanel = (
     <>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
-        {roomState?.chat.map((msg) => (
-          <div key={msg.id} className="text-sm">
-            <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
-            <span className="mx-1 text-[var(--text-muted)]">·</span>
-            <span>{msg.body}</span>
-          </div>
-        ))}
-      </div>
+      <ChatMessages messages={roomState?.chat ?? []} />
       <ChatInput
         onSend={(body) => send({ type: "chat", body })}
         slowModeSeconds={settings?.slowModeSeconds}
