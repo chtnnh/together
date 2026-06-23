@@ -6,8 +6,11 @@ name: Deploy
 # Vercel project to point at apps/web and set its env vars in the Vercel
 # dashboard (DATABASE_URL, YOUTUBE_API_KEY, NEXT_PUBLIC_*, ROOM_TOKEN_SECRET, …).
 #
-# Required repository secrets for the worker deploy:
+# Secrets are read from the "production" GitHub Environment (Settings →
+# Environments → production). The job below must declare `environment:` with the
+# same name or the secrets resolve to empty strings. Required secrets:
 #   CLOUDFLARE_API_TOKEN   - token with "Edit Cloudflare Workers" permission
+#                            (+ Zone DNS:Edit for the custom domain)
 #   CLOUDFLARE_ACCOUNT_ID  - target Cloudflare account id
 
 on:
@@ -25,6 +28,8 @@ jobs:
     # Only deploy when the CI run that triggered this succeeded.
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    # Must match the GitHub Environment that holds the Cloudflare secrets.
+    environment: production
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +41,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Deploy Cloudflare Worker
-        run: pnpm --filter @together/realtime deploy
+        # `run` is required: `pnpm --filter <pkg> deploy` hits pnpm's built-in
+        # deploy command instead of the package's deploy script.
+        run: pnpm --filter @together/realtime run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
