@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getYouTubeClient, importYouTubeUrl } from "@/lib/youtube";
 import { parseYouTubePlaylistId, parseYouTubeVideoId } from "@together/track-resolver";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+
+const importRateLimit = {
+  name: "import:youtube",
+  limit: 30,
+  windowMs: 60 * 1000,
+};
 
 const schema = z.object({
   url: z.string().min(1).optional(),
@@ -17,6 +24,9 @@ function isYouTubeUrl(input: string): boolean {
 }
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, importRateLimit);
+  if (limited) return limited;
+
   const body = schema.parse(await request.json());
   const input = (body.url ?? body.query ?? "").trim();
 

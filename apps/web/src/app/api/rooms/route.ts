@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { createRoom } from "@/lib/rooms";
 import { roomPasswordCookieName, cookieOptions } from "@/lib/room-access";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+
+const createRoomRateLimit = {
+  name: "rooms:create",
+  limit: 10,
+  windowMs: 60 * 60 * 1000,
+};
 
 const createRoomSchema = z.object({
   displayName: z.string().min(1).max(24),
@@ -13,6 +20,9 @@ const createRoomSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, createRoomRateLimit);
+  if (limited) return limited;
+
   try {
     const body = createRoomSchema.parse(await request.json());
 
