@@ -92,10 +92,13 @@ export class RoomDurableObject implements DurableObject {
         this.state.title = body.title;
       }
       if (body.settings) {
-        this.state.settings = roomSettingsSchema.parse({
-          ...this.state.settings,
-          ...body.settings,
-        });
+        const isNewRoom = !this.state.roomId || this.state.roomId !== body.roomId;
+        if (isNewRoom) {
+          this.state.settings = roomSettingsSchema.parse({
+            ...this.state.settings,
+            ...body.settings,
+          });
+        }
       }
       this.state.passwordRequired = body.passwordRequired ?? false;
       await this.persist();
@@ -282,6 +285,19 @@ export class RoomDurableObject implements DurableObject {
       case "queue:remove":
         await this.handleRemove(event.itemId, event.lane, participant);
         break;
+      case "queue:clear":
+        await this.handleClear(event.lane, participant);
+        break;
+      case "queue:reorder":
+        await this.handleReorder(event.itemId, event.newIndex, participant);
+        break;
+      case "queue:play":
+        if (!this.canControlPlayback(participant)) {
+          this.send(ws, { type: "error", code: "FORBIDDEN", message: "Controls are locked" });
+          return;
+        }
+        await this.handlePlayFromQueue(event.itemId);
+        break;
       case "vote:skip":
         await this.handleSkipVote(participant);
         break;
@@ -396,9 +412,26 @@ export class RoomDurableObject implements DurableObject {
     this.send(ws, { type: "chat", message });
   }
 
+  private syncSkipVotesForCurrentTrack() {
+    const queueItemId = this.state.playback.queueItemId;
+    if (queueItemId) {
+      this.state.skipVotes = {
+        queueItemId,
+        votes: [],
+        threshold: this.state.settings.skipThreshold,
+      };
+    } else {
+      this.state.skipVotes = null;
+    }
+    this.broadcast({ type: "skip-votes", skipVotes: this.state.skipVotes });
+  }
+
   private async handlePlaybackUpdate(partial: Partial<PlaybackState>) {
     const now = Date.now();
     const baseline = this.getAdjustedPlayback();
+    const previousQueueItemId = baseline.queueItemId;
+    const previousVideoId = baseline.videoId;
+
     this.state.playback = {
       ...baseline,
       ...partial,
@@ -406,8 +439,12 @@ export class RoomDurableObject implements DurableObject {
       updatedAt: now,
     };
 
-    if (partial.videoId !== undefined && partial.videoId !== this.state.playback.videoId) {
-      this.state.skipVotes = null;
+    const trackChanged =
+      (partial.queueItemId !== undefined && partial.queueItemId !== previousQueueItemId) ||
+      (partial.videoId !== undefined && partial.videoId !== previousVideoId);
+
+    if (trackChanged) {
+      this.syncSkipVotesForCurrentTrack();
     }
 
     await this.persist();
@@ -589,6 +626,54 @@ export class RoomDurableObject implements DurableObject {
     this.broadcastQueue();
   }
 
+  private async handleReorder(
+    itemId: string,
+    newIndex: number,
+    participant: Participant,
+  ) {
+    if (!this.isHostish(participant)) return;
+
+    const oldIndex = this.state.queue.findIndex((i) => i.id === itemId);
+    if (oldIndex === -1) return;
+
+    const clampedIndex = Math.min(Math.max(0, newIndex), this.state.queue.length - 1);
+    if (oldIndex === clampedIndex) return;
+
+    const queue = [...this.state.queue];
+    const [item] = queue.splice(oldIndex, 1);
+    queue.splice(clampedIndex, 0, item);
+    this.state.queue = queue;
+    await this.persist();
+    this.broadcastQueue();
+  }
+
+  private async handlePlayFromQueue(itemId: string) {
+    const item = this.state.queue.find((i) => i.id === itemId);
+    if (!item?.videoId) return;
+
+    if (this.state.playback.queueItemId === itemId) {
+      await this.handlePlaybackUpdate({ positionMs: 0, playing: true });
+      return;
+    }
+
+    await this.playQueueItem(item);
+  }
+
+  private async handleClear(lane: "queue" | "requests", participant: Participant) {
+    if (!this.isHostish(participant)) return;
+
+    if (lane === "queue") {
+      const currentId = this.state.playback.queueItemId;
+      this.state.queue = currentId
+        ? this.state.queue.filter((i) => i.id === currentId)
+        : [];
+    } else {
+      this.state.requests = [];
+    }
+    await this.persist();
+    this.broadcastQueue();
+  }
+
   private async handleRemove(
     itemId: string,
     lane: "queue" | "requests",
@@ -644,8 +729,6 @@ export class RoomDurableObject implements DurableObject {
     const currentId = this.state.playback.queueItemId;
     const currentIndex = this.state.queue.findIndex((i) => i.id === currentId);
     const current = currentIndex >= 0 ? this.state.queue[currentIndex] : null;
-
-    this.state.skipVotes = null;
 
     if (reason === "played" && loopMode === "track" && current?.videoId) {
       await this.handlePlaybackUpdate({
@@ -763,7 +846,9 @@ export class RoomDurableObject implements DurableObject {
   ) {
     if (actor.role !== "host") return;
     const target = this.state.participants.find((p) => p.id === targetId);
-    if (!target) return;
+    if (!target || target.role === "host") return;
+    if (role === "co-host" && target.role !== "guest") return;
+    if (role === "guest" && target.role !== "co-host") return;
 
     this.state.participants = this.state.participants.map((p) =>
       p.id === targetId ? { ...p, role } : p,
@@ -798,13 +883,18 @@ export class RoomDurableObject implements DurableObject {
     const playback = this.getAdjustedPlayback();
     let skipVotes = this.state.skipVotes;
 
-    if (playback.queueItemId && !skipVotes) {
-      skipVotes = {
-        queueItemId: playback.queueItemId,
-        votes: [],
-        threshold: this.state.settings.skipThreshold,
-      };
-      this.state.skipVotes = skipVotes;
+    if (playback.queueItemId) {
+      if (!skipVotes || skipVotes.queueItemId !== playback.queueItemId) {
+        skipVotes = {
+          queueItemId: playback.queueItemId,
+          votes: [],
+          threshold: this.state.settings.skipThreshold,
+        };
+        this.state.skipVotes = skipVotes;
+      }
+    } else {
+      skipVotes = null;
+      this.state.skipVotes = null;
     }
 
     return {

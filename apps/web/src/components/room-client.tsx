@@ -34,6 +34,7 @@ import {
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { ChatInput } from "@/components/emoji-chat";
+import { PlaybackSeekBar } from "@/components/playback-seek-bar";
 import { SettingsDrawer } from "@/components/room-settings";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { AlternatePicker } from "@/components/alternate-picker";
@@ -42,7 +43,7 @@ import { getDisplayName, setDisplayName } from "@/lib/utils";
 import { ShareInviteButton } from "@/components/share-invite-button";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
-import type { RequestItem, RoomActivity } from "@together/shared";
+import type { HistoryItem, RequestItem, RoomActivity } from "@together/shared";
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
 
 type ImportTrack = {
@@ -68,7 +69,9 @@ function activityMessage(activity: RoomActivity): string {
     case "host":
       return activity.you ? "You are the host" : `${activity.displayName} is the host`;
     case "promoted":
-      return `${activity.displayName} is now ${activity.role?.replace("-", " ")}`;
+      return activity.role === "guest"
+        ? `${activity.displayName} was demoted to guest`
+        : `${activity.displayName} is now ${activity.role?.replace("-", " ")}`;
     case "kicked":
       return `${activity.displayName} was kicked${activity.actorName ? ` by ${activity.actorName}` : ""}`;
     case "banned":
@@ -183,12 +186,29 @@ export function RoomClient({
     lastEndedReportRef.current = null;
   }, [playback?.queueItemId]);
 
-  const { ready, resyncView, needsUserGesture, unlockPlayback } = useYouTubePlayer({
-    containerId: "youtube-player",
-    playback,
-    quality: userPrefs.quality,
-    onEnded: handlePlaybackEnded,
-  });
+  const handleYouTubeError = useCallback(
+    (code: number) => {
+      const messages: Record<number, string> = {
+        2: "Invalid video",
+        5: "Playback error — tap to sync and retry",
+        100: "Video not found",
+        101: "This video can't be played here",
+        150: "This video can't be embedded",
+        153: "Player error — tap to sync and retry",
+      };
+      toast(messages[code] ?? `Playback error (${code})`, "error");
+    },
+    [toast],
+  );
+
+  const { ready, resyncView, needsUserGesture, unlockPlayback, durationMs: playerDurationMs } =
+    useYouTubePlayer({
+      containerId: "youtube-player",
+      playback,
+      quality: userPrefs.quality,
+      onEnded: handlePlaybackEnded,
+      onError: handleYouTubeError,
+    });
 
   // Keep player aligned when toggling audio/video view without changing play/pause
   useEffect(() => {
@@ -260,6 +280,24 @@ export function RoomClient({
 
   const queueTrack = useCallback(
     (item: ImportTrack) => {
+      send({
+        type: "queue:add-request",
+        item: {
+          source: item.source,
+          videoId: item.videoId,
+          title: item.title,
+          artist: item.artist,
+          durationMs: item.durationMs,
+          thumbnailUrl: item.thumbnailUrl,
+          confidence: item.confidence,
+        },
+      });
+    },
+    [send],
+  );
+
+  const reAddFromHistory = useCallback(
+    (item: HistoryItem) => {
       send({
         type: "queue:add-request",
         item: {
@@ -367,6 +405,9 @@ export function RoomClient({
   );
   const hasVotedSkip = roomState?.skipVotes?.votes.includes(participant?.id ?? "") ?? false;
 
+  const currentTrack = roomState?.queue.find((q) => q.id === playback?.queueItemId);
+  const trackDurationMs = Math.max(currentTrack?.durationMs ?? 0, playerDurationMs);
+
   const chatPanel = (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
@@ -388,6 +429,14 @@ export function RoomClient({
 
   const playbackControls = (
     <div className="space-y-3">
+      {playback?.videoId && (
+        <PlaybackSeekBar
+          playback={playback}
+          durationMs={trackDurationMs}
+          disabled={!canControlPlayback || !ready}
+          onSeek={(positionMs) => onPlaybackChange({ positionMs, playing: playback.playing })}
+        />
+      )}
       {roomState?.skipVotes && (
         <SkipVoteBar
           voteCount={skipVoteCount}
@@ -568,6 +617,7 @@ export function RoomClient({
             canManage={isHost}
             onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "requests" })}
             onPromote={(id) => send({ type: "queue:promote", requestId: id })}
+            onClearAll={() => send({ type: "queue:clear", lane: "requests" })}
             onPickAlternate={(id) => {
               const req = roomState?.requests.find((r) => r.id === id);
               if (req) setPickRequest(req);
@@ -580,12 +630,18 @@ export function RoomClient({
             items={roomState?.queue ?? []}
             currentItemId={playback?.queueItemId}
             canManage={isHost}
+            canPlay={canControlPlayback}
             onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
+            onClearAll={() => send({ type: "queue:clear", lane: "queue" })}
+            onPlay={(id) => send({ type: "queue:play", itemId: id })}
+            onReorder={(itemId, newIndex) =>
+              send({ type: "queue:reorder", itemId, newIndex })
+            }
           />
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 overflow-y-auto px-2">
-          <HistoryList items={roomState?.history ?? []} />
+          <HistoryList items={roomState?.history ?? []} onReAdd={reAddFromHistory} />
         </TabsContent>
 
         <TabsContent value="chat" className="flex flex-1 flex-col overflow-hidden">
@@ -635,6 +691,9 @@ export function RoomClient({
                     onPromote={(id) =>
                       send({ type: "moderation:promote", participantId: id, role: "co-host" })
                     }
+                    onDemote={(id) =>
+                      send({ type: "moderation:promote", participantId: id, role: "guest" })
+                    }
                   />
                 </div>
               )}
@@ -658,7 +717,7 @@ export function RoomClient({
         >
           <div id="youtube-player" className="h-full w-full" />
           <div
-            className="absolute inset-0 z-10 cursor-default"
+            className={`absolute inset-0 z-10 ${needsUserGesture ? "pointer-events-auto cursor-pointer" : "pointer-events-none"}`}
             aria-hidden={!needsUserGesture}
             onContextMenu={(e) => e.preventDefault()}
             onClick={needsUserGesture ? unlockPlayback : undefined}
@@ -701,6 +760,7 @@ export function RoomClient({
                     canManage={isHost}
                     onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "requests" })}
                     onPromote={(id) => send({ type: "queue:promote", requestId: id })}
+                    onClearAll={() => send({ type: "queue:clear", lane: "requests" })}
                     onPickAlternate={(id) => {
                       const req = roomState?.requests.find((r) => r.id === id);
                       if (req) setPickRequest(req);
@@ -712,11 +772,17 @@ export function RoomClient({
                     items={roomState?.queue ?? []}
                     currentItemId={playback?.queueItemId}
                     canManage={isHost}
+                    canPlay={canControlPlayback}
                     onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
+                    onClearAll={() => send({ type: "queue:clear", lane: "queue" })}
+                    onPlay={(id) => send({ type: "queue:play", itemId: id })}
+                    onReorder={(itemId, newIndex) =>
+                      send({ type: "queue:reorder", itemId, newIndex })
+                    }
                   />
                 )}
                 {mobileTab === "history" && (
-                  <HistoryList items={roomState?.history ?? []} />
+                  <HistoryList items={roomState?.history ?? []} onReAdd={reAddFromHistory} />
                 )}
               </div>
               {mobileTab === "chat" && (

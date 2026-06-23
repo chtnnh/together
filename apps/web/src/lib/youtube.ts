@@ -175,6 +175,46 @@ export class YouTubeApiClient implements YouTubeSearchClient {
     }
     return result;
   }
+
+  /** Returns video IDs that exist and are not deleted/private placeholders. */
+  async filterAvailableVideoIds(videoIds: string[]): Promise<Set<string>> {
+    const available = new Set<string>();
+    if (videoIds.length === 0) return available;
+
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const chunk = videoIds.slice(i, i + 50);
+      const params = new URLSearchParams({
+        part: "snippet",
+        id: chunk.join(","),
+        key: this.apiKey,
+      });
+
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?${params}`,
+      );
+      if (!res.ok) continue;
+
+      const data = (await res.json()) as {
+        items?: Array<{ id: string; snippet: { title: string } }>;
+      };
+
+      for (const item of data.items ?? []) {
+        if (!/^deleted video$/i.test(item.snippet.title)) {
+          available.add(item.id);
+        }
+      }
+    }
+
+    return available;
+  }
+
+  async filterAvailableCandidates(
+    candidates: YoutubeCandidate[],
+  ): Promise<YoutubeCandidate[]> {
+    const ids = candidates.map((c) => c.videoId).filter(Boolean);
+    const available = await this.filterAvailableVideoIds(ids);
+    return candidates.filter((c) => available.has(c.videoId));
+  }
 }
 
 export function getYouTubeClient() {
@@ -213,9 +253,34 @@ export async function resolveTrackWithCache(metadata: TrackMetadata) {
 
 export { parseYouTubeVideoId, parseYouTubePlaylistId };
 
+async function isYouTubeVideoAvailableViaOEmbed(videoId: string): Promise<boolean> {
+  try {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function isYouTubeVideoAvailable(videoId: string): Promise<boolean> {
+  const client = getYouTubeClient();
+  if (client) {
+    const details = await client.getVideoDetails(videoId);
+    if (!details) return false;
+    return !/^deleted video$/i.test(details.title);
+  }
+  return isYouTubeVideoAvailableViaOEmbed(videoId);
+}
+
 export async function importYouTubeUrl(url: string) {
   const videoId = parseYouTubeVideoId(url);
   if (videoId) {
+    const available = await isYouTubeVideoAvailable(videoId);
+    if (!available) return [];
+
     const client = getYouTubeClient();
     const details = client ? await client.getVideoDetails(videoId) : null;
     return [
@@ -236,7 +301,8 @@ export async function importYouTubeUrl(url: string) {
     const client = getYouTubeClient();
     if (!client) return [];
     const items = await client.getPlaylistItems(playlistId);
-    return items.map((item) => ({
+    const filtered = await client.filterAvailableCandidates(items);
+    return filtered.map((item) => ({
       source: "youtube" as const,
       videoId: item.videoId,
       title: item.title,

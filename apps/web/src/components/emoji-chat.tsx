@@ -106,21 +106,33 @@ export function ChatInput({
   lastChatAt?: number;
 }) {
   const [message, setMessage] = useState("");
-  const now = Date.now();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (slowModeSeconds <= 0 || lastChatAt <= 0) return;
+    const remaining = slowModeSeconds * 1000 - (Date.now() - lastChatAt);
+    if (remaining <= 0) return;
+
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [slowModeSeconds, lastChatAt]);
+
   const cooldownRemaining =
     slowModeSeconds > 0
       ? Math.max(0, slowModeSeconds * 1000 - (now - lastChatAt))
       : 0;
+  const slowModeActive = cooldownRemaining > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const body = message.trim();
-    if (!body || cooldownRemaining > 0) return;
+    if (!body || slowModeActive) return;
     onSend(body);
     setMessage("");
   };
 
   const appendEmoji = (emoji: string) => {
+    if (slowModeActive) return;
     setMessage((prev) => prev + emoji);
   };
 
@@ -131,17 +143,17 @@ export function ChatInput({
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder={
-          cooldownRemaining > 0
+          slowModeActive
             ? `Slow mode: ${Math.ceil(cooldownRemaining / 1000)}s`
             : "Type a message..."
         }
-        disabled={cooldownRemaining > 0}
+        disabled={slowModeActive}
         maxLength={2000}
         className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50"
       />
       <button
         type="submit"
-        disabled={!message.trim() || cooldownRemaining > 0}
+        disabled={!message.trim() || slowModeActive}
         className="shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
       >
         Send

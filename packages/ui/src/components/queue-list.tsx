@@ -1,5 +1,8 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import type { HistoryItem, QueueItem, RequestItem } from "@together/shared";
-import { Music, Trash2, ArrowUp, AlertCircle, Clock } from "lucide-react";
+import { Music, Trash2, ArrowUp, AlertCircle, Clock, GripVertical, Play, Plus, Check } from "lucide-react";
 import { formatDuration } from "../lib/utils";
 import { Button } from "./button";
 
@@ -7,7 +10,11 @@ interface QueueListProps {
   items: QueueItem[];
   currentItemId?: string | null;
   canManage?: boolean;
+  canPlay?: boolean;
   onRemove?: (id: string) => void;
+  onClearAll?: () => void;
+  onPlay?: (id: string) => void;
+  onReorder?: (itemId: string, newIndex: number) => void;
   onPromote?: never;
 }
 
@@ -17,6 +24,7 @@ interface RequestListProps {
   onRemove?: (id: string) => void;
   onPromote?: (id: string) => void;
   onPickAlternate?: (id: string) => void;
+  onClearAll?: () => void;
 }
 
 function StatusBadge({ status }: { status: RequestItem["status"] }) {
@@ -33,29 +41,70 @@ function QueueItemRow({
   item,
   isActive,
   canManage,
+  canPlay,
   onRemove,
   onPromote,
   onPickAlternate,
+  onPlay,
   showStatus,
+  draggable,
+  isDragTarget,
+  isDragging,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }: {
   item: QueueItem | RequestItem;
   isActive?: boolean;
   canManage?: boolean;
+  canPlay?: boolean;
   onRemove?: (id: string) => void;
   onPromote?: (id: string) => void;
   onPickAlternate?: (id: string) => void;
+  onPlay?: (id: string) => void;
   showStatus?: boolean;
+  draggable?: boolean;
+  isDragTarget?: boolean;
+  isDragging?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragEnd?: () => void;
 }) {
   const requestItem = item as RequestItem;
+  const canPlayItem = canPlay && onPlay && !isActive && !!item.videoId;
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-lg px-3 py-2 ${isActive ? "bg-[var(--accent)]/20 border border-[var(--accent)]/40" : "hover:bg-[var(--bg-secondary)]"}`}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`flex items-center gap-2 rounded-lg px-2 py-2 transition-opacity ${
+        isActive
+          ? "border border-[var(--accent)]/40 bg-[var(--accent)]/20"
+          : isDragTarget
+            ? "border border-dashed border-[var(--accent)] bg-[var(--accent)]/10"
+            : "hover:bg-[var(--bg-secondary)]"
+      } ${isDragging ? "opacity-40" : ""}`}
     >
+      {draggable && (
+        <div
+          className="cursor-grab touch-none text-[var(--text-muted)] active:cursor-grabbing"
+          aria-hidden
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
       {item.thumbnailUrl ? (
-        <img src={item.thumbnailUrl} alt="" className="h-10 w-10 rounded object-cover" />
+        <img src={item.thumbnailUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
       ) : (
-        <div className="flex h-10 w-10 items-center justify-center rounded bg-[var(--bg-secondary)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--bg-secondary)]">
           <Music className="h-5 w-5 text-[var(--text-muted)]" />
         </div>
       )}
@@ -68,6 +117,11 @@ function QueueItemRow({
         {showStatus && <StatusBadge status={requestItem.status} />}
       </div>
       <div className="flex shrink-0 gap-1">
+        {canPlayItem && (
+          <Button size="icon" variant="ghost" onClick={() => onPlay(item.id)} title="Play now">
+            <Play className="h-4 w-4" />
+          </Button>
+        )}
         {requestItem.status === "needs_pick" && onPickAlternate && (
           <Button size="icon" variant="ghost" onClick={() => onPickAlternate(item.id)} title="Pick alternate">
             <AlertCircle className="h-4 w-4" />
@@ -88,22 +142,85 @@ function QueueItemRow({
   );
 }
 
-export function QueueList({ items, currentItemId, canManage, onRemove }: QueueListProps) {
+export function QueueList({
+  items,
+  currentItemId,
+  canManage,
+  canPlay,
+  onRemove,
+  onClearAll,
+  onPlay,
+  onReorder,
+}: QueueListProps) {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
   if (items.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-[var(--text-muted)]">Queue is empty</p>
     );
   }
 
+  const clearableCount = items.filter((i) => i.id !== currentItemId).length;
+  const reorderEnabled = canManage && !!onReorder;
+
+  const handleDrop = (targetId: string) => {
+    if (!draggedId || !onReorder || draggedId === targetId) {
+      setDraggedId(null);
+      setDropTargetId(null);
+      return;
+    }
+
+    const toIndex = items.findIndex((i) => i.id === targetId);
+    if (toIndex === -1) return;
+
+    onReorder(draggedId, toIndex);
+    setDraggedId(null);
+    setDropTargetId(null);
+  };
+
   return (
     <div className="space-y-1">
+      {canManage && onClearAll && clearableCount > 0 && (
+        <div className="flex justify-end px-1 pb-1">
+          <Button variant="ghost" size="sm" onClick={onClearAll} className="text-xs text-[var(--text-muted)]">
+            Clear all
+          </Button>
+        </div>
+      )}
       {items.map((item) => (
         <QueueItemRow
           key={item.id}
           item={item}
           isActive={item.id === currentItemId}
           canManage={canManage}
+          canPlay={canPlay}
           onRemove={onRemove}
+          onPlay={onPlay}
+          draggable={reorderEnabled}
+          isDragging={draggedId === item.id}
+          isDragTarget={dropTargetId === item.id && draggedId !== item.id}
+          onDragStart={(e) => {
+            setDraggedId(item.id);
+            e.dataTransfer.effectAllowed = "move";
+          }}
+          onDragOver={(e) => {
+            if (!draggedId || draggedId === item.id) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setDropTargetId(item.id);
+          }}
+          onDragLeave={() => {
+            if (dropTargetId === item.id) setDropTargetId(null);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            handleDrop(item.id);
+          }}
+          onDragEnd={() => {
+            setDraggedId(null);
+            setDropTargetId(null);
+          }}
         />
       ))}
     </div>
@@ -116,6 +233,7 @@ export function RequestList({
   onRemove,
   onPromote,
   onPickAlternate,
+  onClearAll,
 }: RequestListProps) {
   if (items.length === 0) {
     return (
@@ -125,6 +243,13 @@ export function RequestList({
 
   return (
     <div className="space-y-1">
+      {canManage && onClearAll && (
+        <div className="flex justify-end px-1 pb-1">
+          <Button variant="ghost" size="sm" onClick={onClearAll} className="text-xs text-[var(--text-muted)]">
+            Clear all
+          </Button>
+        </div>
+      )}
       {items.map((item) => (
         <QueueItemRow
           key={item.id}
@@ -140,7 +265,57 @@ export function RequestList({
   );
 }
 
-export function HistoryList({ items }: { items: HistoryItem[] }) {
+const READD_COOLDOWN_MS = 2000;
+
+function HistoryReAddButton({
+  item,
+  onReAdd,
+}: {
+  item: HistoryItem;
+  onReAdd: (item: HistoryItem) => void;
+}) {
+  const [added, setAdded] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleClick = () => {
+    if (added) return;
+    onReAdd(item);
+    setAdded(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setAdded(false), READD_COOLDOWN_MS);
+  };
+
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      onClick={handleClick}
+      disabled={added}
+      title={added ? "Added to queue" : "Add to queue"}
+      className="shrink-0"
+    >
+      {added ? (
+        <Check className="h-4 w-4 text-green-400" aria-hidden />
+      ) : (
+        <Plus className="h-4 w-4" aria-hidden />
+      )}
+    </Button>
+  );
+}
+
+export function HistoryList({
+  items,
+  onReAdd,
+}: {
+  items: HistoryItem[];
+  onReAdd?: (item: HistoryItem) => void;
+}) {
   if (items.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-[var(--text-muted)]">Nothing played yet</p>
@@ -155,9 +330,9 @@ export function HistoryList({ items }: { items: HistoryItem[] }) {
           className="flex items-center gap-3 rounded-lg px-3 py-2 opacity-75 hover:bg-[var(--bg-secondary)]"
         >
           {item.thumbnailUrl ? (
-            <img src={item.thumbnailUrl} alt="" className="h-10 w-10 rounded object-cover" />
+            <img src={item.thumbnailUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded bg-[var(--bg-secondary)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--bg-secondary)]">
               <Clock className="h-5 w-5 text-[var(--text-muted)]" />
             </div>
           )}
@@ -167,6 +342,9 @@ export function HistoryList({ items }: { items: HistoryItem[] }) {
               {item.artist ?? item.addedBy} · {item.reason}
             </p>
           </div>
+          {onReAdd && item.videoId && (
+            <HistoryReAddButton item={item} onReAdd={onReAdd} />
+          )}
         </div>
       ))}
     </div>

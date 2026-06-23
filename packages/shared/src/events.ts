@@ -45,10 +45,18 @@ export const clientEvents = {
     itemId: z.string(),
     lane: z.enum(["queue", "requests"]),
   }),
+  queueClear: clientEventBase.extend({
+    type: z.literal("queue:clear"),
+    lane: z.enum(["queue", "requests"]),
+  }),
   queueReorder: clientEventBase.extend({
     type: z.literal("queue:reorder"),
     itemId: z.string(),
     newIndex: z.number().min(0),
+  }),
+  queuePlay: clientEventBase.extend({
+    type: z.literal("queue:play"),
+    itemId: z.string(),
   }),
   voteSkip: clientEventBase.extend({
     type: z.literal("vote:skip"),
@@ -106,7 +114,9 @@ export const clientEventSchema = z.discriminatedUnion("type", [
   clientEvents.queuePromote,
   clientEvents.queuePromoteBatch,
   clientEvents.queueRemove,
+  clientEvents.queueClear,
   clientEvents.queueReorder,
+  clientEvents.queuePlay,
   clientEvents.voteSkip,
   clientEvents.queueSkip,
   clientEvents.playbackEnded,

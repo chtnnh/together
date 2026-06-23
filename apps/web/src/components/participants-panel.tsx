@@ -2,7 +2,7 @@
 
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import type { Participant } from "@together/shared";
-import { UserX, Shield } from "lucide-react";
+import { UserX, Shield, ShieldOff } from "lucide-react";
 
 interface ParticipantsPanelProps {
   participants: Participant[];
@@ -11,6 +11,7 @@ interface ParticipantsPanelProps {
   onKick: (id: string) => void;
   onBan: (id: string) => void;
   onPromote: (id: string) => void;
+  onDemote: (id: string) => void;
 }
 
 export function ParticipantsPanel({
@@ -20,6 +21,7 @@ export function ParticipantsPanel({
   onKick,
   onBan,
   onPromote,
+  onDemote,
 }: ParticipantsPanelProps) {
   return (
     <div className="space-y-1 p-3">
@@ -45,6 +47,16 @@ export function ParticipantsPanel({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Promote to co-host</TooltipContent>
+                </Tooltip>
+              )}
+              {p.role === "co-host" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => onDemote(p.id)}>
+                      <ShieldOff className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Demote to guest</TooltipContent>
                 </Tooltip>
               )}
               <Tooltip>

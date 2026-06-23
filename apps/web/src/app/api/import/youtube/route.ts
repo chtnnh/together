@@ -28,7 +28,11 @@ export async function POST(request: Request) {
     const items = await importYouTubeUrl(input);
     if (items.length === 0) {
       return NextResponse.json(
-        { error: "Could not import that YouTube link. Check the URL or API key." },
+        {
+          error: parseYouTubeVideoId(input)
+            ? "That video is unavailable or has been deleted."
+            : "Could not import that YouTube link. Check the URL or API key.",
+        },
         { status: 404 },
       );
     }
@@ -48,12 +52,13 @@ export async function POST(request: Request) {
 
   try {
     const results = await client.search(input, 8);
-    if (results.length === 0) {
-      return NextResponse.json({ error: "No results found" }, { status: 404 });
+    const available = await client.filterAvailableCandidates(results);
+    if (available.length === 0) {
+      return NextResponse.json({ error: "No available results found" }, { status: 404 });
     }
 
     return NextResponse.json(
-      results.map((item) => ({
+      available.map((item) => ({
         source: "youtube" as const,
         videoId: item.videoId,
         title: item.title,

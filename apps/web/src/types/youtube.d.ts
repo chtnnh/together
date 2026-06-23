@@ -32,6 +32,7 @@ declare namespace YT {
     events?: {
       onReady?: (event: { target: Player }) => void;
       onStateChange?: (event: { data: PlayerState; target: Player }) => void;
+      onError?: (event: { data: number; target: Player }) => void;
     };
   }
 
@@ -47,6 +48,7 @@ declare namespace YT {
     getCurrentTime(): number;
     getPlayerState(): PlayerState;
     getVideoData(): { video_id: string };
+    getDuration(): number;
     setPlaybackQuality(quality: string): void;
   }
 }

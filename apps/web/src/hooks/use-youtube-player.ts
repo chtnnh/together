@@ -20,6 +20,7 @@ interface UseYouTubePlayerOptions {
   playback: PlaybackState | null;
   quality?: string;
   onEnded?: () => void;
+  onError?: (code: number) => void;
 }
 
 interface UseYouTubePlayerResult {
@@ -27,6 +28,7 @@ interface UseYouTubePlayerResult {
   resyncView: () => void;
   needsUserGesture: boolean;
   unlockPlayback: () => void;
+  durationMs: number;
 }
 
 let apiLoaded = false;
@@ -34,6 +36,7 @@ let apiLoading = false;
 const loadCallbacks: Array<() => void> = [];
 
 const GESTURE_DRIFT_MS = 2000;
+const YT_HOST = "https://www.youtube-nocookie.com";
 
 function loadYouTubeApi(): Promise<void> {
   if (apiLoaded) return Promise.resolve();
@@ -80,111 +83,172 @@ function effectivePositionMs(pb: PlaybackState): number {
   return getEffectivePlaybackPosition(pb);
 }
 
+function isPlayableState(state: number): boolean {
+  return (
+    state === window.YT.PlayerState.PLAYING ||
+    state === window.YT.PlayerState.BUFFERING ||
+    state === window.YT.PlayerState.CUED
+  );
+}
+
 export function useYouTubePlayer({
   containerId,
   playback,
   quality = "auto",
   onEnded,
+  onError,
 }: UseYouTubePlayerOptions): UseYouTubePlayerResult {
   const playerRef = useRef<YT.Player | null>(null);
   const playerReadyRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [needsUserGesture, setNeedsUserGesture] = useState(false);
+  const [durationMs, setDurationMs] = useState(0);
   const lastVersionRef = useRef(0);
   const isLocalActionRef = useRef(false);
+  const pendingPlayRef = useRef(false);
   const playbackRef = useRef(playback);
   const onEndedRef = useRef(onEnded);
+  const onErrorRef = useRef(onError);
   const endedForItemRef = useRef<string | null>(null);
   const autoplayUnlockedRef = useRef(false);
   playbackRef.current = playback;
   onEndedRef.current = onEnded;
+  onErrorRef.current = onError;
 
   const qualityRef = useRef(quality);
   qualityRef.current = quality;
 
-  const applyPlaybackToPlayer = useCallback((force = false) => {
+  const tryPlay = useCallback((player: YT.Player) => {
     const pb = playbackRef.current;
-    if (!playerReadyRef.current || !pb || !playerRef.current) return;
+    if (!pb?.playing) return;
 
-    const player = playerRef.current;
-
-    if (!pb.videoId) {
-      safePlayerCall(player, (p) => {
-        p.stopVideo();
-      });
-      lastVersionRef.current = pb.version;
-      setNeedsUserGesture(false);
+    const state = player.getPlayerState();
+    if (state === window.YT.PlayerState.PLAYING) {
+      pendingPlayRef.current = false;
       return;
     }
 
-    const positionSec = effectivePositionMs(pb) / 1000;
-
-    let currentVideoId: string | undefined;
-    safePlayerCall(player, (p) => {
-      currentVideoId = p.getVideoData()?.video_id;
-    });
-
-    const sameVideo = pb.videoId && currentVideoId && pb.videoId === currentVideoId;
-
-    if (!force && pb.version <= lastVersionRef.current && sameVideo) return;
-
-    isLocalActionRef.current = true;
-
-    if (pb.videoId && pb.videoId !== currentVideoId) {
-      safePlayerCall(player, (p) => {
-        if (pb.playing) {
-          p.loadVideoById(pb.videoId!, positionSec);
-        } else {
-          p.cueVideoById(pb.videoId!, positionSec);
-        }
-      });
-    } else if (pb.videoId) {
-      safePlayerCall(player, (p) => {
-        const state = p.getPlayerState();
-        if (state === window.YT.PlayerState.ENDED) return;
-        const drift = Math.abs(p.getCurrentTime() * 1000 - effectivePositionMs(pb));
-        if (drift > SYNC_DRIFT_THRESHOLD_MS) {
-          p.seekTo(positionSec, true);
-        }
-      });
+    if (isPlayableState(state)) {
+      player.playVideo();
+      pendingPlayRef.current = false;
+      return;
     }
 
-    safePlayerCall(player, (p) => {
-      const state = p.getPlayerState();
-      if (pb.playing && state !== window.YT.PlayerState.PLAYING) {
-        if (state === window.YT.PlayerState.ENDED) {
-          p.seekTo(0, true);
-        }
-        p.playVideo();
-      } else if (!pb.playing && state === window.YT.PlayerState.PLAYING) {
-        p.pauseVideo();
-        setNeedsUserGesture(false);
+    pendingPlayRef.current = true;
+  }, []);
+
+  const loadVideoAtPosition = useCallback(
+    (player: YT.Player, videoId: string, positionSec: number, shouldPlay: boolean) => {
+      player.cueVideoById(videoId, positionSec);
+      pendingPlayRef.current = shouldPlay;
+      if (shouldPlay && autoplayUnlockedRef.current) {
+        tryPlay(player);
+      } else if (shouldPlay) {
+        setNeedsUserGesture(true);
+      }
+    },
+    [tryPlay],
+  );
+
+  const refreshDuration = useCallback(() => {
+    safePlayerCall(playerRef.current, (player) => {
+      const dur = player.getDuration();
+      if (dur > 0) {
+        setDurationMs(Math.round(dur * 1000));
       }
     });
-
-    const q = qualityRef.current;
-    if (q !== "auto") {
-      const qualityMap: Record<string, string> = {
-        "720p": "hd720",
-        "480p": "large",
-        "144p": "tiny",
-      };
-      safePlayerCall(player, (p) =>
-        p.setPlaybackQuality(qualityMap[q] ?? "default"),
-      );
-    }
-
-    lastVersionRef.current = pb.version;
-    setTimeout(() => {
-      isLocalActionRef.current = false;
-    }, 500);
   }, []);
+
+  const applyPlaybackToPlayer = useCallback(
+    (force = false) => {
+      const pb = playbackRef.current;
+      if (!playerReadyRef.current || !pb || !playerRef.current) return;
+
+      const player = playerRef.current;
+
+      if (!pb.videoId) {
+        safePlayerCall(player, (p) => {
+          p.stopVideo();
+        });
+        lastVersionRef.current = pb.version;
+        pendingPlayRef.current = false;
+        setNeedsUserGesture(false);
+        setDurationMs(0);
+        return;
+      }
+
+      const positionSec = effectivePositionMs(pb) / 1000;
+
+      let currentVideoId: string | undefined;
+      safePlayerCall(player, (p) => {
+        currentVideoId = p.getVideoData()?.video_id;
+      });
+
+      const sameVideo = pb.videoId && currentVideoId && pb.videoId === currentVideoId;
+
+      if (!force && pb.version <= lastVersionRef.current && sameVideo) return;
+
+      isLocalActionRef.current = true;
+
+      if (pb.videoId && pb.videoId !== currentVideoId) {
+        loadVideoAtPosition(player, pb.videoId, positionSec, pb.playing);
+      } else if (pb.videoId) {
+        safePlayerCall(player, (p) => {
+          const state = p.getPlayerState();
+          if (state === window.YT.PlayerState.ENDED) return;
+          const drift = Math.abs(p.getCurrentTime() * 1000 - effectivePositionMs(pb));
+          if (drift > SYNC_DRIFT_THRESHOLD_MS) {
+            p.seekTo(positionSec, true);
+          }
+        });
+      }
+
+      safePlayerCall(player, (p) => {
+        const state = p.getPlayerState();
+        if (pb.playing && state !== window.YT.PlayerState.PLAYING) {
+          if (state === window.YT.PlayerState.ENDED) {
+            p.seekTo(0, true);
+          }
+          if (autoplayUnlockedRef.current) {
+            tryPlay(p);
+          } else {
+            pendingPlayRef.current = true;
+            setNeedsUserGesture(true);
+          }
+        } else if (!pb.playing && state === window.YT.PlayerState.PLAYING) {
+          p.pauseVideo();
+          pendingPlayRef.current = false;
+          setNeedsUserGesture(false);
+        }
+      });
+
+      const q = qualityRef.current;
+      if (q !== "auto") {
+        const qualityMap: Record<string, string> = {
+          "720p": "hd720",
+          "480p": "large",
+          "144p": "tiny",
+        };
+        safePlayerCall(player, (p) =>
+          p.setPlaybackQuality(qualityMap[q] ?? "default"),
+        );
+      }
+
+      lastVersionRef.current = pb.version;
+      refreshDuration();
+      setTimeout(() => {
+        isLocalActionRef.current = false;
+      }, 500);
+    },
+    [loadVideoAtPosition, refreshDuration, tryPlay],
+  );
 
   const applyPlaybackRef = useRef(applyPlaybackToPlayer);
   applyPlaybackRef.current = applyPlaybackToPlayer;
 
   useEffect(() => {
     endedForItemRef.current = null;
+    setDurationMs(0);
   }, [playback?.queueItemId]);
 
   useEffect(() => {
@@ -192,7 +256,9 @@ export function useYouTubePlayer({
     playerReadyRef.current = false;
     setReady(false);
     setNeedsUserGesture(false);
+    setDurationMs(0);
     autoplayUnlockedRef.current = false;
+    pendingPlayRef.current = false;
 
     loadYouTubeApi().then(() => {
       if (!mounted) return;
@@ -201,6 +267,7 @@ export function useYouTubePlayer({
       playerRef.current = new window.YT.Player(containerId, {
         height: "100%",
         width: "100%",
+        host: YT_HOST,
         playerVars: {
           ...LOCKED_PLAYER_VARS,
           origin: window.location.origin,
@@ -213,12 +280,28 @@ export function useYouTubePlayer({
             applyPlaybackRef.current(true);
           },
           onStateChange: (event) => {
-            if (!mounted || isLocalActionRef.current) return;
+            if (!mounted) return;
 
             if (event.data === window.YT.PlayerState.PLAYING) {
               autoplayUnlockedRef.current = true;
+              pendingPlayRef.current = false;
               setNeedsUserGesture(false);
+              refreshDuration();
             }
+
+            if (
+              pendingPlayRef.current &&
+              playbackRef.current?.playing &&
+              isPlayableState(event.data)
+            ) {
+              isLocalActionRef.current = true;
+              safePlayerCall(event.target, (p) => p.playVideo());
+              setTimeout(() => {
+                isLocalActionRef.current = false;
+              }, 300);
+            }
+
+            if (isLocalActionRef.current) return;
 
             if (event.data === window.YT.PlayerState.ENDED) {
               const pb = playbackRef.current;
@@ -227,6 +310,9 @@ export function useYouTubePlayer({
               endedForItemRef.current = itemId;
               onEndedRef.current?.();
             }
+          },
+          onError: (event) => {
+            onErrorRef.current?.(event.data);
           },
         },
       });
@@ -239,7 +325,7 @@ export function useYouTubePlayer({
       safePlayerCall(playerRef.current, (player) => player.destroy());
       playerRef.current = null;
     };
-  }, [containerId]);
+  }, [containerId, refreshDuration]);
 
   const resyncView = useCallback(() => {
     const pb = playbackRef.current;
@@ -261,11 +347,7 @@ export function useYouTubePlayer({
       const positionSec = effectivePositionMs(pb) / 1000;
 
       if (pb.videoId !== currentVideoId) {
-        if (pb.playing) {
-          player.loadVideoById(pb.videoId, positionSec);
-        } else {
-          player.cueVideoById(pb.videoId, positionSec);
-        }
+        loadVideoAtPosition(player, pb.videoId, positionSec, pb.playing);
         return;
       }
 
@@ -279,7 +361,7 @@ export function useYouTubePlayer({
         player.pauseVideo();
       }
     });
-  }, []);
+  }, [loadVideoAtPosition]);
 
   const unlockPlayback = useCallback(() => {
     autoplayUnlockedRef.current = true;
@@ -299,18 +381,14 @@ export function useYouTubePlayer({
       }
 
       if (pb.videoId && pb.videoId !== currentVideoId) {
-        if (pb.playing) {
-          player.loadVideoById(pb.videoId, positionSec);
-        } else {
-          player.cueVideoById(pb.videoId, positionSec);
-        }
+        loadVideoAtPosition(player, pb.videoId, positionSec, pb.playing);
         return;
       }
 
       if (pb.videoId) {
         player.seekTo(positionSec, true);
         if (pb.playing) {
-          player.playVideo();
+          tryPlay(player);
         } else {
           player.pauseVideo();
         }
@@ -320,7 +398,7 @@ export function useYouTubePlayer({
     setTimeout(() => {
       isLocalActionRef.current = false;
     }, 500);
-  }, []);
+  }, [loadVideoAtPosition, tryPlay]);
 
   useEffect(() => {
     if (!ready) return;
@@ -357,6 +435,7 @@ export function useYouTubePlayer({
 
         const blocked =
           !autoplayUnlockedRef.current &&
+          pendingPlayRef.current &&
           drift > GESTURE_DRIFT_MS &&
           state !== window.YT.PlayerState.PLAYING &&
           state !== window.YT.PlayerState.BUFFERING;
@@ -367,5 +446,5 @@ export function useYouTubePlayer({
     return () => clearInterval(interval);
   }, [ready, playback?.playing, playback?.videoId]);
 
-  return { ready, resyncView, needsUserGesture, unlockPlayback };
+  return { ready, resyncView, needsUserGesture, unlockPlayback, durationMs };
 }
