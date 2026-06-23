@@ -2,40 +2,56 @@
 
 **Watch and listen together** — sync YouTube playback in real time, build a collaborative queue, vote to skip, and chat with friends. No account required.
 
-**Production:** [https://together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · Realtime: `wss://realtime.together.chtnnhfoundation.org`
-
-**Repository:** [github.com/chtnnh/together](https://github.com/chtnnh/together)
+**Live:** [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · **Source:** [github.com/chtnnh/together](https://github.com/chtnnh/together)
 
 ---
 
-## Features (v0.1.0)
+## What makes Together different
+
+Most watch-party apps assume desktop, always-on video, and one look for everyone. Together is built for how people actually listen:
+
+| | |
+|---|---|
+| **Mobile-first** | Video on top, queue and chat in thumb-friendly tabs below. Install as a PWA for a full-screen session on your phone. |
+| **Audio-only mode** | Hide the player and keep listening — perfect for music sessions, background listening, or saving bandwidth. Toggle per browser; doesn’t affect anyone else. |
+| **Personal themes** | Pick your own accent theme (midnight, ocean, sunset, forest, lavender). Saved locally — your room, your colors. |
+
+---
+
+## Features
 
 ### Playback & sync
 - Synchronized YouTube playback with drift correction
+- Seek bar — scrub to any point when you have playback control
+- Play any track from the queue on demand (not just “next”)
 - Late-join sync (“tap to sync” when autoplay is blocked)
 - Host/co-host play, pause, and skip
-- **Open controls mode** — unlock playback so every member can control play/skip and add directly to the queue
+- **Open controls mode** — unlock playback so every member can control play/skip/seek and add directly to the queue
 - Loop modes: off, repeat current track, repeat queue
-- Queue history (played / skipped tracks)
+- Unavailable or deleted YouTube videos blocked at import
 
 ### Queue & discovery
 - Two-lane queue: member **requests** → host **DJ queue**
+- Drag-and-drop queue reordering (host/co-host)
+- Clear all requests or queue in one click
+- Queue history with one-click re-add
 - YouTube URL paste and search
 - Spotify & Apple Music playlist import (optional OAuth / API keys)
 - Smart track resolution (ISRC-first, fuzzy title/artist matching, alternate picker)
 
 ### Room & moderation
 - Public, unlisted, or password-protected rooms
-- Custom room names
-- Kick, ban, promote co-hosts
-- Vote-to-skip with configurable threshold
+- Custom room names; room settings persist across host refresh
+- Kick, ban, promote and demote co-hosts
+- Vote-to-skip with configurable threshold (votes reset when the track changes)
 - Democratic request promotion (optional)
 
 ### Chat & personalization
 - Text chat with emoji picker
 - Slow mode and profanity filter (host settings)
-- Per-user theme, audio-only mode, and stream quality (local to each browser)
-- Mobile layout + PWA install
+- **Five theme presets** — personal accent colors, saved per browser
+- **Audio-only mode** — hide video, keep the music going
+- Stream quality preference (auto / 720p / 480p / 144p)
 - Activity toasts (join, leave, kick, ban, promote)
 
 ### Optional (requires Supabase auth)
@@ -72,11 +88,11 @@
 
 ## Prerequisites
 
-- **Node.js** ≥ 20
+- **Node.js** ≥ 22 (required by Wrangler for the realtime dev server)
 - **pnpm** 9 (`corepack enable && corepack prepare pnpm@9.15.9 --activate`)
 - **PostgreSQL** (local or [Supabase](https://supabase.com))
 - **YouTube Data API key** (required for search/import)
-- **Cloudflare account** (production realtime)
+- **Cloudflare account** (optional — only if you deploy the realtime worker yourself)
 - Optional: Spotify, Apple Music, Supabase auth keys
 
 ---
@@ -190,108 +206,6 @@ See [`.env.example`](.env.example) for the full list.
 
 ---
 
-## Production deployment
-
-Target: **https://together.chtnnhfoundation.org**
-
-### Step 1 — Supabase (database)
-
-1. Create a Supabase project (if not done).
-2. **Settings → Database → Connection string → URI** (direct, port 5432).
-3. From your machine (Session pooler URI in `.env` — see note above):
-
-   ```bash
-   pnpm db:migrate
-   ```
-
-4. Confirm tables exist in the Supabase SQL editor (`rooms`, `users`, etc.).
-
-5. **Auth (v0.1.0):** Supabase dashboard → Authentication → URL configuration:
-   - **Site URL:** `https://together.chtnnhfoundation.org`
-   - **Redirect URLs:** `https://together.chtnnhfoundation.org/settings` (magic-link sign-in)
-
-For the **Vercel runtime**, use the **Transaction pooler** URI (port 6543, `?pgbouncer=true`) as `DATABASE_URL` — better for serverless.
-
-### Step 2 — Cloudflare Worker (realtime)
-
-Realtime: **`wss://realtime.together.chtnnhfoundation.org`**
-
-1. Deploy (Custom Domain + DNS are configured on deploy):
-
-   ```bash
-   cd services/realtime
-   npx wrangler deploy --env production
-   ```
-
-   `wrangler.toml` uses `custom_domain = true`, so Cloudflare creates the DNS record and TLS cert for `realtime.together.chtnnhfoundation.org` automatically (zone `chtnnhfoundation.org` must be on the same account).
-
-2. If the subdomain still doesn’t resolve, add it manually in **Workers → together-realtime-production → Settings → Domains & Routes → Add → Custom domain** → `realtime.together.chtnnhfoundation.org`.
-
-3. Health check:
-
-   ```bash
-   curl https://realtime.together.chtnnhfoundation.org/health
-   ```
-
-4. Set on Vercel: `NEXT_PUBLIC_REALTIME_URL=wss://realtime.together.chtnnhfoundation.org`
-
-### Step 2b — DNS summary (Cloudflare zone: chtnnhfoundation.org)
-
-| Hostname | Type | Target | Notes |
-|---|---|---|---|
-| `realtime.together` | (auto) | Worker custom domain | Created by `wrangler deploy --env production` |
-| `together` | CNAME | `cname.vercel-dns.com` (Vercel gives exact target) | **DNS only** (grey cloud) recommended for Vercel SSL |
-
-### Step 3 — Vercel (web)
-
-Vercel fits this stack (Next.js 15, serverless API routes, custom domains). Point **together.chtnnhfoundation.org** at the Vercel project.
-
-1. Import [github.com/chtnnh/together](https://github.com/chtnnh/together) in [Vercel](https://vercel.com).
-2. Set **Root Directory** to `apps/web`.
-3. Vercel reads [`apps/web/vercel.json`](apps/web/vercel.json):
-   - Install: `cd ../.. && pnpm install`
-   - Build: `cd ../.. && pnpm --filter @together/web build`
-4. Add environment variables (Production):
-
-   ```env
-   DATABASE_URL=postgresql://...pooler...6543/postgres?pgbouncer=true
-   YOUTUBE_API_KEY=...
-   NEXT_PUBLIC_REALTIME_URL=wss://realtime.together.chtnnhfoundation.org
-   NEXT_PUBLIC_APP_URL=https://together.chtnnhfoundation.org
-   ROOM_TOKEN_SECRET=<openssl rand -hex 32>
-   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-   SUPABASE_SERVICE_ROLE_KEY=...
-   ```
-
-   Supabase auth is enabled for v0.1.0 (saved playlists / owned rooms). Spotify and Apple Music imports are optional — skip those env vars unless you add them later.
-
-5. Add domain **together.chtnnhfoundation.org** in Vercel → **Settings → Domains**.
-6. Vercel shows a CNAME target (e.g. `cname.vercel-dns.com`). In **Cloudflare DNS**, add:
-
-   | Type | Name | Target | Proxy |
-   |---|---|---|---|
-   | CNAME | `together` | *(paste from Vercel)* | DNS only (grey cloud) |
-
-7. Wait for Vercel to show **Valid Configuration**, then deploy (or redeploy).
-
-### Step 4 — Post-deploy checks
-
-- [ ] Landing page loads at production URL
-- [ ] Create room → redirects to `/r/{slug}`
-- [ ] WebSocket connects (no perpetual “Connecting…” in room header)
-- [ ] YouTube search/add works
-- [ ] Two browsers stay in sync
-- [ ] `/api/health/db` returns OK
-
-### CSP / CORS notes
-
-- `next.config.ts` CSP allows `ws:` / `wss:` for realtime.
-- Realtime is served from `realtime.together.chtnnhfoundation.org` — no extra CSP changes needed.
-- YouTube API key: restrict by HTTP referrer to `https://together.chtnnhfoundation.org/*` in Google Cloud Console.
-
----
-
 ## Project structure
 
 ```
@@ -313,11 +227,11 @@ together/
 ## Testing
 
 ```bash
-# Start web + realtime dev servers first, then:
-pnpm --filter @together/web test
+pnpm --filter @together/web test:install   # first time / CI: install Playwright browsers
+pnpm --filter @together/web test           # starts web + realtime via Playwright webServer
 ```
 
-Playwright specs live in `apps/web/e2e/`.
+Playwright specs live in `apps/web/e2e/`. Requires **Node.js 22+** (Wrangler dev server).
 
 ---
 
