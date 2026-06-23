@@ -48,3 +48,10 @@ Cloud agents must use the **GitHub** repository **`chtnnh/together`**, branch **
 - Environment config: **`.cursor/environment.json`** (Node 22 + pnpm install on startup).
 - Set secrets in [Cursor Dashboard → Cloud Agents → Secrets](https://cursor.com/dashboard?tab=cloud-agents) (not in git): at minimum dummy values for local agent runs if testing web (`DATABASE_URL`, `YOUTUBE_API_KEY`, `ROOM_TOKEN_SECRET`, `NEXT_PUBLIC_*` — see `.env.example`).
 - For v0.2.0 tasks, work **one phase at a time** from `docs/v0.2.0-plan.md` and run `pnpm typecheck` before finishing.
+
+### Running locally (verified caveats)
+
+- The core flow (create room → realtime connect → chat/queue) runs with **no Postgres and no YouTube key**: leave `DATABASE_URL` empty so `apps/web` uses the in-memory room store (`/api/health/db` reports `"mode":"memory"`), and an empty `YOUTUBE_API_KEY` only disables YouTube text search (URL paste still works). Do not request DB/YouTube secrets just to run/test the core product.
+- Start the two services in separate terminals: `pnpm --filter @together/realtime dev` (`:8787`, health at `/health`) and `pnpm --filter @together/web dev` (`:3000`). The web SSR seeds the Durable Object via `POST {realtime}/room/{id}/init` on first room load.
+- `wrangler dev` prints harmless `Unable to fetch the Request.cf object` / TLS `ECONNRESET` warnings in this sandbox (outbound egress is restricted); the worker still serves locally — ignore them.
+- Playwright E2E (`pnpm --filter @together/web test:install` then `... test`) requires downloading the Chromium browser, which is **blocked by the restricted network egress** here. Until that domain is allowlisted, validate UI flows manually against the running dev servers instead.
