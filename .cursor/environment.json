@@ -1,0 +1,9 @@
+{
+  "name": "together",
+  "install": "pnpm install --frozen-lockfile",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "terminals": []
+}
