@@ -30,7 +30,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @together/web test:install
       - run: pnpm --filter @together/web test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/together
