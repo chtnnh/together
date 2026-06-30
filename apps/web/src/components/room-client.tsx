@@ -706,7 +706,12 @@ export function RoomClient({
             <ShareInviteButton slug={slug} />
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Settings"
+                  onClick={() => setSettingsOpen(true)}
+                >
                   <Settings className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>

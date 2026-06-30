@@ -111,6 +111,7 @@ export function SettingsDrawer({
 
             <SettingRow label="Audio only mode" description="Hide the video player, audio only.">
               <Switch
+                aria-label="Audio only mode"
                 checked={userPrefs.audioOnly}
                 onCheckedChange={(v) => onUserPrefsUpdate({ audioOnly: v })}
               />
