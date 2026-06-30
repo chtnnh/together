@@ -7,7 +7,6 @@ import {
   QueueList,
   RequestList,
   HistoryList,
-  SkipVoteBar,
   Tabs,
   TabsContent,
   TabsList,
@@ -22,9 +21,6 @@ import {
 import {
   Settings,
   Users,
-  Play,
-  Pause,
-  SkipForward,
   Plus,
   Music2,
   ListMusic,
@@ -38,10 +34,11 @@ import { embedErrorMessage, isEmbedBlockedError } from "@/lib/playback-embed-err
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { ChatInput, ChatMessages } from "@/components/emoji-chat";
-import { PlaybackSeekBar } from "@/components/playback-seek-bar";
-import { PlaybackVolumeControl } from "@/components/playback-volume-control";
+import { NowPlayingBar } from "@/components/now-playing-bar";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SettingsDrawer } from "@/components/room-settings";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { AlternatePicker } from "@/components/alternate-picker";
 import { ParticipantsPanel } from "@/components/participants-panel";
 import { getDisplayName, setDisplayName } from "@/lib/utils";
@@ -130,9 +127,11 @@ export function RoomClient({
   const [lastReadChatCount, setLastReadChatCount] = useState(0);
   const [localRoomTitle, setLocalRoomTitle] = useState(initialTitle);
   const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const chatInitRef = useRef(false);
   const participantsRef = useRef<HTMLDivElement>(null);
   const prevHistoryLenRef = useRef(0);
+  const addUrlInputRef = useRef<HTMLInputElement>(null);
 
   useOnClickOutside(participantsRef, () => setParticipantsOpen(false), participantsOpen);
 
@@ -403,6 +402,39 @@ export function RoomClient({
       </span>
     ) : null;
 
+  const currentTrack = roomState?.queue.find((q) => q.id === playback?.queueItemId);
+  const trackDurationMs = Math.max(currentTrack?.durationMs ?? 0, playerDurationMs);
+
+  useKeyboardShortcuts({
+    enabled: joined && connected,
+    onPlayPause: () => {
+      if (!canControlPlayback || !playback) return;
+      onPlaybackChange({ playing: !playback.playing });
+    },
+    onSeekBack: () => {
+      if (!canControlPlayback || !playback) return;
+      const pos = getEffectivePlaybackPosition(playback);
+      onPlaybackChange({ positionMs: Math.max(0, pos - 5000), playing: playback.playing });
+    },
+    onSeekForward: () => {
+      if (!canControlPlayback || !playback) return;
+      const pos = getEffectivePlaybackPosition(playback);
+      onPlaybackChange({
+        positionMs: Math.min(trackDurationMs, pos + 5000),
+        playing: playback.playing,
+      });
+    },
+    onSkip: () => {
+      if (roomState?.skipVotes && !canControlPlayback) {
+        send({ type: "vote:skip" });
+        return;
+      }
+      if (canControlPlayback) send({ type: "queue:skip" });
+    },
+    onFocusAddUrl: () => addUrlInputRef.current?.focus(),
+    onShowHelp: () => setShortcutsOpen(true),
+  });
+
   if (!joined) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -433,8 +465,46 @@ export function RoomClient({
   );
   const hasVotedSkip = roomState?.skipVotes?.votes.includes(participant?.id ?? "") ?? false;
 
-  const currentTrack = roomState?.queue.find((q) => q.id === playback?.queueItemId);
-  const trackDurationMs = Math.max(currentTrack?.durationMs ?? 0, playerDurationMs);
+  const canSkip =
+    !!roomState?.queue.some((i) => i.id === playback?.queueItemId) ||
+    !!roomState?.skipVotes;
+
+  const nowPlayingBar = (
+    <NowPlayingBar
+      playback={playback}
+      title={playback?.title ?? currentTrack?.title}
+      artist={currentTrack?.artist}
+      thumbnailUrl={
+        currentTrack?.thumbnailUrl ??
+        (playback?.videoId
+          ? `https://i.ytimg.com/vi/${playback.videoId}/default.jpg`
+          : undefined)
+      }
+      durationMs={trackDurationMs}
+      ready={ready}
+      canControlPlayback={canControlPlayback}
+      skipVotes={
+        roomState?.skipVotes
+          ? {
+              voteCount: skipVoteCount,
+              required: skipRequired,
+              hasVoted: hasVotedSkip,
+              onVote: () => send({ type: "vote:skip" }),
+            }
+          : null
+      }
+      volume={userPrefs.volume}
+      muted={userPrefs.muted}
+      onVolumeChange={(volume) => setUserPrefs({ volume })}
+      onMutedChange={(muted) => setUserPrefs({ muted })}
+      onSeek={(positionMs) =>
+        playback && onPlaybackChange({ positionMs, playing: playback.playing })
+      }
+      onPlayPause={() => playback && onPlaybackChange({ playing: !playback.playing })}
+      onSkip={() => send({ type: "queue:skip" })}
+      canSkip={canSkip}
+    />
+  );
 
   const chatPanel = (
     <>
@@ -447,76 +517,13 @@ export function RoomClient({
     </>
   );
 
-  const playbackControls = (
-    <div className="space-y-3">
-      {playback?.videoId && (
-        <PlaybackSeekBar
-          playback={playback}
-          durationMs={trackDurationMs}
-          disabled={!canControlPlayback || !ready}
-          onSeek={(positionMs) => onPlaybackChange({ positionMs, playing: playback.playing })}
-        />
-      )}
-      {roomState?.skipVotes && (
-        <SkipVoteBar
-          voteCount={skipVoteCount}
-          required={skipRequired}
-          hasVoted={hasVotedSkip}
-          onVote={() => send({ type: "vote:skip" })}
-        />
-      )}
-      <div className="flex items-center justify-center gap-3">
-        {canControlPlayback && (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={() => onPlaybackChange({ playing: !playback?.playing })}
-                  disabled={!ready}
-                  aria-label={playback?.playing ? "Pause" : "Play"}
-                >
-                  {playback?.playing ? (
-                    <Pause className="size-5" />
-                  ) : (
-                    <Play className="size-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{playback?.playing ? "Pause" : "Play"}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  aria-label="Skip to next"
-                  onClick={() => send({ type: "queue:skip" })}
-                  disabled={!roomState?.queue.some((i) => i.id === playback?.queueItemId)}
-                >
-                  <SkipForward className="size-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Skip to next</TooltipContent>
-            </Tooltip>
-          </>
-        )}
-      </div>
-      <PlaybackVolumeControl
-        volume={userPrefs.volume}
-        muted={userPrefs.muted}
-        onVolumeChange={(volume) => setUserPrefs({ volume })}
-        onMutedChange={(muted) => setUserPrefs({ muted })}
-        disabled={!ready}
-      />
-    </div>
-  );
+  const playbackControls = nowPlayingBar;
 
   const addTrackHeader = (
     <div className="shrink-0 border-b border-[var(--border)] p-3">
       <div className="flex items-center gap-2">
         <Input
+          ref={addUrlInputRef}
           value={addUrl}
           onChange={(e) => {
             setAddUrl(e.target.value);
@@ -562,6 +569,7 @@ export function RoomClient({
       <div className="border-b border-[var(--border)] p-3">
         <div className="flex items-center gap-2">
           <Input
+            ref={addUrlInputRef}
             value={addUrl}
             onChange={(e) => {
               setAddUrl(e.target.value);
@@ -805,11 +813,17 @@ export function RoomClient({
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:hidden">
           {mobileTab === "now-playing" ? (
-            <div className="flex flex-1 flex-col justify-end p-4">
-              {playback?.title && (
-                <p className="mb-3 truncate text-center text-sm font-medium">{playback.title}</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4">
+              {userPrefs.audioOnly ? (
+                <>
+                  <Music2 className="h-12 w-12 text-[var(--accent)]" />
+                  <p className="text-center text-lg font-medium">{playback?.title ?? "Nothing playing"}</p>
+                </>
+              ) : (
+                <p className="text-center text-sm text-[var(--text-muted)]">
+                  Watch the player above — controls are pinned below.
+                </p>
               )}
-              {playbackControls}
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -853,7 +867,7 @@ export function RoomClient({
           )}
         </div>
 
-        <div className="hidden shrink-0 border-t border-[var(--border)] p-4 md:block">
+        <div className="shrink-0 border-t border-[var(--border)] p-4">
           {playbackControls}
         </div>
 
@@ -886,6 +900,8 @@ export function RoomClient({
       <div className="hidden w-96 min-h-0 flex-col border-l border-[var(--border)] md:flex">
         {sidebar}
       </div>
+
+      {shortcutsOpen && <KeyboardShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
 
       {settingsOpen && (
         <SettingsDrawer

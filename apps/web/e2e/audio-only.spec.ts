@@ -20,6 +20,6 @@ test.describe("Phase 4.7 — Desktop audio-only hides video", () => {
     await page.getByRole("button", { name: "Close settings" }).click();
 
     await expect(page.locator("#youtube-player")).toBeHidden();
-    await expect(page.getByText("Nothing playing")).toBeVisible();
+    await expect(page.getByTestId("now-playing-bar")).toContainText("Nothing playing");
   });
 });
