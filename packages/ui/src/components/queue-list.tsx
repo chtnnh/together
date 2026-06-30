@@ -157,7 +157,10 @@ export function QueueList({
 
   if (items.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--text-muted)]">Queue is empty</p>
+      <div className="py-8 text-center text-sm text-[var(--text-muted)]">
+        <p>Queue is empty</p>
+        <p className="mt-1 text-xs">Paste a YouTube link above to add tracks.</p>
+      </div>
     );
   }
 
@@ -237,7 +240,10 @@ export function RequestList({
 }: RequestListProps) {
   if (items.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--text-muted)]">No requests yet</p>
+      <div className="py-8 text-center text-sm text-[var(--text-muted)]">
+        <p>No requests yet</p>
+        <p className="mt-1 text-xs">Paste a YouTube link above to request a track.</p>
+      </div>
     );
   }
 
@@ -318,7 +324,10 @@ export function HistoryList({
 }) {
   if (items.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--text-muted)]">Nothing played yet</p>
+      <div className="py-8 text-center text-sm text-[var(--text-muted)]">
+        <p>Nothing played yet</p>
+        <p className="mt-1 text-xs">Tracks appear here after they play or get skipped.</p>
+      </div>
     );
   }
 
