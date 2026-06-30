@@ -596,6 +596,13 @@ export function RoomClient({
           <Button
             variant="secondary"
             size="sm"
+            onClick={() => (window.location.href = `/import/soundcloud?room=${slug}`)}
+          >
+            Import SoundCloud
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => (window.location.href = `/api/auth/apple?room=${slug}`)}
           >
             Import Apple Music
