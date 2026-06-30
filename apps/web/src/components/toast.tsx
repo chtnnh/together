@@ -60,6 +60,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
+            role="status"
+            aria-live="polite"
             className={`rounded-lg px-4 py-2.5 text-sm shadow-lg ${
               t.variant === "error"
                 ? "bg-red-600 text-white"

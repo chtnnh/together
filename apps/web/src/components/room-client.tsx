@@ -295,8 +295,9 @@ export function RoomClient({
           confidence: item.confidence,
         },
       });
+      toast(`Added "${item.title}"`, "success");
     },
-    [send],
+    [send, toast],
   );
 
   const reAddFromHistory = useCallback(
@@ -332,7 +333,9 @@ export function RoomClient({
       const data = await res.json();
 
       if (!res.ok) {
-        setAddError(data.error ?? "Failed to add track");
+        const message = data.error ?? "Failed to add track";
+        setAddError(message);
+        toast(message, "error");
         return;
       }
 
@@ -713,8 +716,8 @@ export function RoomClient({
         </header>
 
         <div
-          className={`relative w-full shrink-0 bg-black md:min-h-0 md:flex-1 ${
-            userPrefs.audioOnly ? "max-md:hidden" : "aspect-video md:aspect-auto"
+          className={`relative w-full shrink-0 bg-black ${
+            userPrefs.audioOnly ? "hidden" : "aspect-video md:min-h-0 md:flex-1 md:aspect-auto"
           }`}
         >
           <div id="youtube-player" className="h-full w-full" />
