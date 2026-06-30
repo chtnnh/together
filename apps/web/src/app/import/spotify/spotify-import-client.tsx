@@ -17,19 +17,32 @@ export default function SpotifyImportClient() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/import/spotify")
-      .then((r) => r.json())
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) {
+          throw new Error(
+            typeof data.error === "string" ? data.error : "Failed to load Spotify playlists",
+          );
+        }
+        return data;
+      })
       .then((data) => {
         setPlaylists(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to load Spotify playlists");
+        setLoading(false);
+      });
   }, []);
 
   const handleImport = async (playlistId: string) => {
     setImporting(playlistId);
+    setError(null);
     try {
       const res = await fetch("/api/import/spotify", {
         method: "POST",
@@ -37,9 +50,16 @@ export default function SpotifyImportClient() {
         body: JSON.stringify({ playlistId }),
       });
       const items = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          typeof items.error === "string" ? items.error : "Spotify import failed",
+        );
+      }
 
       sessionStorage.setItem("together_import_items", JSON.stringify(items));
       router.push(room ? `/r/${room}` : "/");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Spotify import failed");
     } finally {
       setImporting(null);
     }
@@ -56,6 +76,11 @@ export default function SpotifyImportClient() {
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
       <h1 className="mb-6 text-2xl font-bold">Import from Spotify</h1>
+      {error && (
+        <p className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          {error}
+        </p>
+      )}
       <div className="space-y-2">
         {playlists.map((p) => (
           <div
