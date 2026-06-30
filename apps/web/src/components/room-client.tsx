@@ -31,6 +31,8 @@ import {
   MessageSquare,
   History,
 } from "lucide-react";
+import { PlaybackEmbedErrorBanner } from "@/components/playback-embed-error-banner";
+import { embedErrorMessage, isEmbedBlockedError } from "@/lib/playback-embed-error";
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { ChatInput, ChatMessages } from "@/components/emoji-chat";
@@ -124,6 +126,7 @@ export function RoomClient({
   const [sidebarTab, setSidebarTab] = useState("requests");
   const [lastReadChatCount, setLastReadChatCount] = useState(0);
   const [localRoomTitle, setLocalRoomTitle] = useState(initialTitle);
+  const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
   const chatInitRef = useRef(false);
   const participantsRef = useRef<HTMLDivElement>(null);
 
@@ -185,19 +188,19 @@ export function RoomClient({
 
   useEffect(() => {
     lastEndedReportRef.current = null;
+    setEmbedError(null);
   }, [playback?.queueItemId]);
+
+  const currentQueueItem =
+    playback?.queueItemId != null
+      ? roomState?.queue.find((item) => item.id === playback.queueItemId)
+      : undefined;
 
   const handleYouTubeError = useCallback(
     (code: number) => {
-      const messages: Record<number, string> = {
-        2: "Invalid video",
-        5: "Playback error — tap to sync and retry",
-        100: "Video not found",
-        101: "This video can't be played here",
-        150: "This video can't be embedded",
-        153: "Player error — tap to sync and retry",
-      };
-      toast(messages[code] ?? `Playback error (${code})`, "error");
+      const message = embedErrorMessage(code);
+      setEmbedError({ code, message });
+      toast(message, "error");
     },
     [toast],
   );
@@ -743,6 +746,24 @@ export function RoomClient({
               </button>
             </div>
           )}
+          {embedError && (
+            <PlaybackEmbedErrorBanner
+              message={embedError.message}
+              canPickAlternate={
+                isEmbedBlockedError(embedError.code) &&
+                !!currentQueueItem?.alternates?.length &&
+                canControlPlayback
+              }
+              onPickAlternate={() => {
+                if (!currentQueueItem) return;
+                setPickRequest({
+                  ...currentQueueItem,
+                  status: "needs_pick",
+                } as RequestItem);
+              }}
+              onDismiss={() => setEmbedError(null)}
+            />
+          )}
         </div>
 
         {userPrefs.audioOnly && (
@@ -869,12 +890,17 @@ export function RoomClient({
         <AlternatePicker
           request={pickRequest}
           onPick={(videoId, title) => {
-            send({
-              type: "resolve:pick",
-              requestId: pickRequest.id,
-              videoId,
-              title,
-            });
+            if (playback && pickRequest.id === playback.queueItemId) {
+              onPlaybackChange({ videoId, title });
+              setEmbedError(null);
+            } else {
+              send({
+                type: "resolve:pick",
+                requestId: pickRequest.id,
+                videoId,
+                title,
+              });
+            }
             setPickRequest(null);
           }}
           onClose={() => setPickRequest(null)}
