@@ -86,14 +86,16 @@ export class RoomDurableObject implements DurableObject {
         settings?: Partial<RoomSettings>;
         passwordRequired?: boolean;
       };
+      const previousRoomId = this.state.roomId;
       this.state.roomId = body.roomId;
       this.state.slug = body.slug;
       if (body.title) {
         this.state.title = body.title;
       }
       if (body.settings) {
-        const isNewRoom = !this.state.roomId || this.state.roomId !== body.roomId;
-        if (isNewRoom) {
+        const shouldApplyInitSettings =
+          !previousRoomId || previousRoomId !== body.roomId;
+        if (shouldApplyInitSettings) {
           this.state.settings = roomSettingsSchema.parse({
             ...this.state.settings,
             ...body.settings,
@@ -334,6 +336,7 @@ export class RoomDurableObject implements DurableObject {
         }
         await this.persist();
         this.broadcast({ type: "settings", settings: this.state.settings });
+        void this.syncSettingsToDatabase(this.state.settings);
         break;
       case "room:update":
         if (!this.isHostish(participant)) {
@@ -941,9 +944,32 @@ export class RoomDurableObject implements DurableObject {
   private async persist() {
     await this.ctx.storage.put("state", this.state);
   }
+
+  /** Best-effort sync of live DO settings to Postgres for owned rooms. */
+  private async syncSettingsToDatabase(settings: RoomSettings): Promise<void> {
+    const appUrl = this.env.APP_URL;
+    const secret = this.env.ROOM_TOKEN_SECRET;
+    const slug = this.state.slug;
+    if (!appUrl || !secret || !slug) return;
+
+    try {
+      await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/rooms/${slug}/settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify(settings),
+      });
+    } catch {
+      // Web app may be unavailable in dev; client PATCH remains fallback.
+    }
+  }
 }
 
 export interface Env {
   ROOM: DurableObjectNamespace;
   ENVIRONMENT: string;
+  APP_URL?: string;
+  ROOM_TOKEN_SECRET?: string;
 }

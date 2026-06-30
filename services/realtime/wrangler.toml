@@ -14,6 +14,8 @@ bindings = [
 
 [vars]
 ENVIRONMENT = "development"
+APP_URL = "http://127.0.0.1:3002"
+ROOM_TOKEN_SECRET = "test-secret"
 
 # Production: npx wrangler deploy --env production
 [env.production]
@@ -28,3 +30,4 @@ bindings = [
 
 [env.production.vars]
 ENVIRONMENT = "production"
+APP_URL = "https://together.chtnnhfoundation.org"
