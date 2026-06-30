@@ -13,6 +13,19 @@ import {
 
 const clientEventBase = z.object({ type: z.string() });
 
+export const REACTION_EMOJIS = ["🔥", "👏", "💀", "❤️", "😂"] as const;
+export const reactionEmojiSchema = z.enum(REACTION_EMOJIS);
+export type ReactionEmoji = z.infer<typeof reactionEmojiSchema>;
+
+export const roomReactionSchema = z.object({
+  id: z.string(),
+  emoji: reactionEmojiSchema,
+  senderName: z.string(),
+  senderId: z.string(),
+  createdAt: z.number(),
+});
+export type RoomReaction = z.infer<typeof roomReactionSchema>;
+
 export const clientEvents = {
   join: joinRoomInputSchema.extend({ type: z.literal("join") }),
   leave: clientEventBase.extend({ type: z.literal("leave") }),
@@ -102,6 +115,10 @@ export const clientEvents = {
     type: z.literal("ping"),
     sentAt: z.number(),
   }),
+  reactionSend: clientEventBase.extend({
+    type: z.literal("reaction:send"),
+    emoji: reactionEmojiSchema,
+  }),
 };
 
 export const clientEventSchema = z.discriminatedUnion("type", [
@@ -128,6 +145,7 @@ export const clientEventSchema = z.discriminatedUnion("type", [
   clientEvents.promoteRole,
   clientEvents.resolvePick,
   clientEvents.ping,
+  clientEvents.reactionSend,
 ]);
 
 export type ClientEvent = z.infer<typeof clientEventSchema>;
@@ -190,6 +208,10 @@ export const serverEvents = {
     requestId: z.string(),
     metadata: trackMetadataSchema,
   }),
+  reaction: z.object({
+    type: z.literal("reaction"),
+    reaction: roomReactionSchema,
+  }),
 };
 
 export const serverEventSchema = z.discriminatedUnion("type", [
@@ -206,6 +228,7 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   serverEvents.kicked,
   serverEvents.pong,
   serverEvents.resolveRequest,
+  serverEvents.reaction,
 ]);
 
 export type ServerEvent = z.infer<typeof serverEventSchema>;

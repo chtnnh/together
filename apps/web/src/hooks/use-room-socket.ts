@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientEvent, RoomActivity, RoomState, ServerEvent } from "@together/shared";
+import type { ClientEvent, RoomActivity, RoomReaction, RoomState, ServerEvent } from "@together/shared";
 import { SYNC_CHECK_INTERVAL_MS, SYNC_DRIFT_THRESHOLD_MS } from "@together/shared";
 import { getAnonId, getRealtimeUrl } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ interface UseRoomSocketOptions {
   enabled?: boolean;
   onKicked?: (reason: string) => void;
   onActivity?: (activity: RoomActivity) => void;
+  onReaction?: (reaction: RoomReaction) => void;
 }
 
 const MAX_RECONNECT_ATTEMPTS = 8;
@@ -23,6 +24,7 @@ export function useRoomSocket({
   enabled = true,
   onKicked,
   onActivity,
+  onReaction,
 }: UseRoomSocketOptions) {
   const [connected, setConnected] = useState(false);
   const [synced, setSynced] = useState(false);
@@ -45,11 +47,13 @@ export function useRoomSocket({
   const enabledRef = useRef(enabled);
   const onKickedRef = useRef(onKicked);
   const onActivityRef = useRef(onActivity);
+  const onReactionRef = useRef(onReaction);
   displayNameRef.current = displayName;
   userIdRef.current = userId;
   enabledRef.current = enabled;
   onKickedRef.current = onKicked;
   onActivityRef.current = onActivity;
+  onReactionRef.current = onReaction;
 
   const send = useCallback((event: ClientEvent) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -184,6 +188,9 @@ export function useRoomSocket({
             onKickedRef.current?.(data.reason);
             intentionalClose.current = true;
             ws.close();
+            break;
+          case "reaction":
+            onReactionRef.current?.(data.reaction);
             break;
         }
       };

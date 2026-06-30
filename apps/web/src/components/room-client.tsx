@@ -45,7 +45,7 @@ import { getDisplayName, setDisplayName } from "@/lib/utils";
 import { ShareInviteButton } from "@/components/share-invite-button";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
-import type { HistoryItem, RequestItem, RoomActivity } from "@together/shared";
+import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
 
@@ -128,6 +128,7 @@ export function RoomClient({
   const [localRoomTitle, setLocalRoomTitle] = useState(initialTitle);
   const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [incomingReactions, setIncomingReactions] = useState<RoomReaction[]>([]);
   const chatInitRef = useRef(false);
   const participantsRef = useRef<HTMLDivElement>(null);
   const prevHistoryLenRef = useRef(0);
@@ -144,6 +145,10 @@ export function RoomClient({
     [toast],
   );
 
+  const onReaction = useCallback((reaction: RoomReaction) => {
+    setIncomingReactions((prev) => [...prev, reaction]);
+  }, []);
+
   const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences();
 
   const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline } = useRoomSocket({
@@ -152,6 +157,7 @@ export function RoomClient({
     enabled: joined,
     onKicked,
     onActivity,
+    onReaction,
   });
 
   const settings = roomState?.settings;
@@ -503,6 +509,8 @@ export function RoomClient({
       onPlayPause={() => playback && onPlaybackChange({ playing: !playback.playing })}
       onSkip={() => send({ type: "queue:skip" })}
       canSkip={canSkip}
+      onReactionSend={(emoji) => send({ type: "reaction:send", emoji })}
+      incomingReactions={incomingReactions}
     />
   );
 

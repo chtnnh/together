@@ -1,10 +1,11 @@
 "use client";
 
-import type { PlaybackState } from "@together/shared";
+import type { PlaybackState, ReactionEmoji, RoomReaction } from "@together/shared";
 import { Button, SkipVoteBar, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Pause, Play, SkipForward } from "lucide-react";
 import { PlaybackSeekBar } from "@/components/playback-seek-bar";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
+import { NowPlayingReactions } from "@/components/now-playing-reactions";
 
 interface NowPlayingBarProps {
   playback: PlaybackState | null;
@@ -28,6 +29,8 @@ interface NowPlayingBarProps {
   onPlayPause: () => void;
   onSkip: () => void;
   canSkip: boolean;
+  onReactionSend?: (emoji: ReactionEmoji) => void;
+  incomingReactions?: RoomReaction[];
 }
 
 export function NowPlayingBar({
@@ -47,6 +50,8 @@ export function NowPlayingBar({
   onPlayPause,
   onSkip,
   canSkip,
+  onReactionSend,
+  incomingReactions = [],
 }: NowPlayingBarProps) {
   const displayTitle = title ?? playback?.title ?? "Nothing playing";
 
@@ -132,6 +137,10 @@ export function NowPlayingBar({
         onMutedChange={onMutedChange}
         disabled={!ready}
       />
+
+      {onReactionSend && (
+        <NowPlayingReactions onSend={onReactionSend} incoming={incomingReactions} />
+      )}
     </div>
   );
 }

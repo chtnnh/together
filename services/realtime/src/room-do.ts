@@ -13,6 +13,7 @@ import {
   type RoomSettings,
   type RoomState,
   type SkipVotes,
+  type ReactionEmoji,
 } from "@together/shared";
 import { parseClientEvent } from "@together/shared/events";
 import { generateId } from "./utils";
@@ -28,6 +29,7 @@ export class RoomDurableObject implements DurableObject {
   private bans = new Set<string>();
   private promoteVotes = new Map<string, Set<string>>();
   private lastPlaybackEndedAt = 0;
+  private lastReactionAt = new Map<string, number>();
 
   constructor(
     private ctx: DurableObjectState,
@@ -362,6 +364,9 @@ export class RoomDurableObject implements DurableObject {
       case "ping":
         this.send(ws, { type: "pong", sentAt: event.sentAt, serverAt: Date.now() });
         break;
+      case "reaction:send":
+        this.handleReaction(event.emoji, participant, ws);
+        break;
       case "leave":
         break;
     }
@@ -391,6 +396,30 @@ export class RoomDurableObject implements DurableObject {
       result = result.replace(new RegExp(word, "gi"), "*".repeat(word.length));
     }
     return result;
+  }
+
+  private handleReaction(emoji: ReactionEmoji, participant: Participant, ws: WebSocket) {
+    const now = Date.now();
+    const last = this.lastReactionAt.get(participant.id) ?? 0;
+    if (now - last < 2000) {
+      this.send(ws, {
+        type: "error",
+        code: "RATE_LIMIT",
+        message: "Slow down on reactions",
+      });
+      return;
+    }
+    this.lastReactionAt.set(participant.id, now);
+    this.broadcast({
+      type: "reaction",
+      reaction: {
+        id: generateId(),
+        emoji,
+        senderName: participant.displayName,
+        senderId: participant.id,
+        createdAt: now,
+      },
+    });
   }
 
   private async handleChat(body: string, participant: Participant, ws: WebSocket) {
