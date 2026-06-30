@@ -50,6 +50,11 @@ declare namespace YT {
     getVideoData(): { video_id: string };
     getDuration(): number;
     setPlaybackQuality(quality: string): void;
+    setVolume(volume: number): void;
+    getVolume(): number;
+    mute(): void;
+    unMute(): void;
+    isMuted(): boolean;
   }
 }
 

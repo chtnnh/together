@@ -17,6 +17,7 @@ import {
 import type { RoomSettings } from "@together/shared";
 import { QUALITY_OPTIONS, THEME_PRESETS } from "@together/shared";
 import type { UserPreferences } from "@/hooks/use-user-preferences";
+import { PlaybackVolumeControl } from "@/components/playback-volume-control";
 import { X } from "lucide-react";
 
 interface SettingsDrawerProps {
@@ -155,6 +156,16 @@ export function SettingsDrawer({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label className="mb-2 block">Volume</Label>
+              <PlaybackVolumeControl
+                volume={userPrefs.volume}
+                muted={userPrefs.muted}
+                onVolumeChange={(volume) => onUserPrefsUpdate({ volume })}
+                onMutedChange={(muted) => onUserPrefsUpdate({ muted })}
+              />
             </div>
           </div>
 

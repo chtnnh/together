@@ -9,6 +9,8 @@ export type UserPreferences = {
   theme: RoomSettings["theme"];
   audioOnly: boolean;
   quality: RoomSettings["quality"];
+  volume: number;
+  muted: boolean;
 };
 
 const STORAGE_KEY = "together_user_prefs";
@@ -17,7 +19,14 @@ const DEFAULTS: UserPreferences = {
   theme: "midnight",
   audioOnly: false,
   quality: "auto",
+  volume: 100,
+  muted: false,
 };
+
+function clampVolume(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULTS.volume;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
 
 function readStored(): UserPreferences {
   if (typeof window === "undefined") return DEFAULTS;
@@ -32,6 +41,8 @@ function readStored(): UserPreferences {
       theme,
       audioOnly: parsed.audioOnly ?? DEFAULTS.audioOnly,
       quality: parsed.quality ?? DEFAULTS.quality,
+      volume: clampVolume(parsed.volume ?? DEFAULTS.volume),
+      muted: parsed.muted ?? DEFAULTS.muted,
     };
   } catch {
     return DEFAULTS;

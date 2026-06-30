@@ -35,6 +35,7 @@ import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { ChatInput, ChatMessages } from "@/components/emoji-chat";
 import { PlaybackSeekBar } from "@/components/playback-seek-bar";
+import { PlaybackVolumeControl } from "@/components/playback-volume-control";
 import { SettingsDrawer } from "@/components/room-settings";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { AlternatePicker } from "@/components/alternate-picker";
@@ -206,6 +207,8 @@ export function RoomClient({
       containerId: "youtube-player",
       playback,
       quality: userPrefs.quality,
+      volume: userPrefs.volume,
+      muted: userPrefs.muted,
       onEnded: handlePlaybackEnded,
       onError: handleYouTubeError,
     });
@@ -475,6 +478,13 @@ export function RoomClient({
           </>
         )}
       </div>
+      <PlaybackVolumeControl
+        volume={userPrefs.volume}
+        muted={userPrefs.muted}
+        onVolumeChange={(volume) => setUserPrefs({ volume })}
+        onMutedChange={(muted) => setUserPrefs({ muted })}
+        disabled={!ready}
+      />
     </div>
   );
 

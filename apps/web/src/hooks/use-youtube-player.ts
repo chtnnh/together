@@ -19,6 +19,8 @@ interface UseYouTubePlayerOptions {
   containerId: string;
   playback: PlaybackState | null;
   quality?: string;
+  volume?: number;
+  muted?: boolean;
   onEnded?: () => void;
   onError?: (code: number) => void;
 }
@@ -95,6 +97,8 @@ export function useYouTubePlayer({
   containerId,
   playback,
   quality = "auto",
+  volume = 100,
+  muted = false,
   onEnded,
   onError,
 }: UseYouTubePlayerOptions): UseYouTubePlayerResult {
@@ -117,6 +121,24 @@ export function useYouTubePlayer({
 
   const qualityRef = useRef(quality);
   qualityRef.current = quality;
+
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
+
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+
+  const applyVolume = useCallback(() => {
+    safePlayerCall(playerRef.current, (player) => {
+      const level = Math.max(0, Math.min(100, Math.round(volumeRef.current)));
+      player.setVolume(level);
+      if (mutedRef.current) {
+        player.mute();
+      } else {
+        player.unMute();
+      }
+    });
+  }, []);
 
   const tryPlay = useCallback((player: YT.Player) => {
     const pb = playbackRef.current;
@@ -277,6 +299,7 @@ export function useYouTubePlayer({
             if (!mounted) return;
             playerReadyRef.current = true;
             setReady(true);
+            applyVolume();
             applyPlaybackRef.current(true);
           },
           onStateChange: (event) => {
@@ -325,7 +348,7 @@ export function useYouTubePlayer({
       safePlayerCall(playerRef.current, (player) => player.destroy());
       playerRef.current = null;
     };
-  }, [containerId, refreshDuration]);
+  }, [containerId, refreshDuration, applyVolume]);
 
   const resyncView = useCallback(() => {
     const pb = playbackRef.current;
@@ -409,6 +432,11 @@ export function useYouTubePlayer({
     if (!ready) return;
     applyPlaybackToPlayer();
   }, [ready, playback, quality, applyPlaybackToPlayer]);
+
+  useEffect(() => {
+    if (!ready) return;
+    applyVolume();
+  }, [ready, volume, muted, applyVolume]);
 
   useEffect(() => {
     if (!ready || !playerReadyRef.current || !playerRef.current) return;
