@@ -30,8 +30,10 @@ import {
   ListMusic,
   MessageSquare,
   History,
+  RefreshCw,
 } from "lucide-react";
 import { PlaybackEmbedErrorBanner } from "@/components/playback-embed-error-banner";
+import { ConnectionStatus } from "@/components/connection-status";
 import { embedErrorMessage, isEmbedBlockedError } from "@/lib/playback-embed-error";
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
@@ -48,6 +50,7 @@ import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
 import type { HistoryItem, RequestItem, RoomActivity } from "@together/shared";
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
+import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
 
 type ImportTrack = {
   source: "youtube";
@@ -129,6 +132,7 @@ export function RoomClient({
   const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
   const chatInitRef = useRef(false);
   const participantsRef = useRef<HTMLDivElement>(null);
+  const prevHistoryLenRef = useRef(0);
 
   useOnClickOutside(participantsRef, () => setParticipantsOpen(false), participantsOpen);
 
@@ -163,6 +167,14 @@ export function RoomClient({
       setLocalRoomTitle(roomState.title);
     }
   }, [roomState?.title]);
+
+  useEffect(() => {
+    const history = roomState?.history ?? [];
+    if (shouldToastTrackSkipped(history, prevHistoryLenRef.current)) {
+      toast("Track skipped!", "success");
+    }
+    prevHistoryLenRef.current = history.length;
+  }, [roomState?.history, toast]);
 
   useEffect(() => {
     if (!roomState || chatInitRef.current) return;
@@ -220,6 +232,13 @@ export function RoomClient({
   useEffect(() => {
     if (ready) resyncView();
   }, [userPrefs.audioOnly, ready, resyncView]);
+
+  const handleSyncPlayback = useCallback(() => {
+    resyncView();
+    if (needsUserGesture) {
+      unlockPlayback();
+    }
+  }, [needsUserGesture, resyncView, unlockPlayback]);
 
   useEffect(() => {
     if (!joined || !connected) return;
@@ -666,17 +685,28 @@ export function RoomClient({
         <header className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3">
           <div className="min-w-0">
             <h1 className="truncate font-semibold">{roomTitle}</h1>
-            <p className="text-xs text-[var(--text-muted)]">
-              {offline
-                ? "Offline — start realtime server"
-                : connected
-                  ? `${roomState?.participants.length ?? 0} listening · ${slug}`
-                  : synced
-                    ? "Reconnecting..."
-                    : "Connecting..."}
-            </p>
+            <ConnectionStatus
+              offline={offline}
+              connected={connected}
+              synced={synced}
+              participantCount={roomState?.participants.length ?? 0}
+              slug={slug}
+            />
           </div>
           <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Sync playback"
+                  onClick={handleSyncPlayback}
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sync playback</TooltipContent>
+            </Tooltip>
             <div className="relative" ref={participantsRef}>
               <Button
                 variant="ghost"
