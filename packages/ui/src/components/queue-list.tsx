@@ -5,6 +5,7 @@ import type { HistoryItem, QueueItem, RequestItem } from "@together/shared";
 import { Music, Trash2, ArrowUp, AlertCircle, Clock, GripVertical, Play, Plus, Check } from "lucide-react";
 import { formatDuration } from "../lib/utils";
 import { Button } from "./button";
+import { PromoteVoteBar } from "./chat-panel";
 
 interface QueueListProps {
   items: QueueItem[];
@@ -25,6 +26,10 @@ interface RequestListProps {
   onPromote?: (id: string) => void;
   onPickAlternate?: (id: string) => void;
   onClearAll?: () => void;
+  democraticPromote?: boolean;
+  promoteRequired?: number;
+  promoteVotedIds?: ReadonlySet<string>;
+  onVotePromote?: (id: string) => void;
 }
 
 function StatusBadge({ status }: { status: RequestItem["status"] }) {
@@ -55,6 +60,8 @@ function QueueItemRow({
   onDragLeave,
   onDrop,
   onDragEnd,
+  onGripPointerDown,
+  queueItemId,
 }: {
   item: QueueItem | RequestItem;
   isActive?: boolean;
@@ -73,30 +80,34 @@ function QueueItemRow({
   onDragLeave?: () => void;
   onDrop?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
+  onGripPointerDown?: (e: React.PointerEvent) => void;
+  queueItemId?: string;
 }) {
   const requestItem = item as RequestItem;
   const canPlayItem = canPlay && onPlay && !isActive && !!item.videoId;
 
   return (
     <div
+      data-queue-item-id={queueItemId ?? item.id}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`flex items-center gap-2 rounded-lg px-2 py-2 transition-opacity ${
+      className={`flex items-center gap-2 rounded-lg px-2 py-2 transition-all ${
         isActive
           ? "border border-[var(--accent)]/40 bg-[var(--accent)]/20"
           : isDragTarget
             ? "border border-dashed border-[var(--accent)] bg-[var(--accent)]/10"
             : "hover:bg-[var(--bg-secondary)]"
-      } ${isDragging ? "opacity-40" : ""}`}
+      } ${isDragging ? "scale-[1.02] opacity-60 shadow-md" : ""}`}
     >
       {draggable && (
         <div
-          className="cursor-grab touch-none text-[var(--text-muted)] active:cursor-grabbing"
+          className="cursor-grab touch-none select-none text-[var(--text-muted)] active:cursor-grabbing"
           aria-hidden
+          onPointerDown={onGripPointerDown}
         >
           <GripVertical className="h-4 w-4" />
         </div>
@@ -154,6 +165,58 @@ export function QueueList({
 }: QueueListProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const pointerDragRef = useRef<{ id: string; pointerId: number } | null>(null);
+
+  useEffect(() => {
+    if (!onReorder) return;
+
+    const finishPointerDrag = (targetId: string | null) => {
+      const dragged = pointerDragRef.current?.id;
+      if (dragged && targetId && dragged !== targetId) {
+        const toIndex = items.findIndex((i) => i.id === targetId);
+        if (toIndex !== -1) onReorder(dragged, toIndex);
+      }
+      pointerDragRef.current = null;
+      setDraggedId(null);
+      setDropTargetId(null);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      const drag = pointerDragRef.current;
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      const row = target?.closest("[data-queue-item-id]");
+      const targetId = row?.getAttribute("data-queue-item-id");
+      if (targetId && targetId !== drag.id) {
+        setDropTargetId(targetId);
+      }
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      const drag = pointerDragRef.current;
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      const row = target?.closest("[data-queue-item-id]");
+      finishPointerDrag(row?.getAttribute("data-queue-item-id") ?? dropTargetId);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+    };
+  }, [dropTargetId, items, onReorder]);
+
+  const startPointerReorder = (itemId: string, e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    pointerDragRef.current = { id: itemId, pointerId: e.pointerId };
+    setDraggedId(itemId);
+  };
 
   if (items.length === 0) {
     return (
@@ -224,6 +287,8 @@ export function QueueList({
             setDraggedId(null);
             setDropTargetId(null);
           }}
+          onGripPointerDown={(e) => startPointerReorder(item.id, e)}
+          queueItemId={item.id}
         />
       ))}
     </div>
@@ -237,6 +302,10 @@ export function RequestList({
   onPromote,
   onPickAlternate,
   onClearAll,
+  democraticPromote,
+  promoteRequired = 1,
+  promoteVotedIds,
+  onVotePromote,
 }: RequestListProps) {
   if (items.length === 0) {
     return (
@@ -257,15 +326,24 @@ export function RequestList({
         </div>
       )}
       {items.map((item) => (
-        <QueueItemRow
-          key={item.id}
-          item={item}
-          canManage={canManage}
-          onRemove={onRemove}
-          onPromote={onPromote}
-          onPickAlternate={onPickAlternate}
-          showStatus
-        />
+        <div key={item.id} className="space-y-1">
+          <QueueItemRow
+            item={item}
+            canManage={canManage}
+            onRemove={onRemove}
+            onPromote={onPromote}
+            onPickAlternate={onPickAlternate}
+            showStatus
+          />
+          {democraticPromote && onVotePromote && (
+            <PromoteVoteBar
+              voteCount={item.promoteVotes ?? 0}
+              required={promoteRequired}
+              hasVoted={promoteVotedIds?.has(item.id) ?? false}
+              onVote={() => onVotePromote(item.id)}
+            />
+          )}
+        </div>
       ))}
     </div>
   );

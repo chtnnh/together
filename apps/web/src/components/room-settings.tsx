@@ -242,6 +242,7 @@ export function SettingsDrawer({
                   description="Requests move to queue after enough votes."
                 >
                   <Switch
+                    aria-label="Democratic promote"
                     checked={roomSettings.democraticPromote}
                     onCheckedChange={(v) => onRoomUpdate({ democraticPromote: v })}
                   />

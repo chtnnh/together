@@ -129,6 +129,7 @@ export function RoomClient({
   const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [incomingReactions, setIncomingReactions] = useState<RoomReaction[]>([]);
+  const [promoteVotedIds, setPromoteVotedIds] = useState<Set<string>>(() => new Set());
   const chatInitRef = useRef(false);
   const participantsRef = useRef<HTMLDivElement>(null);
   const prevHistoryLenRef = useRef(0);
@@ -162,6 +163,15 @@ export function RoomClient({
 
   const settings = roomState?.settings;
   const playback = roomState?.playback ?? null;
+
+  const handleVotePromote = useCallback(
+    (requestId: string) => {
+      send({ type: "vote:promote", requestId });
+      setPromoteVotedIds((prev) => new Set(prev).add(requestId));
+    },
+    [send],
+  );
+
   const roomTitle = roomState?.title || localRoomTitle || slug;
   const chatCount = roomState?.chat.length ?? 0;
   const chatIsOpen = sidebarTab === "chat" || mobileTab === "chat";
@@ -470,6 +480,23 @@ export function RoomClient({
     (roomState?.participants.length ?? 1) * (settings?.skipThreshold ?? 0.51),
   );
   const hasVotedSkip = roomState?.skipVotes?.votes.includes(participant?.id ?? "") ?? false;
+  const promoteRequired = skipRequired;
+
+  const requestListProps = {
+    items: roomState?.requests ?? [],
+    canManage: isHost,
+    onRemove: (id: string) => send({ type: "queue:remove", itemId: id, lane: "requests" }),
+    onPromote: (id: string) => send({ type: "queue:promote", requestId: id }),
+    onClearAll: () => send({ type: "queue:clear", lane: "requests" }),
+    onPickAlternate: (id: string) => {
+      const req = roomState?.requests.find((r) => r.id === id);
+      if (req) setPickRequest(req);
+    },
+    democraticPromote: settings?.democraticPromote,
+    promoteRequired,
+    promoteVotedIds,
+    onVotePromote: handleVotePromote,
+  };
 
   const canSkip =
     !!roomState?.queue.some((i) => i.id === playback?.queueItemId) ||
@@ -655,17 +682,7 @@ export function RoomClient({
         </TabsList>
 
         <TabsContent value="requests" className="flex-1 overflow-y-auto px-2">
-          <RequestList
-            items={roomState?.requests ?? []}
-            canManage={isHost}
-            onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "requests" })}
-            onPromote={(id) => send({ type: "queue:promote", requestId: id })}
-            onClearAll={() => send({ type: "queue:clear", lane: "requests" })}
-            onPickAlternate={(id) => {
-              const req = roomState?.requests.find((r) => r.id === id);
-              if (req) setPickRequest(req);
-            }}
-          />
+          <RequestList {...requestListProps} />
         </TabsContent>
 
         <TabsContent value="queue" className="flex-1 overflow-y-auto px-2">
@@ -838,17 +855,7 @@ export function RoomClient({
               {(mobileTab === "requests" || mobileTab === "queue") && addTrackHeader}
               <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2">
                 {mobileTab === "requests" && (
-                  <RequestList
-                    items={roomState?.requests ?? []}
-                    canManage={isHost}
-                    onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "requests" })}
-                    onPromote={(id) => send({ type: "queue:promote", requestId: id })}
-                    onClearAll={() => send({ type: "queue:clear", lane: "requests" })}
-                    onPickAlternate={(id) => {
-                      const req = roomState?.requests.find((r) => r.id === id);
-                      if (req) setPickRequest(req);
-                    }}
-                  />
+                  <RequestList {...requestListProps} />
                 )}
                 {mobileTab === "queue" && (
                   <QueueList

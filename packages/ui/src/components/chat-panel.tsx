@@ -101,4 +101,42 @@ export function SkipVoteBar({
   );
 }
 
+export function PromoteVoteBar({
+  voteCount,
+  required,
+  hasVoted,
+  onVote,
+}: {
+  voteCount: number;
+  required: number;
+  hasVoted: boolean;
+  onVote: () => void;
+}) {
+  const pct = required > 0 ? Math.min(100, (voteCount / required) * 100) : 0;
+
+  return (
+    <div
+      className="rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5"
+      data-testid="promote-vote-bar"
+    >
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="text-[var(--text-muted)]">
+          Promote votes: {voteCount} / {required}
+        </span>
+        <button
+          type="button"
+          onClick={onVote}
+          disabled={hasVoted}
+          className="rounded-md bg-[var(--accent)]/20 px-2 py-0.5 text-[var(--accent)] hover:bg-[var(--accent)]/30 disabled:opacity-50"
+        >
+          {hasVoted ? "Voted" : "Vote to promote"}
+        </button>
+      </div>
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--border)]">
+        <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export { formatDuration };
