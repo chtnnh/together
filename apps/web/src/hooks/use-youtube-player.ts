@@ -11,6 +11,7 @@ import {
   shouldAttemptBackgroundResume,
   shouldResyncOnForeground,
 } from "@/lib/playback-visibility";
+import { CROSSFADE_MS } from "@/lib/playback-crossfade";
 
 declare global {
   interface Window {
@@ -43,6 +44,32 @@ const loadCallbacks: Array<() => void> = [];
 
 const GESTURE_DRIFT_MS = 2000;
 const YT_HOST = "https://www.youtube-nocookie.com";
+const CROSSFADE_STEP_MS = 40;
+
+function animatePlayerVolume(
+  player: YT.Player,
+  from: number,
+  to: number,
+  durationMs: number,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const steps = Math.max(1, Math.round(durationMs / CROSSFADE_STEP_MS));
+    let step = 0;
+    const timer = setInterval(() => {
+      step += 1;
+      const level = Math.round(from + ((to - from) * step) / steps);
+      try {
+        player.setVolume(Math.max(0, Math.min(100, level)));
+      } catch {
+        // player may be destroyed mid-transition
+      }
+      if (step >= steps) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, CROSSFADE_STEP_MS);
+  });
+}
 
 function loadYouTubeApi(): Promise<void> {
   if (apiLoaded) return Promise.resolve();
@@ -119,6 +146,8 @@ export function useYouTubePlayer({
   const onErrorRef = useRef(onError);
   const endedForItemRef = useRef<string | null>(null);
   const autoplayUnlockedRef = useRef(false);
+  const crossfadeInProgressRef = useRef(false);
+  const lastNormalizedVideoRef = useRef<string | null>(null);
   playbackRef.current = playback;
   onEndedRef.current = onEnded;
   onErrorRef.current = onError;
@@ -176,6 +205,44 @@ export function useYouTubePlayer({
     [tryPlay],
   );
 
+  const crossfadeToVideo = useCallback(
+    async (
+      player: YT.Player,
+      videoId: string,
+      positionSec: number,
+      shouldPlay: boolean,
+    ) => {
+      if (crossfadeInProgressRef.current) {
+        loadVideoAtPosition(player, videoId, positionSec, shouldPlay);
+        return;
+      }
+
+      crossfadeInProgressRef.current = true;
+      const targetVol = mutedRef.current
+        ? 0
+        : Math.max(0, Math.min(100, Math.round(volumeRef.current)));
+
+      try {
+        await animatePlayerVolume(player, targetVol, 0, CROSSFADE_MS / 2);
+        player.cueVideoById(videoId, positionSec);
+        pendingPlayRef.current = shouldPlay;
+        if (shouldPlay && autoplayUnlockedRef.current) {
+          tryPlay(player);
+        } else if (shouldPlay) {
+          setNeedsUserGesture(true);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        await animatePlayerVolume(player, 0, targetVol, CROSSFADE_MS / 2);
+        if (!mutedRef.current) {
+          player.unMute();
+        }
+      } finally {
+        crossfadeInProgressRef.current = false;
+      }
+    },
+    [loadVideoAtPosition, tryPlay],
+  );
+
   const refreshDuration = useCallback(() => {
     safePlayerCall(playerRef.current, (player) => {
       const dur = player.getDuration();
@@ -217,7 +284,18 @@ export function useYouTubePlayer({
       isLocalActionRef.current = true;
 
       if (pb.videoId && pb.videoId !== currentVideoId) {
-        loadVideoAtPosition(player, pb.videoId, positionSec, pb.playing);
+        let wasPlaying = false;
+        safePlayerCall(player, (p) => {
+          wasPlaying =
+            pb.playing &&
+            !!currentVideoId &&
+            p.getPlayerState() === window.YT.PlayerState.PLAYING;
+        });
+        if (wasPlaying) {
+          void crossfadeToVideo(player, pb.videoId, positionSec, pb.playing);
+        } else {
+          loadVideoAtPosition(player, pb.videoId, positionSec, pb.playing);
+        }
       } else if (pb.videoId) {
         safePlayerCall(player, (p) => {
           const state = p.getPlayerState();
@@ -266,7 +344,7 @@ export function useYouTubePlayer({
         isLocalActionRef.current = false;
       }, 500);
     },
-    [loadVideoAtPosition, refreshDuration, tryPlay],
+    [loadVideoAtPosition, crossfadeToVideo, refreshDuration, tryPlay],
   );
 
   const applyPlaybackRef = useRef(applyPlaybackToPlayer);
@@ -314,6 +392,13 @@ export function useYouTubePlayer({
               pendingPlayRef.current = false;
               setNeedsUserGesture(false);
               refreshDuration();
+              safePlayerCall(event.target, (p) => {
+                const vid = p.getVideoData()?.video_id;
+                if (vid && vid !== lastNormalizedVideoRef.current) {
+                  lastNormalizedVideoRef.current = vid;
+                  applyVolume();
+                }
+              });
             }
 
             if (
