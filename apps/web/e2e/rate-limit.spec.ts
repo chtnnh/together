@@ -5,6 +5,11 @@ import {
   type RateLimitRule,
 } from "../src/lib/rate-limit";
 
+const rateLimitHeaders = {
+  "x-together-test-rate-limit": "1",
+  "x-together-test-ip": "rate-limit-suite",
+};
+
 test.describe("Phase 1.2 — Rate limiting", () => {
   test.afterEach(() => {
     resetRateLimitStoreForTests();
@@ -46,6 +51,7 @@ test.describe("Phase 1.2 — Rate limiting", () => {
 
     for (let i = 0; i < 12; i++) {
       const res = await request.post("/api/rooms", {
+        headers: rateLimitHeaders,
         data: { displayName: `${displayBase}${i}`.slice(0, 24) },
       });
       if (res.status() === 429) {
@@ -68,6 +74,7 @@ test.describe("Phase 1.2 — Rate limiting", () => {
 
     for (let i = 0; i < 35; i++) {
       const res = await request.post("/api/import/youtube", {
+        headers: rateLimitHeaders,
         data: { query: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
       });
       if (res.status() === 429) {
@@ -88,6 +95,7 @@ test.describe("Phase 1.2 — Rate limiting", () => {
 
     for (let i = 0; i < 35; i++) {
       const res = await request.post("/api/import/spotify", {
+        headers: rateLimitHeaders,
         data: { playlistId: "test-playlist" },
       });
       if (res.status() === 429) {

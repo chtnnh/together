@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 
 test.describe("Room creation flow", () => {
+  test.beforeEach(() => {
+    resetRateLimitStoreForTests();
+  });
   test("creates room, auto-joins with saved display name, connects to realtime", async ({
     page,
   }) => {
@@ -72,7 +76,9 @@ test.describe("Room creation flow", () => {
     await page.getByPlaceholder("YouTube URL or search...").fill("lofi hip hop");
     await page.getByPlaceholder("YouTube URL or search...").press("Enter");
 
-    await expect(page.getByText(/YOUTUBE_API_KEY/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i })).toBeVisible({
+      timeout: 5000,
+    });
   });
 });
 

@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 
 test.describe("Phase 3.1 — Queue add toasts", () => {
+  test.beforeEach(() => {
+    resetRateLimitStoreForTests();
+  });
   test("shows success toast when adding a YouTube URL", async ({ page }) => {
     await page.goto("/");
     await page.locator("#create-name").fill("DJ");

@@ -34,6 +34,7 @@ export default defineConfig({
         DATABASE_URL: "",
         YOUTUBE_API_KEY: "",
         TOGETHER_SKIP_ENV_FILE: "1",
+        TOGETHER_E2E: "1",
         ROOM_TOKEN_SECRET: "test-secret",
         NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3002",
         NEXT_PUBLIC_REALTIME_URL: "ws://127.0.0.1:8787",

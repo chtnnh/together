@@ -30,6 +30,9 @@ export interface RateLimitResult {
 
 /** Best-effort client IP from common proxy headers (Vercel sets x-forwarded-for). */
 export function getClientIp(request: Request): string {
+  const testIp = request.headers.get("x-together-test-ip");
+  if (testIp?.trim()) return testIp.trim();
+
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     const first = forwarded.split(",")[0]?.trim();
@@ -74,6 +77,13 @@ export function checkRateLimit(key: string, rule: RateLimitRule): RateLimitResul
  * when the limit is exceeded, or `null` when the request may proceed.
  */
 export function enforceRateLimit(request: Request, rule: RateLimitRule): NextResponse | null {
+  if (
+    process.env.TOGETHER_E2E === "1" &&
+    request.headers.get("x-together-test-rate-limit") !== "1"
+  ) {
+    return null;
+  }
+
   const result = checkRateLimit(getClientIp(request), rule);
   if (result.allowed) return null;
 
