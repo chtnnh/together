@@ -7,6 +7,10 @@ import {
   SYNC_CHECK_INTERVAL_MS,
   SYNC_DRIFT_THRESHOLD_MS,
 } from "@together/shared";
+import {
+  shouldAttemptBackgroundResume,
+  shouldResyncOnForeground,
+} from "@/lib/playback-visibility";
 
 declare global {
   interface Window {
@@ -439,6 +443,33 @@ export function useYouTubePlayer({
   }, [ready, volume, muted, applyVolume]);
 
   useEffect(() => {
+    if (!ready) return;
+
+    const onVisibilityChange = () => {
+      if (shouldResyncOnForeground(document.hidden)) {
+        applyPlaybackRef.current(true);
+        return;
+      }
+
+      const pb = playbackRef.current;
+      if (!shouldAttemptBackgroundResume(document.hidden, !!pb?.playing)) return;
+
+      safePlayerCall(playerRef.current, (player) => {
+        const state = player.getPlayerState();
+        if (
+          state !== window.YT.PlayerState.PLAYING &&
+          state !== window.YT.PlayerState.BUFFERING
+        ) {
+          tryPlay(player);
+        }
+      });
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [ready, tryPlay]);
+
+  useEffect(() => {
     if (!ready || !playerReadyRef.current || !playerRef.current) return;
 
     const interval = setInterval(() => {
@@ -459,6 +490,16 @@ export function useYouTubePlayer({
 
         if (drift > SYNC_DRIFT_THRESHOLD_MS) {
           player.seekTo(expected / 1000, true);
+        }
+
+        if (document.hidden && shouldAttemptBackgroundResume(true, true)) {
+          const state = player.getPlayerState();
+          if (
+            state !== window.YT.PlayerState.PLAYING &&
+            state !== window.YT.PlayerState.BUFFERING
+          ) {
+            tryPlay(player);
+          }
         }
 
         const blocked =
