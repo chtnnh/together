@@ -87,3 +87,8 @@ export function enforceRateLimit(request: Request, rule: RateLimitRule): NextRes
     },
   );
 }
+
+/** Clears in-memory counters — for automated tests only. */
+export function resetRateLimitStoreForTests(): void {
+  store.clear();
+}

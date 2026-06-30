@@ -5,8 +5,18 @@ import { resolveTrackWithCache } from "@/lib/youtube";
 import { shouldAutoQueue } from "@together/track-resolver";
 import { savePlaylist } from "@/lib/rooms";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
-export async function GET() {
+const importRateLimit = {
+  name: "import:spotify",
+  limit: 30,
+  windowMs: 60 * 1000,
+};
+
+export async function GET(request: Request) {
+  const limited = enforceRateLimit(request, importRateLimit);
+  if (limited) return limited;
+
   const cookieStore = await cookies();
   const token = cookieStore.get("spotify_access_token")?.value;
   if (!token) {
@@ -18,6 +28,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, importRateLimit);
+  if (limited) return limited;
+
   const cookieStore = await cookies();
   const token = cookieStore.get("spotify_access_token")?.value;
   if (!token) {
