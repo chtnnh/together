@@ -13,6 +13,7 @@ interface NowPlayingBarProps {
   artist?: string;
   thumbnailUrl?: string;
   durationMs: number;
+  clockOffsetMs?: number;
   ready: boolean;
   canControlPlayback: boolean;
   skipVotes?: {
@@ -40,6 +41,7 @@ export function NowPlayingBar({
   artist,
   thumbnailUrl,
   durationMs,
+  clockOffsetMs = 0,
   ready,
   canControlPlayback,
   skipVotes,
@@ -136,6 +138,7 @@ export function NowPlayingBar({
             <PlaybackSeekBar
               playback={playback}
               durationMs={durationMs}
+              clockOffsetMs={clockOffsetMs}
               disabled={!canControlPlayback || !ready}
               onSeek={onSeek}
             />

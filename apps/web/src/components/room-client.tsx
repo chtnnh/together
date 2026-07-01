@@ -150,6 +150,7 @@ export function RoomClient({
   const participantsRef = useRef<HTMLDivElement>(null);
   const prevHistoryLenRef = useRef(0);
   const addUrlInputRef = useRef<HTMLInputElement>(null);
+  const didInitialPlaybackSyncRef = useRef(false);
 
   useOnClickOutside(participantsRef, () => setParticipantsOpen(false), participantsOpen);
 
@@ -168,7 +169,7 @@ export function RoomClient({
 
   const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences(signedIn);
 
-  const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline } = useRoomSocket({
+  const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline, clockOffsetMs } = useRoomSocket({
     roomId,
     displayName,
     userId,
@@ -260,6 +261,7 @@ export function RoomClient({
     useYouTubePlayer({
       containerId: "youtube-player",
       playback,
+      clockOffsetMs,
       quality: userPrefs.quality,
       audioOnly: userPrefs.audioOnly,
       volume: userPrefs.volume,
@@ -274,11 +276,23 @@ export function RoomClient({
   }, [userPrefs.audioOnly, ready, resyncView]);
 
   const handleSyncPlayback = useCallback(() => {
+    send({ type: "playback:sync", positionMs: 0 });
     resyncView();
     if (needsUserGesture) {
       unlockPlayback();
     }
-  }, [needsUserGesture, resyncView, unlockPlayback]);
+  }, [needsUserGesture, resyncView, send, unlockPlayback]);
+
+  useEffect(() => {
+    didInitialPlaybackSyncRef.current = false;
+  }, [playback?.queueItemId]);
+
+  useEffect(() => {
+    if (!ready || !connected || didInitialPlaybackSyncRef.current) return;
+    didInitialPlaybackSyncRef.current = true;
+    send({ type: "playback:sync", positionMs: 0 });
+    resyncView();
+  }, [ready, connected, send, resyncView]);
 
   useEffect(() => {
     if (!joined || !connected) return;
@@ -321,7 +335,7 @@ export function RoomClient({
       const positionMs =
         update.positionMs ??
         (playback.playing
-          ? getEffectivePlaybackPosition(playback)
+          ? getEffectivePlaybackPosition(playback, Date.now(), clockOffsetMs)
           : playback.positionMs);
 
       send({
@@ -334,7 +348,7 @@ export function RoomClient({
         },
       });
     },
-    [send, playback],
+    [send, playback, clockOffsetMs],
   );
 
   const handleJoin = () => {
@@ -534,12 +548,12 @@ export function RoomClient({
     },
     onSeekBack: () => {
       if (!canControlPlayback || !playback) return;
-      const pos = getEffectivePlaybackPosition(playback);
+      const pos = getEffectivePlaybackPosition(playback, Date.now(), clockOffsetMs);
       onPlaybackChange({ positionMs: Math.max(0, pos - 5000), playing: playback.playing });
     },
     onSeekForward: () => {
       if (!canControlPlayback || !playback) return;
-      const pos = getEffectivePlaybackPosition(playback);
+      const pos = getEffectivePlaybackPosition(playback, Date.now(), clockOffsetMs);
       onPlaybackChange({
         positionMs: Math.min(trackDurationMs, pos + 5000),
         playing: playback.playing,
@@ -636,6 +650,7 @@ export function RoomClient({
           : undefined)
       }
       durationMs={trackDurationMs}
+      clockOffsetMs={clockOffsetMs}
       ready={ready}
       canControlPlayback={canControlPlayback}
       skipVotes={

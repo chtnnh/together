@@ -14,6 +14,7 @@ function formatTime(ms: number): string {
 interface PlaybackSeekBarProps {
   playback: PlaybackState;
   durationMs: number;
+  clockOffsetMs?: number;
   onSeek: (positionMs: number) => void;
   disabled?: boolean;
 }
@@ -21,6 +22,7 @@ interface PlaybackSeekBarProps {
 export function PlaybackSeekBar({
   playback,
   durationMs,
+  clockOffsetMs = 0,
   onSeek,
   disabled,
 }: PlaybackSeekBarProps) {
@@ -30,7 +32,7 @@ export function PlaybackSeekBar({
   const dragValueRef = useRef(0);
 
   const livePositionMs = playback.playing
-    ? getEffectivePlaybackPosition(playback)
+    ? getEffectivePlaybackPosition(playback, Date.now(), clockOffsetMs)
     : playback.positionMs;
 
   useEffect(() => {

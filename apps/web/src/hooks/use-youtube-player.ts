@@ -23,6 +23,7 @@ declare global {
 interface UseYouTubePlayerOptions {
   containerId: string;
   playback: PlaybackState | null;
+  clockOffsetMs?: number;
   quality?: string;
   audioOnly?: boolean;
   volume?: number;
@@ -113,8 +114,8 @@ const LOCKED_PLAYER_VARS: YT.PlayerVars = {
   enablejsapi: 1,
 };
 
-function effectivePositionMs(pb: PlaybackState): number {
-  return getEffectivePlaybackPosition(pb);
+function effectivePositionMs(pb: PlaybackState, clockOffsetMs = 0): number {
+  return getEffectivePlaybackPosition(pb, Date.now(), clockOffsetMs);
 }
 
 function isPlayableState(state: number): boolean {
@@ -128,6 +129,7 @@ function isPlayableState(state: number): boolean {
 export function useYouTubePlayer({
   containerId,
   playback,
+  clockOffsetMs = 0,
   quality = "auto",
   audioOnly = false,
   volume = 100,
@@ -144,6 +146,7 @@ export function useYouTubePlayer({
   const isLocalActionRef = useRef(false);
   const pendingPlayRef = useRef(false);
   const playbackRef = useRef(playback);
+  const clockOffsetRef = useRef(clockOffsetMs);
   const onEndedRef = useRef(onEnded);
   const onErrorRef = useRef(onError);
   const endedForItemRef = useRef<string | null>(null);
@@ -151,6 +154,7 @@ export function useYouTubePlayer({
   const crossfadeInProgressRef = useRef(false);
   const lastNormalizedVideoRef = useRef<string | null>(null);
   playbackRef.current = playback;
+  clockOffsetRef.current = clockOffsetMs;
   onEndedRef.current = onEnded;
   onErrorRef.current = onError;
 
@@ -272,7 +276,7 @@ export function useYouTubePlayer({
         return;
       }
 
-      const positionSec = effectivePositionMs(pb) / 1000;
+      const positionSec = effectivePositionMs(pb, clockOffsetRef.current) / 1000;
 
       let currentVideoId: string | undefined;
       safePlayerCall(player, (p) => {
@@ -302,7 +306,9 @@ export function useYouTubePlayer({
         safePlayerCall(player, (p) => {
           const state = p.getPlayerState();
           if (state === window.YT.PlayerState.ENDED) return;
-          const drift = Math.abs(p.getCurrentTime() * 1000 - effectivePositionMs(pb));
+          const drift = Math.abs(
+            p.getCurrentTime() * 1000 - effectivePositionMs(pb, clockOffsetRef.current),
+          );
           if (drift > SYNC_DRIFT_THRESHOLD_MS) {
             p.seekTo(positionSec, true);
           }
@@ -458,14 +464,16 @@ export function useYouTubePlayer({
         return;
       }
 
-      const positionSec = effectivePositionMs(pb) / 1000;
+      const positionSec = effectivePositionMs(pb, clockOffsetRef.current) / 1000;
 
       if (pb.videoId !== currentVideoId) {
         loadVideoAtPosition(player, pb.videoId, positionSec, pb.playing);
         return;
       }
 
-      const drift = Math.abs(player.getCurrentTime() * 1000 - effectivePositionMs(pb));
+      const drift = Math.abs(
+        player.getCurrentTime() * 1000 - effectivePositionMs(pb, clockOffsetRef.current),
+      );
       if (drift > SYNC_DRIFT_THRESHOLD_MS) {
         player.seekTo(positionSec, true);
       }
@@ -517,7 +525,7 @@ export function useYouTubePlayer({
   useEffect(() => {
     if (!ready) return;
     applyPlaybackToPlayer(true);
-  }, [ready, applyPlaybackToPlayer]);
+  }, [ready, clockOffsetMs, applyPlaybackToPlayer]);
 
   useEffect(() => {
     if (!ready) return;
@@ -560,9 +568,16 @@ export function useYouTubePlayer({
     if (!ready || !playerReadyRef.current || !playerRef.current) return;
 
     const interval = setInterval(() => {
-      if (isLocalActionRef.current || !playerReadyRef.current || !playerRef.current) return;
+      if (
+        isLocalActionRef.current ||
+        crossfadeInProgressRef.current ||
+        !playerReadyRef.current ||
+        !playerRef.current
+      ) {
+        return;
+      }
       const pb = playbackRef.current;
-      if (!pb?.playing || !pb.videoId) {
+      if (!pb?.videoId) {
         setNeedsUserGesture(false);
         return;
       }
@@ -571,7 +586,7 @@ export function useYouTubePlayer({
         const state = player.getPlayerState();
         if (state === window.YT.PlayerState.ENDED) return;
 
-        const expected = effectivePositionMs(pb);
+        const expected = effectivePositionMs(pb, clockOffsetRef.current);
         const actual = player.getCurrentTime() * 1000;
         const drift = Math.abs(actual - expected);
 
@@ -579,28 +594,33 @@ export function useYouTubePlayer({
           player.seekTo(expected / 1000, true);
         }
 
-        if (document.hidden && shouldAttemptBackgroundResume(true, true)) {
-          const state = player.getPlayerState();
-          if (
-            state !== window.YT.PlayerState.PLAYING &&
-            state !== window.YT.PlayerState.BUFFERING
-          ) {
-            tryPlay(player);
+        if (pb.playing) {
+          if (state !== window.YT.PlayerState.PLAYING && state !== window.YT.PlayerState.BUFFERING) {
+            if (autoplayUnlockedRef.current) {
+              tryPlay(player);
+            } else if (pendingPlayRef.current && drift > GESTURE_DRIFT_MS) {
+              setNeedsUserGesture(true);
+            }
+          } else {
+            setNeedsUserGesture(false);
           }
-        }
 
-        const blocked =
-          !autoplayUnlockedRef.current &&
-          pendingPlayRef.current &&
-          drift > GESTURE_DRIFT_MS &&
-          state !== window.YT.PlayerState.PLAYING &&
-          state !== window.YT.PlayerState.BUFFERING;
-        setNeedsUserGesture(blocked);
+          if (document.hidden && shouldAttemptBackgroundResume(true, true)) {
+            if (
+              state !== window.YT.PlayerState.PLAYING &&
+              state !== window.YT.PlayerState.BUFFERING
+            ) {
+              tryPlay(player);
+            }
+          }
+        } else if (state === window.YT.PlayerState.PLAYING) {
+          player.pauseVideo();
+        }
       });
     }, SYNC_CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [ready, playback?.playing, playback?.videoId]);
+  }, [ready, playback?.playing, playback?.videoId, clockOffsetMs, tryPlay]);
 
   return { ready, resyncView, needsUserGesture, unlockPlayback, durationMs };
 }

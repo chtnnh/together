@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientEvent, RoomActivity, RoomReaction, RoomState, ServerEvent } from "@together/shared";
 import { SYNC_CHECK_INTERVAL_MS, SYNC_DRIFT_THRESHOLD_MS } from "@together/shared";
 import { getAnonId, getRealtimeUrl } from "@/lib/utils";
+import { applyServerTimestamp } from "@/lib/clock-sync";
 
 interface UseRoomSocketOptions {
   roomId: string;
@@ -33,8 +34,10 @@ export function useRoomSocket({
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
+  const [clockOffsetMs, setClockOffsetMs] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const clockOffsetRef = useRef(0);
   const errorClearRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingRef = useRef<ClientEvent[]>([]);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -59,6 +62,12 @@ export function useRoomSocket({
   onActivityRef.current = onActivity;
   onReactionRef.current = onReaction;
   onNotifyRef.current = onNotify;
+
+  const applyServerNow = useCallback((serverNow: number) => {
+    const next = applyServerTimestamp(clockOffsetRef.current, serverNow);
+    clockOffsetRef.current = next;
+    setClockOffsetMs(next);
+  }, []);
 
   const send = useCallback((event: ClientEvent) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -125,6 +134,9 @@ export function useRoomSocket({
 
         switch (data.type) {
           case "state":
+            if (data.serverNow !== undefined) {
+              applyServerNow(data.serverNow);
+            }
             setRoomState(data.state as RoomState);
             setSynced(true);
             break;
@@ -136,6 +148,9 @@ export function useRoomSocket({
             });
             break;
           case "playback":
+            if (data.serverNow !== undefined) {
+              applyServerNow(data.serverNow);
+            }
             setRoomState((prev) =>
               prev ? { ...prev, playback: data.playback } : prev,
             );
@@ -203,6 +218,9 @@ export function useRoomSocket({
           case "reaction":
             onReactionRef.current?.(data.reaction);
             break;
+          case "pong":
+            applyServerNow(data.serverAt);
+            break;
         }
       };
 
@@ -229,7 +247,7 @@ export function useRoomSocket({
       setOffline(true);
       setError("Could not open WebSocket connection");
     }
-  }, [roomId]);
+  }, [roomId, applyServerNow]);
 
   useEffect(() => {
     if (!enabled || !roomId) {
@@ -263,6 +281,14 @@ export function useRoomSocket({
     );
   }, [userId, enabled, roomId]);
 
+  useEffect(() => {
+    if (!enabled || !roomId) return;
+    const interval = setInterval(() => {
+      send({ type: "ping", sentAt: Date.now() });
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [enabled, roomId, send]);
+
   const anonId = anonIdRef.current;
   const participant = roomState?.participants.find(
     (p) => p.anonId === anonId || (userId && p.userId === userId),
@@ -282,6 +308,7 @@ export function useRoomSocket({
     roomState,
     error,
     offline,
+    clockOffsetMs,
     send,
     participant,
     isHost: isHostish,
