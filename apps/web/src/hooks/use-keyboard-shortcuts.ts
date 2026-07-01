@@ -8,6 +8,9 @@ interface KeyboardShortcutHandlers {
   onSeekBack: () => void;
   onSeekForward: () => void;
   onSkip: () => void;
+  onVolumeUp: () => void;
+  onVolumeDown: () => void;
+  onToggleMute: () => void;
   onFocusAddUrl: () => void;
   onShowHelp: () => void;
 }
@@ -29,6 +32,9 @@ export function useKeyboardShortcuts({
   onSeekBack,
   onSeekForward,
   onSkip,
+  onVolumeUp,
+  onVolumeDown,
+  onToggleMute,
   onFocusAddUrl,
   onShowHelp,
 }: KeyboardShortcutHandlers) {
@@ -56,6 +62,18 @@ export function useKeyboardShortcuts({
         case "N":
           onSkip();
           break;
+        case "ArrowUp":
+          event.preventDefault();
+          onVolumeUp();
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          onVolumeDown();
+          break;
+        case "m":
+        case "M":
+          onToggleMute();
+          break;
         case "/":
           event.preventDefault();
           onFocusAddUrl();
@@ -78,5 +96,8 @@ export function useKeyboardShortcuts({
     onSeekForward,
     onShowHelp,
     onSkip,
+    onToggleMute,
+    onVolumeDown,
+    onVolumeUp,
   ]);
 }

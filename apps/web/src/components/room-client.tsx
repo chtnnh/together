@@ -448,6 +448,23 @@ export function RoomClient({
       }
       if (canControlPlayback) send({ type: "queue:skip" });
     },
+    onVolumeUp: () => {
+      setUserPrefs({
+        volume: Math.min(100, userPrefs.volume + 5),
+        muted: false,
+      });
+    },
+    onVolumeDown: () => {
+      const next = Math.max(0, userPrefs.volume - 5);
+      if (next === 0) {
+        setUserPrefs({ muted: true });
+      } else {
+        setUserPrefs({ volume: next, muted: false });
+      }
+    },
+    onToggleMute: () => {
+      setUserPrefs({ muted: !userPrefs.muted });
+    },
     onFocusAddUrl: () => addUrlInputRef.current?.focus(),
     onShowHelp: () => setShortcutsOpen(true),
   });

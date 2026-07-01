@@ -6,6 +6,8 @@ import { X } from "lucide-react";
 const SHORTCUTS = [
   { keys: "Space", action: "Play / pause" },
   { keys: "← / →", action: "Seek ±5 seconds" },
+  { keys: "↑ / ↓", action: "Volume ±5%" },
+  { keys: "M", action: "Mute / unmute" },
   { keys: "N", action: "Skip / vote skip" },
   { keys: "/", action: "Focus add URL input" },
   { keys: "?", action: "Show this help" },
