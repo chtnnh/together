@@ -5,11 +5,33 @@ import { ToastProvider } from "@/components/toast";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ThemeBootstrap } from "@/components/theme-bootstrap";
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "Together — Watch & Listen Together",
   description:
     "Create a room, sync YouTube playback with friends, build a collaborative queue, vote to skip, and chat — no account required.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+  openGraph: {
+    title: "Together — Watch & Listen Together",
+    description:
+      "Create a room, sync YouTube playback with friends, build a collaborative queue, vote to skip, and chat — no account required.",
+    type: "website",
+    siteName: "Together",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Together" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Together — Watch & Listen Together",
+    description:
+      "Create a room, sync YouTube playback with friends, build a collaborative queue, vote to skip, and chat — no account required.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Together" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

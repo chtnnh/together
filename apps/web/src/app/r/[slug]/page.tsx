@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: RoomPageProps): Promise<Metad
       card: "summary_large_image",
       title: `${title} · Together`,
       description,
+      images: [{ url: `/r/${slug}/opengraph-image`, width: 1200, height: 630, alt: title }],
     },
   };
 }
