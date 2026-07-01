@@ -675,7 +675,9 @@ export function RoomClient({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => (window.location.href = `/api/auth/spotify?room=${slug}`)}
+            onClick={() => {
+              window.open(`/api/auth/spotify?room=${slug}`, "_blank", "noopener,noreferrer");
+            }}
           >
             Import Spotify
           </Button>

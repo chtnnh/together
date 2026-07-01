@@ -75,7 +75,14 @@ export default function SpotifyImportClient() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="mb-6 text-2xl font-bold">Import from Spotify</h1>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold">Import from Spotify</h1>
+        {room && (
+          <Button variant="ghost" size="sm" onClick={() => window.close()}>
+            Back to room
+          </Button>
+        )}
+      </div>
       {error && (
         <p className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           {error}
