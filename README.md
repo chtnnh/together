@@ -268,6 +268,17 @@ Playwright specs live in `apps/web/e2e/`. Requires **Node.js 22+** (Wrangler dev
 
 ---
 
+## Releases
+
+### v0.2.3
+
+- Auth, playlists, and room claim for signed-in users
+- Playback sync fixes (server clock offset, drift correction)
+- Open Graph preview images and favicon
+- Cloudflare Workers Git integration build config
+
+---
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
@@ -276,4 +287,4 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ## Acknowledgments
 
-Built by [chtnnh](https://me.chtnnhfoundation.org). v0.2.2 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
+Built by [chtnnh](https://me.chtnnhfoundation.org). v0.2.3 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
