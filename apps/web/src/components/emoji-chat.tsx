@@ -1,17 +1,55 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
-import type { ChatMessage } from "@together/shared";
+import type { ChatMessage, Participant } from "@together/shared";
 
-/**
- * Scrollable chat log that keeps the newest message in view. Auto-scrolls only
- * when the viewer is already pinned to the bottom, so scrolling up to re-read
- * history is not interrupted by incoming messages.
- */
-export function ChatMessages({ messages }: { messages: ChatMessage[] }) {
+function renderMessageBody(body: string, currentParticipantId?: string, participants: Participant[] = []) {
+  const mentionPattern = /@([\w\s-]{1,24})/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = mentionPattern.exec(body)) !== null) {
+    const before = body.slice(lastIndex, match.index);
+    if (before) parts.push(before);
+
+    const name = match[1]!.trim();
+    const mentioned = participants.find(
+      (p) => p.displayName.toLowerCase() === name.toLowerCase(),
+    );
+    const isYou = mentioned?.id === currentParticipantId;
+
+    parts.push(
+      <span
+        key={`${match.index}-${name}`}
+        className={
+          isYou
+            ? "rounded bg-[var(--accent)]/25 font-medium text-[var(--accent)]"
+            : "font-medium text-[var(--accent)]"
+        }
+      >
+        @{name}
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < body.length) parts.push(body.slice(lastIndex));
+  return parts.length > 0 ? parts : body;
+}
+
+export function ChatMessages({
+  messages,
+  participants = [],
+  currentParticipantId,
+}: {
+  messages: ChatMessage[];
+  participants?: Participant[];
+  currentParticipantId?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedToBottomRef = useRef(true);
 
@@ -34,13 +72,26 @@ export function ChatMessages({ messages }: { messages: ChatMessage[] }) {
       onScroll={handleScroll}
       className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
     >
-      {messages.map((msg) => (
-        <div key={msg.id} className="text-sm">
-          <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
-          <span className="mx-1 text-[var(--text-muted)]">·</span>
-          <span>{msg.body}</span>
-        </div>
-      ))}
+      {messages.map((msg) => {
+        const mentionedYou =
+          !!currentParticipantId &&
+          participants.some(
+            (p) =>
+              p.id === currentParticipantId &&
+              msg.body.toLowerCase().includes(`@${p.displayName.toLowerCase()}`),
+          );
+
+        return (
+          <div
+            key={msg.id}
+            className={`text-sm ${mentionedYou ? "rounded-md bg-[var(--accent)]/10 px-2 py-1" : ""}`}
+          >
+            <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
+            <span className="mx-1 text-[var(--text-muted)]">·</span>
+            <span>{renderMessageBody(msg.body, currentParticipantId, participants)}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -140,13 +191,18 @@ export function ChatInput({
   onSend,
   slowModeSeconds = 0,
   lastChatAt = 0,
+  participants = [],
 }: {
   onSend: (body: string) => void;
   slowModeSeconds?: number;
   lastChatAt?: number;
+  participants?: Participant[];
 }) {
   const [message, setMessage] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (slowModeSeconds <= 0 || lastChatAt <= 0) return;
@@ -163,12 +219,61 @@ export function ChatInput({
       : 0;
   const slowModeActive = cooldownRemaining > 0;
 
+  const mentionMatches =
+    mentionQuery === null
+      ? []
+      : participants
+          .filter((p) =>
+            mentionQuery === ""
+              ? true
+              : p.displayName.toLowerCase().includes(mentionQuery.toLowerCase()),
+          )
+          .slice(0, 8);
+
+  useEffect(() => {
+    setMentionIndex(0);
+  }, [mentionQuery, mentionMatches.length]);
+
+  const updateMentionQuery = (value: string, cursor: number) => {
+    const before = value.slice(0, cursor);
+    const at = before.lastIndexOf("@");
+    if (at === -1 || (at > 0 && !/\s/.test(before[at - 1]!))) {
+      setMentionQuery(null);
+      return;
+    }
+    const query = before.slice(at + 1);
+    if (/\s/.test(query)) {
+      setMentionQuery(null);
+      return;
+    }
+    setMentionQuery(query);
+  };
+
+  const insertMention = (name: string) => {
+    const input = inputRef.current;
+    if (!input) return;
+    const cursor = input.selectionStart ?? message.length;
+    const before = message.slice(0, cursor);
+    const after = message.slice(cursor);
+    const at = before.lastIndexOf("@");
+    if (at === -1) return;
+    const next = `${before.slice(0, at)}@${name} ${after}`;
+    setMessage(next);
+    setMentionQuery(null);
+    requestAnimationFrame(() => {
+      const pos = at + name.length + 2;
+      input.setSelectionRange(pos, pos);
+      input.focus();
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const body = message.trim();
     if (!body || slowModeActive) return;
     onSend(body);
     setMessage("");
+    setMentionQuery(null);
   };
 
   const appendEmoji = (emoji: string) => {
@@ -176,20 +281,50 @@ export function ChatInput({
     setMessage((prev) => prev + emoji);
   };
 
+  const mentionOpen = mentionQuery !== null && mentionMatches.length > 0;
+
   return (
-    <form onSubmit={handleSubmit} className="flex shrink-0 items-center gap-2 border-t border-[var(--border)] p-3">
+    <form onSubmit={handleSubmit} className="relative flex shrink-0 items-center gap-2 border-t border-[var(--border)] p-3">
       <EmojiPickerButton onSelect={appendEmoji} />
       <input
+        ref={inputRef}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={(e) => {
+          setMessage(e.target.value);
+          updateMentionQuery(e.target.value, e.target.selectionStart ?? e.target.value.length);
+        }}
+        onKeyDown={(e) => {
+          if (mentionOpen) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setMentionIndex((i) => (i + 1) % mentionMatches.length);
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setMentionIndex((i) => (i - 1 + mentionMatches.length) % mentionMatches.length);
+              return;
+            }
+            if (e.key === "Enter" || e.key === "Tab") {
+              e.preventDefault();
+              const pick = mentionMatches[mentionIndex];
+              if (pick) insertMention(pick.displayName);
+              return;
+            }
+          }
+          if (e.key === "Escape") setMentionQuery(null);
+        }}
         placeholder={
           slowModeActive
             ? `Slow mode: ${Math.ceil(cooldownRemaining / 1000)}s`
-            : "Type a message..."
+            : "Type a message… (@ to mention)"
         }
         disabled={slowModeActive}
         maxLength={2000}
         className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50"
+        aria-autocomplete={mentionOpen ? "list" : undefined}
+        aria-controls={mentionOpen ? "mention-listbox" : undefined}
+        aria-expanded={mentionOpen}
       />
       <button
         type="submit"
@@ -198,6 +333,33 @@ export function ChatInput({
       >
         Send
       </button>
+      {mentionOpen && (
+        <ul
+          id="mention-listbox"
+          role="listbox"
+          className="absolute bottom-full left-12 z-10 mb-1 max-h-40 w-56 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-lg"
+        >
+          {mentionMatches.map((p, index) => (
+            <li key={p.id} role="option" aria-selected={index === mentionIndex}>
+              <button
+                type="button"
+                className={`flex w-full px-3 py-1.5 text-left text-sm ${
+                  index === mentionIndex
+                    ? "bg-[var(--accent)]/20 text-[var(--text)]"
+                    : "hover:bg-[var(--bg)]"
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  insertMention(p.displayName);
+                }}
+                onMouseEnter={() => setMentionIndex(index)}
+              >
+                @{p.displayName}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </form>
   );
 }
