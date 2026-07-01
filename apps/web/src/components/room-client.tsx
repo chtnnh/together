@@ -52,6 +52,8 @@ import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
 import { recordRecentRoom } from "@/lib/recent-rooms";
+import { SignInModal } from "@/components/sign-in-modal";
+import { AccountNav } from "@/components/account-nav";
 import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
@@ -110,9 +112,12 @@ export function RoomClient({
 }: RoomClientProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { userId, signedIn } = useSupabaseUser();
+  const { userId, email, signedIn, loading: authLoading } = useSupabaseUser();
   const [displayName, setDisplayNameState] = useState(initialDisplayName);
   const [joined, setJoined] = useState(false);
+  const [roomHasOwner, setRoomHasOwner] = useState(hasOwner);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [claimingRoom, setClaimingRoom] = useState(false);
 
   useLayoutEffect(() => {
     const stored = getDisplayName();
@@ -428,6 +433,31 @@ export function RoomClient({
     },
     [isRoomHost, send, slug, toast],
   );
+
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const openSignIn = useCallback(() => setSignInOpen(true), []);
+
+  const handleClaimRoom = useCallback(async () => {
+    if (!signedIn) {
+      openSignIn();
+      return;
+    }
+    setClaimingRoom(true);
+    try {
+      const res = await fetch(`/api/rooms/${slug}/settings`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error ?? "Could not save room to account", "error");
+        return;
+      }
+      setRoomHasOwner(true);
+      toast("Room saved to your account", "success");
+    } catch {
+      toast("Could not save room to account", "error");
+    } finally {
+      setClaimingRoom(false);
+    }
+  }, [openSignIn, signedIn, slug, toast]);
 
   const handleAddUrl = async () => {
     if (!addUrl.trim()) return;
@@ -757,7 +787,7 @@ export function RoomClient({
               size="sm"
               className="shrink-0 whitespace-nowrap"
               onClick={() =>
-                signedIn ? setPlaylistPickerOpen(true) : toast("Sign in to load playlists", "error")
+                signedIn ? setPlaylistPickerOpen(true) : openSignIn()
               }
             >
               <FolderOpen className="mr-1.5 size-4" />
@@ -788,7 +818,7 @@ export function RoomClient({
                 variant="ghost"
                 size="sm"
                 onClick={() =>
-                  signedIn ? setSavePlaylistOpen(true) : toast("Sign in to save playlists", "error")
+                  signedIn ? setSavePlaylistOpen(true) : openSignIn()
                 }
               >
                 <Save className="mr-1.5 size-4" />
@@ -889,6 +919,12 @@ export function RoomClient({
               slug={slug}
             />
             <ShareInviteButton slug={slug} title={roomTitle} privacy={privacy} />
+            <AccountNav
+              signedIn={signedIn}
+              authLoading={authLoading}
+              onSignIn={openSignIn}
+              compact
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -1044,13 +1080,13 @@ export function RoomClient({
           userPrefs={userPrefs}
           isHost={isHost}
           canEditLoop={isHost || !settings?.controlsLocked}
-          hasOwner={hasOwner}
+          hasOwner={roomHasOwner}
+          signedIn={signedIn}
+          authLoading={authLoading}
+          userEmail={email}
+          claiming={claimingRoom}
           onRoomUpdate={(s) => {
             send({ type: "settings:update", settings: s });
-            // Persist to the DB so it stays in sync with the Durable Object.
-            // The settings route authorizes ownership server-side (owner-only
-            // for claimed rooms), which also keeps settings durable for rooms
-            // claimed later in the session.
             if (isHost) {
               void fetch(`/api/rooms/${slug}/settings`, {
                 method: "PATCH",
@@ -1061,10 +1097,17 @@ export function RoomClient({
           }}
           onRoomTitleUpdate={handleRoomTitleUpdate}
           onUserPrefsUpdate={setUserPrefs}
-          onClose={() => setSettingsOpen(false)}
-          onClaim={() => (window.location.href = "/settings")}
+          onClose={closeSettings}
+          onSignIn={openSignIn}
+          onClaim={handleClaimRoom}
         />
       )}
+
+      <SignInModal
+        open={signInOpen}
+        onClose={() => setSignInOpen(false)}
+        returnTo={`/r/${slug}`}
+      />
 
       {pickRequest && (
         <AlternatePicker

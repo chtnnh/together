@@ -28,10 +28,15 @@ interface SettingsDrawerProps {
   isHost: boolean;
   canEditLoop: boolean;
   hasOwner: boolean;
+  signedIn?: boolean;
+  authLoading?: boolean;
+  userEmail?: string | null;
+  claiming?: boolean;
   onRoomUpdate: (settings: Partial<RoomSettings>) => void;
   onRoomTitleUpdate: (title: string) => void;
   onUserPrefsUpdate: (prefs: Partial<UserPreferences>) => void;
   onClose: () => void;
+  onSignIn?: () => void;
   onClaim?: () => void;
 }
 
@@ -77,10 +82,15 @@ export function SettingsDrawer({
   isHost,
   canEditLoop,
   hasOwner,
+  signedIn = false,
+  authLoading = false,
+  userEmail,
+  claiming = false,
   onRoomUpdate,
   onRoomTitleUpdate,
   onUserPrefsUpdate,
   onClose,
+  onSignIn,
   onClaim,
 }: SettingsDrawerProps) {
   const [titleDraft, setTitleDraft] = useState(roomTitle);
@@ -319,10 +329,32 @@ export function SettingsDrawer({
                 </SettingRow>
               </div>
 
-              {!hasOwner && onClaim && (
-                <Button variant="secondary" className="w-full" onClick={onClaim}>
-                  Sign in to save room settings
-                </Button>
+              {!authLoading && isHost && (
+                <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3">
+                  {signedIn && userEmail ? (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Signed in as <span className="text-[var(--text)]">{userEmail}</span>
+                    </p>
+                  ) : null}
+                  {hasOwner ? (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Room settings are saved to your account.
+                    </p>
+                  ) : signedIn && onClaim ? (
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={onClaim}
+                      disabled={claiming}
+                    >
+                      {claiming ? "Saving..." : "Save room to your account"}
+                    </Button>
+                  ) : onSignIn ? (
+                    <Button variant="secondary" className="w-full" onClick={onSignIn}>
+                      Sign in to save room settings
+                    </Button>
+                  ) : null}
+                </div>
               )}
             </>
           )}
