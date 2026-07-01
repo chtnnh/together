@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { REACTION_EMOJIS, type ReactionEmoji, type RoomReaction } from "@together/shared";
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
+import { Button } from "@together/ui";
 
 interface FloatingReaction extends RoomReaction {
   offsetX: number;
@@ -84,21 +84,17 @@ export function NowPlayingReactions({
       )}
       <div className={`flex gap-0.5 ${inline ? "justify-end" : "flex-wrap justify-center"}`}>
         {REACTION_EMOJIS.map((emoji) => (
-          <Tooltip key={emoji}>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={inline ? "size-8 text-base" : "h-8 w-8 text-lg"}
-                aria-label={`React ${emoji}`}
-                onClick={() => onSend(emoji)}
-              >
-                {emoji}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Send {emoji}</TooltipContent>
-          </Tooltip>
+          <Button
+            key={emoji}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={inline ? "size-8 text-base" : "h-8 w-8 text-lg"}
+            aria-label={`React ${emoji}`}
+            onClick={() => onSend(emoji)}
+          >
+            {emoji}
+          </Button>
         ))}
       </div>
     </div>
