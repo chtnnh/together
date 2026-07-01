@@ -445,7 +445,8 @@ export function RoomClient({
     setClaimingRoom(true);
     try {
       const res = await fetch(`/api/rooms/${slug}/settings`, { method: "POST" });
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw ? (JSON.parse(raw) as { error?: string }) : {};
       if (!res.ok) {
         toast(data.error ?? "Could not save room to account", "error");
         return;
