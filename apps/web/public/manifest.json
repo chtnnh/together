@@ -1,6 +1,7 @@
 {
   "name": "Together",
   "short_name": "Together",
+  "version": "0.2.0",
   "description": "Watch and listen together with friends",
   "start_url": "/",
   "display": "standalone",

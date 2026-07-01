@@ -22,40 +22,54 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 
 ### Playback & sync
 - Synchronized YouTube playback with drift correction
+- **Now-playing bar** — pinned strip with seek, play/pause, skip, volume, and reactions
+- **Keyboard shortcuts** — Space, arrows, M, N, `/`, `?` (desktop)
 - Seek bar — scrub to any point when you have playback control
 - Play any track from the queue on demand (not just “next”)
 - Late-join sync (“tap to sync” when autoplay is blocked)
+- Header **Sync playback** button and explicit connection status
 - Host/co-host play, pause, and skip
 - **Open controls mode** — unlock playback so every member can control play/skip/seek and add directly to the queue
 - Loop modes: off, repeat current track, repeat queue
-- Unavailable or deleted YouTube videos blocked at import
+- Crossfade between tracks; volume normalization on track change
+- Background playback on mobile (tab hidden without pausing the room)
+- Unavailable or deleted YouTube videos blocked at import with inline error banner
 
 ### Queue & discovery
 - Two-lane queue: member **requests** → host **DJ queue**
-- Drag-and-drop queue reordering (host/co-host)
+- Drag-and-drop queue reordering (host/co-host), including touch drag on mobile
+- Democratic promote votes on requests (optional)
 - Clear all requests or queue in one click
 - Queue history with one-click re-add
 - YouTube URL paste and search
-- Spotify & Apple Music playlist import (optional OAuth / API keys)
+- **Spotify & SoundCloud** playlist import (optional OAuth / API keys)
 - Smart track resolution (ISRC-first, fuzzy title/artist matching, alternate picker)
+- **Recent rooms** on home and **live public room directory**
 
 ### Room & moderation
-- Public, unlisted, or password-protected rooms
+- Public, unlisted, or password-protected rooms with **signed invite links**
 - Custom room names; room settings persist across host refresh
 - Kick, ban, promote and demote co-hosts
+- **Ownership transfer** to signed-in participants
 - Vote-to-skip with configurable threshold (votes reset when the track changes)
 - Democratic request promotion (optional)
 
 ### Chat & personalization
-- Text chat with emoji picker
+- Text chat with emoji picker and **@mentions** (autocomplete + highlight)
 - Slow mode and profanity filter (host settings)
-- **Five theme presets** — personal accent colors, saved per browser
-- **Audio-only mode** — hide video, keep the music going
+- **Six theme presets** including **High contrast** — personal accent colors
+- **Audio-only mode** — hide video on all screen sizes, keep the music going
 - Stream quality preference (auto / 720p / 480p / 144p)
-- Activity toasts (join, leave, kick, ban, promote)
+- **Reduced motion** toggle; respects `prefers-reduced-motion`
+- Activity toasts (join, leave, kick, ban, promote, skip)
+- **Share sheet**, **Open Graph** link previews, **Copy Discord status**
+
+### PWA
+- Installable app with **Create room** and **Join room** manifest shortcuts
+- Service worker caches the app shell; offline fallback page
 
 ### Optional (requires Supabase auth)
-- Sign in to save room settings and cross-provider playlists
+- Sign in to save room settings, **save/load playlists**, and **sync preferences** across devices
 
 ---
 
