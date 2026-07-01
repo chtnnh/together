@@ -7,37 +7,56 @@ import Picker from "@emoji-mart/react";
 import type { ChatMessage, Participant } from "@together/shared";
 
 function renderMessageBody(body: string, currentParticipantId?: string, participants: Participant[] = []) {
-  const mentionPattern = /@([\w\s-]{1,24})/g;
+  if (!body.includes("@") || participants.length === 0) return body;
+
+  const namesByLength = [...participants]
+    .map((p) => p.displayName)
+    .sort((a, b) => b.length - a.length);
+
   const parts: ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
+  let i = 0;
 
-  while ((match = mentionPattern.exec(body)) !== null) {
-    const before = body.slice(lastIndex, match.index);
-    if (before) parts.push(before);
+  while (i < body.length) {
+    if (body[i] !== "@") {
+      const nextAt = body.indexOf("@", i + 1);
+      const end = nextAt === -1 ? body.length : nextAt;
+      if (i < end) parts.push(body.slice(i, end));
+      i = end;
+      continue;
+    }
 
-    const name = match[1]!.trim();
-    const mentioned = participants.find(
-      (p) => p.displayName.toLowerCase() === name.toLowerCase(),
-    );
-    const isYou = mentioned?.id === currentParticipantId;
+    let matched: Participant | null = null;
+    for (const name of namesByLength) {
+      const candidate = body.slice(i + 1, i + 1 + name.length);
+      if (candidate.toLowerCase() !== name.toLowerCase()) continue;
+      const next = body[i + 1 + name.length];
+      if (next !== undefined && !/[\s.,!?;:)]/.test(next)) continue;
+      matched =
+        participants.find((p) => p.displayName.toLowerCase() === name.toLowerCase()) ?? null;
+      break;
+    }
 
-    parts.push(
-      <span
-        key={`${match.index}-${name}`}
-        className={
-          isYou
-            ? "rounded bg-[var(--accent)]/25 font-medium text-[var(--accent)]"
-            : "font-medium text-[var(--accent)]"
-        }
-      >
-        @{name}
-      </span>,
-    );
-    lastIndex = match.index + match[0].length;
+    if (matched) {
+      const isYou = matched.id === currentParticipantId;
+      parts.push(
+        <span
+          key={`${i}-${matched.id}`}
+          className={
+            isYou
+              ? "rounded bg-[var(--accent)]/25 font-medium text-[var(--accent)]"
+              : "font-medium text-[var(--accent)]"
+          }
+        >
+          @{matched.displayName}
+        </span>,
+      );
+      i += 1 + matched.displayName.length;
+    } else {
+      parts.push("@");
+      i += 1;
+    }
   }
 
-  if (lastIndex < body.length) parts.push(body.slice(lastIndex));
   return parts.length > 0 ? parts : body;
 }
 
