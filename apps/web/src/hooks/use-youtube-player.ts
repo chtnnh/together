@@ -183,7 +183,7 @@ export function useYouTubePlayer({
       return;
     }
 
-    if (isPlayableState(state)) {
+    if (state === window.YT.PlayerState.PAUSED || isPlayableState(state)) {
       player.playVideo();
       pendingPlayRef.current = false;
       return;
