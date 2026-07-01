@@ -119,6 +119,10 @@ export const clientEvents = {
     type: z.literal("reaction:send"),
     emoji: reactionEmojiSchema,
   }),
+  ownershipTransfer: clientEventBase.extend({
+    type: z.literal("ownership:transfer"),
+    targetParticipantId: z.string(),
+  }),
 };
 
 export const clientEventSchema = z.discriminatedUnion("type", [
@@ -146,6 +150,7 @@ export const clientEventSchema = z.discriminatedUnion("type", [
   clientEvents.resolvePick,
   clientEvents.ping,
   clientEvents.reactionSend,
+  clientEvents.ownershipTransfer,
 ]);
 
 export type ClientEvent = z.infer<typeof clientEventSchema>;
