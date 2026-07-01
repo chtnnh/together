@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "build:realtime": "pnpm --filter @together/realtime run build",
+    "deploy:realtime": "pnpm --filter @together/realtime exec wrangler deploy --env production",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
