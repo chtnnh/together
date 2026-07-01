@@ -159,6 +159,7 @@ export function RoomClient({
     onKicked,
     onActivity,
     onReaction,
+    onNotify: (message) => toast(message, "default"),
   });
 
   const settings = roomState?.settings;
