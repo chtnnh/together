@@ -24,6 +24,7 @@ interface UseYouTubePlayerOptions {
   containerId: string;
   playback: PlaybackState | null;
   quality?: string;
+  audioOnly?: boolean;
   volume?: number;
   muted?: boolean;
   onEnded?: () => void;
@@ -128,6 +129,7 @@ export function useYouTubePlayer({
   containerId,
   playback,
   quality = "auto",
+  audioOnly = false,
   volume = 100,
   muted = false,
   onEnded,
@@ -153,7 +155,7 @@ export function useYouTubePlayer({
   onErrorRef.current = onError;
 
   const qualityRef = useRef(quality);
-  qualityRef.current = quality;
+  qualityRef.current = audioOnly ? "144p" : quality;
 
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
@@ -520,7 +522,7 @@ export function useYouTubePlayer({
   useEffect(() => {
     if (!ready) return;
     applyPlaybackToPlayer();
-  }, [ready, playback, quality, applyPlaybackToPlayer]);
+  }, [ready, playback, quality, audioOnly, applyPlaybackToPlayer]);
 
   useEffect(() => {
     if (!ready) return;

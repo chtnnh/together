@@ -238,6 +238,7 @@ export function RoomClient({
       containerId: "youtube-player",
       playback,
       quality: userPrefs.quality,
+      audioOnly: userPrefs.audioOnly,
       volume: userPrefs.volume,
       muted: userPrefs.muted,
       onEnded: handlePlaybackEnded,

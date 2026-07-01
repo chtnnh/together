@@ -109,7 +109,10 @@ export function SettingsDrawer({
               Personal preferences — only affects this browser.
             </p>
 
-            <SettingRow label="Audio only mode" description="Hide the video player, audio only.">
+            <SettingRow
+              label="Audio only mode"
+              description="Hide the video player and stream at lowest quality to save bandwidth."
+            >
               <Switch
                 aria-label="Audio only mode"
                 checked={userPrefs.audioOnly}
