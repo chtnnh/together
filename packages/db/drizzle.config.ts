@@ -8,9 +8,16 @@ import { defineConfig } from "drizzle-kit";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
+function loadEnvFiles() {
+  const envFile = process.env.ENV_FILE?.trim() || ".env";
+  config({ path: resolve(rootDir, envFile) });
+  if (!process.env.ENV_FILE) {
+    config({ path: resolve(rootDir, ".env.local") });
+  }
+}
+
 // Load monorepo root .env (drizzle.config.ts lives in packages/db)
-config({ path: resolve(rootDir, ".env") });
-config({ path: resolve(rootDir, ".env.local") });
+loadEnvFiles();
 
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL?.trim();

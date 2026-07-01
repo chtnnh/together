@@ -71,8 +71,15 @@ async function assertReachableSupabaseHost(url) {
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = findRepoRoot(scriptDir);
 
-config({ path: resolve(rootDir, ".env") });
-config({ path: resolve(rootDir, ".env.local") });
+function loadEnvFiles() {
+  const envFile = process.env.ENV_FILE?.trim() || ".env";
+  config({ path: resolve(rootDir, envFile) });
+  if (!process.env.ENV_FILE) {
+    config({ path: resolve(rootDir, ".env.local") });
+  }
+}
+
+loadEnvFiles();
 
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
