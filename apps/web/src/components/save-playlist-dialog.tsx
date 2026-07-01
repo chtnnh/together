@@ -54,7 +54,8 @@ export function SavePlaylistDialog({
           items: queueToPlaylistItems(queue),
         }),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw ? (JSON.parse(raw) as { error?: string }) : {};
       if (!res.ok) {
         setError(data.error ?? "Failed to save playlist");
         return;

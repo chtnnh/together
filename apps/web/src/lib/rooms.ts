@@ -37,6 +37,9 @@ function getDbErrorMessage(error: unknown): string {
     if (pg.code === "42P01") {
       return "Database tables are missing. Run: pnpm db:migrate";
     }
+    if (pg.code === "23503") {
+      return "Account not synced to database. Sign out and sign in again.";
+    }
     if (pg.code === "ECONNREFUSED") {
       return "Cannot connect to Postgres. Is Docker running?";
     }
@@ -45,7 +48,44 @@ function getDbErrorMessage(error: unknown): string {
     }
   }
 
-  return error instanceof Error ? error.message : "Failed to create room";
+  return error instanceof Error ? error.message : "Database operation failed";
+}
+
+function toDbInt(value: number | undefined): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return Math.round(value);
+}
+
+function truncateField(value: string | undefined, max: number): string | undefined {
+  if (value === undefined) return undefined;
+  return value.length > max ? value.slice(0, max) : value;
+}
+
+type PlaylistItemInput = {
+  source: "youtube" | "spotify" | "apple" | "manual";
+  title: string;
+  artist?: string;
+  durationMs?: number;
+  externalId?: string;
+  isrc?: string;
+  resolvedYoutubeId?: string;
+  confidence?: number;
+  alternates?: unknown;
+};
+
+function normalizePlaylistItemForDb(item: PlaylistItemInput, index: number) {
+  return {
+    source: item.source,
+    title: truncateField(item.title, 512) ?? "Untitled",
+    artist: truncateField(item.artist, 256),
+    durationMs: toDbInt(item.durationMs),
+    externalId: truncateField(item.externalId, 128),
+    isrc: truncateField(item.isrc, 32),
+    resolvedYoutubeId: truncateField(item.resolvedYoutubeId, 32),
+    confidence: toDbInt(item.confidence),
+    alternates: item.alternates ?? null,
+    position: index,
+  };
 }
 
 async function generateUniqueSlug(): Promise<string> {
@@ -241,57 +281,47 @@ export async function getRoomBans(roomId: string) {
 
 export async function savePlaylist(input: {
   userId: string;
+  email?: string | null;
   name: string;
   source: "spotify" | "apple" | "youtube" | "mixed";
-  items: Array<{
-    source: "youtube" | "spotify" | "apple" | "manual";
-    title: string;
-    artist?: string;
-    durationMs?: number;
-    externalId?: string;
-    isrc?: string;
-    resolvedYoutubeId?: string;
-    confidence?: number;
-    alternates?: unknown;
-  }>;
+  items: PlaylistItemInput[];
 }) {
   if (isMemoryStoreEnabled()) {
     return { id: crypto.randomUUID(), ...input, importedAt: new Date() };
   }
 
-  await ensureUser(input.userId);
+  await ensureUser(input.userId, input.email);
 
   const { getDb, playlists, playlistItems } = await import("@together/db");
   const db = getDb();
 
-  const [playlist] = await db
-    .insert(playlists)
-    .values({
-      userId: input.userId,
-      name: input.name,
-      source: input.source,
-    })
-    .returning();
+  try {
+    const [playlist] = await db
+      .insert(playlists)
+      .values({
+        userId: input.userId,
+        name: input.name.trim(),
+        source: input.source,
+      })
+      .returning();
 
-  if (input.items.length > 0) {
-    await db.insert(playlistItems).values(
-      input.items.map((item, index) => ({
-        playlistId: playlist!.id,
-        source: item.source,
-        title: item.title,
-        artist: item.artist,
-        durationMs: item.durationMs,
-        externalId: item.externalId,
-        isrc: item.isrc,
-        resolvedYoutubeId: item.resolvedYoutubeId,
-        confidence: item.confidence,
-        alternates: item.alternates,
-        position: index,
-      })),
-    );
+    if (!playlist) {
+      throw new Error("Insert succeeded but no playlist was returned");
+    }
+
+    if (input.items.length > 0) {
+      await db.insert(playlistItems).values(
+        input.items.map((item, index) => ({
+          playlistId: playlist.id,
+          ...normalizePlaylistItemForDb(item, index),
+        })),
+      );
+    }
+
+    return playlist;
+  } catch (error) {
+    throw new Error(getDbErrorMessage(error), { cause: error });
   }
-
-  return playlist;
 }
 
 export async function getUserPlaylists(userId: string) {
@@ -366,7 +396,7 @@ export async function ensureUser(userId: string, email?: string | null) {
   await db
     .insert(users)
     .values({ id: userId, email: email ?? null })
-    .onConflictDoNothing();
+    .onConflictDoNothing({ target: users.id });
 }
 
 export async function getUserPreferences(userId: string) {
