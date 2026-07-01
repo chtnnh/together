@@ -8,15 +8,38 @@ function readWorkflow(name: string): string {
   return fs.readFileSync(path.join(repoRoot, ".github/workflows", name), "utf8");
 }
 
-test.describe("Phase 1.1 — CI auto-deploy", () => {
-  test("deploy workflow runs after CI succeeds on main", () => {
-    const deploy = readWorkflow("deploy.yml");
-    expect(deploy).toContain("workflow_run");
-    expect(deploy).toContain('workflows: ["CI"]');
-    expect(deploy).toContain("branches: [main]");
-    expect(deploy).toContain("@together/realtime run deploy");
-    expect(deploy).toContain("environment: production");
-    expect(deploy).toContain("CLOUDFLARE_API_TOKEN");
+function readRepoFile(relativePath: string): string {
+  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+}
+
+test.describe("Phase 1.1 — CI and deploy", () => {
+  test("realtime and web deploy via Git integrations, not deploy.yml", () => {
+    const deployWorkflow = path.join(repoRoot, ".github/workflows/deploy.yml");
+    expect(fs.existsSync(deployWorkflow)).toBe(false);
+
+    const ci = readWorkflow("ci.yml");
+    expect(ci).toContain("Cloudflare Workers Git integration");
+    expect(ci).toContain("Vercel Git integration");
+
+    const wrangler = readRepoFile("services/realtime/wrangler.toml");
+    expect(wrangler).toContain("[env.production]");
+    expect(wrangler).toContain('name = "together-realtime-production"');
+    expect(wrangler).toContain("realtime.together.chtnnhfoundation.org");
+    expect(wrangler).toContain("pnpm run build:realtime");
+    expect(wrangler).toContain("pnpm run deploy:realtime");
+    expect(wrangler).toContain("ROOM_TOKEN_SECRET");
+
+    const rootPkg = JSON.parse(readRepoFile("package.json")) as {
+      scripts?: Record<string, string>;
+    };
+    expect(rootPkg.scripts?.["build:realtime"]).toContain("@together/realtime");
+    expect(rootPkg.scripts?.["deploy:realtime"]).toContain("wrangler deploy --env production");
+
+    const realtimePkg = JSON.parse(readRepoFile("services/realtime/package.json")) as {
+      scripts?: Record<string, string>;
+    };
+    expect(realtimePkg.scripts?.build).toBeTruthy();
+    expect(realtimePkg.scripts?.deploy).toContain("wrangler deploy --env production");
   });
 
   test("CI workflow runs typecheck, lint, and Playwright tests", () => {
