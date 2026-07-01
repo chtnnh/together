@@ -259,6 +259,8 @@ export async function savePlaylist(input: {
     return { id: crypto.randomUUID(), ...input, importedAt: new Date() };
   }
 
+  await ensureUser(input.userId);
+
   const { getDb, playlists, playlistItems } = await import("@together/db");
   const db = getDb();
 
@@ -355,4 +357,109 @@ export async function setCachedResolution(
       target: resolutionCache.sourceKey,
       set: { youtubeId, confidence, alternates, cachedAt: new Date() },
     });
+}
+
+export async function ensureUser(userId: string, email?: string | null) {
+  if (isMemoryStoreEnabled()) return;
+  const { getDb, users } = await import("@together/db");
+  const db = getDb();
+  await db
+    .insert(users)
+    .values({ id: userId, email: email ?? null })
+    .onConflictDoNothing();
+}
+
+export async function getUserPreferences(userId: string) {
+  if (isMemoryStoreEnabled()) return null;
+  const { getDb, users } = await import("@together/db");
+  const { eq } = await import("drizzle-orm");
+  const db = getDb();
+  const [row] = await db
+    .select({ preferences: users.preferences })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return row?.preferences ?? null;
+}
+
+export async function saveUserPreferences(
+  userId: string,
+  email: string | undefined,
+  preferences: import("@together/shared").UserAccountPreferences,
+) {
+  if (isMemoryStoreEnabled()) return preferences;
+  const { getDb, users } = await import("@together/db");
+  const { eq } = await import("drizzle-orm");
+  const { userAccountPreferencesSchema } = await import("@together/shared");
+  const db = getDb();
+  const parsed = userAccountPreferencesSchema.parse(preferences);
+
+  await ensureUser(userId, email);
+
+  const [existing] = await db
+    .select({ preferences: users.preferences })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const merged = userAccountPreferencesSchema.parse({
+    ...(existing?.preferences ?? {}),
+    ...parsed,
+  });
+
+  await db.update(users).set({ preferences: merged }).where(eq(users.id, userId));
+  return merged;
+}
+
+export async function transferRoomOwnership(roomId: string, newOwnerUserId: string) {
+  if (isMemoryStoreEnabled()) {
+    for (const room of memoryRooms.values()) {
+      if (room.id === roomId) {
+        room.ownerUserId = newOwnerUserId;
+        return room;
+      }
+    }
+    return null;
+  }
+
+  const { getDb, rooms } = await import("@together/db");
+  const { eq } = await import("drizzle-orm");
+  const db = getDb();
+  const [updated] = await db
+    .update(rooms)
+    .set({ ownerUserId: newOwnerUserId })
+    .where(eq(rooms.id, roomId))
+    .returning();
+  return updated ?? null;
+}
+
+export async function listPublicRooms(limit = 24) {
+  if (isMemoryStoreEnabled()) {
+    return [...memoryRooms.values()]
+      .filter((r) => r.privacy === "public")
+      .slice(0, limit)
+      .map((r) => ({
+        id: r.id,
+        slug: r.slug,
+        title: r.title,
+        privacy: r.privacy,
+        createdAt: r.createdAt,
+      }));
+  }
+
+  const { getDb, rooms } = await import("@together/db");
+  const { eq, desc } = await import("drizzle-orm");
+  const db = getDb();
+  return db
+    .select({
+      id: rooms.id,
+      slug: rooms.slug,
+      title: rooms.title,
+      privacy: rooms.privacy,
+      createdAt: rooms.createdAt,
+    })
+    .from(rooms)
+    .where(eq(rooms.privacy, "public"))
+    .orderBy(desc(rooms.createdAt))
+    .limit(limit);
 }

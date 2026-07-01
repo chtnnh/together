@@ -30,6 +30,7 @@ export const playlistSourceEnum = pgEnum("playlist_source", [
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }),
+  preferences: jsonb("preferences").$type<import("@together/shared").UserAccountPreferences>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

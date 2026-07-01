@@ -37,6 +37,17 @@ export const roomSettingsSchema = z.object({
 
 export type RoomSettings = z.infer<typeof roomSettingsSchema>;
 
+export const userAccountPreferencesSchema = z.object({
+  theme: z.enum(THEME_PRESETS).optional(),
+  audioOnly: z.boolean().optional(),
+  quality: z.enum(QUALITY_OPTIONS).optional(),
+  volume: z.number().min(0).max(100).optional(),
+  muted: z.boolean().optional(),
+  reducedMotion: z.boolean().optional(),
+});
+
+export type UserAccountPreferences = z.infer<typeof userAccountPreferencesSchema>;
+
 export const playbackStateSchema = z.object({
   videoId: z.string().nullable(),
   title: z.string().optional(),
