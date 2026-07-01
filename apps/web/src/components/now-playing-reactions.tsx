@@ -12,15 +12,40 @@ interface NowPlayingReactionsProps {
   onSend: (emoji: ReactionEmoji) => void;
   incoming: RoomReaction[];
   inline?: boolean;
+  reducedMotion?: boolean;
 }
 
 const FLOAT_MS = 2500;
 
-export function NowPlayingReactions({ onSend, incoming, inline = false }: NowPlayingReactionsProps) {
+export function NowPlayingReactions({
+  onSend,
+  incoming,
+  inline = false,
+  reducedMotion = false,
+}: NowPlayingReactionsProps) {
   const [floating, setFloating] = useState<FloatingReaction[]>([]);
   const lastReactionIdRef = useRef<string | null>(null);
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
+    if (reducedMotion) {
+      for (const timer of timersRef.current.values()) clearTimeout(timer);
+      timersRef.current.clear();
+      setFloating([]);
+      lastReactionIdRef.current = null;
+    }
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    return () => {
+      for (const timer of timersRef.current.values()) clearTimeout(timer);
+      timersRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion) return;
+
     const latest = incoming[incoming.length - 1];
     if (!latest || latest.id === lastReactionIdRef.current) return;
     lastReactionIdRef.current = latest.id;
@@ -33,28 +58,30 @@ export function NowPlayingReactions({ onSend, incoming, inline = false }: NowPla
     setFloating((prev) => [...prev, entry]);
     const timer = setTimeout(() => {
       setFloating((prev) => prev.filter((r) => r.id !== entry.id));
+      timersRef.current.delete(entry.id);
     }, FLOAT_MS);
-
-    return () => clearTimeout(timer);
-  }, [incoming]);
+    timersRef.current.set(entry.id, timer);
+  }, [incoming, reducedMotion]);
 
   return (
     <div
       className={`relative ${inline ? "shrink-0" : ""}`}
       data-testid="now-playing-reactions"
     >
-      <div className="pointer-events-none absolute inset-x-0 bottom-full mb-1 h-12 overflow-hidden">
-        {floating.map((reaction) => (
+      {!reducedMotion && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-full mb-1 h-12 overflow-hidden">
+          {floating.map((reaction) => (
             <span
               key={reaction.id}
-              className="absolute bottom-0 left-1/2 animate-[reaction-float_2.5s_ease-out_forwards] text-2xl"
+              className="absolute bottom-0 left-1/2 reaction-float-anim animate-[reaction-float_2.5s_ease-out_forwards] text-2xl"
               style={{ marginLeft: reaction.offsetX }}
               aria-hidden
             >
               {reaction.emoji}
             </span>
           ))}
-      </div>
+        </div>
+      )}
       <div className={`flex gap-0.5 ${inline ? "justify-end" : "flex-wrap justify-center"}`}>
         {REACTION_EMOJIS.map((emoji) => (
           <Tooltip key={emoji}>

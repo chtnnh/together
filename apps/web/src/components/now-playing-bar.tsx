@@ -31,6 +31,7 @@ interface NowPlayingBarProps {
   canSkip: boolean;
   onReactionSend?: (emoji: ReactionEmoji) => void;
   incomingReactions?: RoomReaction[];
+  reducedMotion?: boolean;
 }
 
 export function NowPlayingBar({
@@ -52,6 +53,7 @@ export function NowPlayingBar({
   canSkip,
   onReactionSend,
   incomingReactions = [],
+  reducedMotion = false,
 }: NowPlayingBarProps) {
   const displayTitle = title ?? playback?.title ?? "Nothing playing";
   const showTransport = canControlPlayback && playback?.videoId;
@@ -74,7 +76,9 @@ export function NowPlayingBar({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{displayTitle}</p>
+          <p className="truncate font-medium" aria-live="polite" aria-atomic="true">
+            {displayTitle}
+          </p>
           {artist && (
             <p className="truncate text-sm text-[var(--text-muted)]">{artist}</p>
           )}
@@ -159,6 +163,7 @@ export function NowPlayingBar({
               onSend={onReactionSend}
               incoming={incomingReactions}
               inline
+              reducedMotion={reducedMotion}
             />
           ) : null}
         </div>
