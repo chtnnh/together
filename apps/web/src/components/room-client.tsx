@@ -27,6 +27,8 @@ import {
   MessageSquare,
   History,
   RefreshCw,
+  Save,
+  FolderOpen,
 } from "lucide-react";
 import { PlaybackEmbedErrorBanner } from "@/components/playback-embed-error-banner";
 import { ConnectionStatus } from "@/components/connection-status";
@@ -43,8 +45,13 @@ import { AlternatePicker } from "@/components/alternate-picker";
 import { ParticipantsPanel } from "@/components/participants-panel";
 import { getDisplayName, setDisplayName } from "@/lib/utils";
 import { ShareInviteButton } from "@/components/share-invite-button";
+import { DiscordStatusButton } from "@/components/discord-status-button";
+import { SavePlaylistDialog } from "@/components/save-playlist-dialog";
+import { PlaylistPickerDialog } from "@/components/playlist-picker-dialog";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { recordRecentRoom } from "@/lib/recent-rooms";
 import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
@@ -99,9 +106,11 @@ export function RoomClient({
   initialTitle = "",
   initialDisplayName = "",
   hasOwner = false,
+  privacy = "unlisted",
 }: RoomClientProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { userId, signedIn } = useSupabaseUser();
   const [displayName, setDisplayNameState] = useState(initialDisplayName);
   const [joined, setJoined] = useState(false);
 
@@ -128,6 +137,8 @@ export function RoomClient({
   const [localRoomTitle, setLocalRoomTitle] = useState(initialTitle);
   const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [savePlaylistOpen, setSavePlaylistOpen] = useState(false);
+  const [playlistPickerOpen, setPlaylistPickerOpen] = useState(false);
   const [incomingReactions, setIncomingReactions] = useState<RoomReaction[]>([]);
   const [promoteVotedIds, setPromoteVotedIds] = useState<Set<string>>(() => new Set());
   const chatInitRef = useRef(false);
@@ -150,11 +161,12 @@ export function RoomClient({
     setIncomingReactions((prev) => [...prev, reaction]);
   }, []);
 
-  const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences();
+  const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences(signedIn);
 
   const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline } = useRoomSocket({
     roomId,
     displayName,
+    userId,
     enabled: joined,
     onKicked,
     onActivity,
@@ -174,6 +186,12 @@ export function RoomClient({
   );
 
   const roomTitle = roomState?.title || localRoomTitle || slug;
+  const isRoomHost = participant?.role === "host";
+
+  useEffect(() => {
+    if (!joined || !connected) return;
+    recordRecentRoom(slug, roomTitle);
+  }, [joined, connected, slug, roomTitle]);
   const chatCount = roomState?.chat.length ?? 0;
   const chatIsOpen = sidebarTab === "chat" || mobileTab === "chat";
   const unreadChat = chatIsOpen ? 0 : Math.max(0, chatCount - lastReadChatCount);
@@ -355,6 +373,60 @@ export function RoomClient({
       });
     },
     [send],
+  );
+
+  const importPlaylistItems = useCallback(
+    (
+      items: Array<{
+        source: string;
+        videoId: string | null;
+        title: string;
+        artist?: string;
+        durationMs?: number;
+        confidence?: number;
+        alternates?: unknown;
+      }>,
+    ) => {
+      for (const item of items) {
+        send({
+          type: "queue:add-request",
+          item: {
+            source: (item.source as RequestItem["source"]) ?? "manual",
+            videoId: item.videoId,
+            title: item.title,
+            artist: item.artist,
+            durationMs: item.durationMs,
+            confidence: item.confidence,
+            alternates: item.alternates as RequestItem["alternates"],
+          },
+        });
+      }
+      toast(`Added ${items.length} track${items.length === 1 ? "" : "s"} from playlist`, "success");
+    },
+    [send, toast],
+  );
+
+  const handleTransferOwnership = useCallback(
+    async (targetParticipantId: string, targetUserId: string) => {
+      if (!isRoomHost) return;
+      try {
+        const res = await fetch(`/api/rooms/${slug}/transfer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserId }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast(data.error ?? "Transfer failed", "error");
+          return;
+        }
+        send({ type: "ownership:transfer", targetParticipantId });
+        toast("Ownership transferred", "success");
+      } catch {
+        toast("Transfer failed", "error");
+      }
+    },
+    [isRoomHost, send, slug, toast],
   );
 
   const handleAddUrl = async () => {
@@ -562,11 +634,16 @@ export function RoomClient({
 
   const chatPanel = (
     <>
-      <ChatMessages messages={roomState?.chat ?? []} />
+      <ChatMessages
+        messages={roomState?.chat ?? []}
+        participants={roomState?.participants ?? []}
+        currentParticipantId={participant?.id}
+      />
       <ChatInput
         onSend={(body) => send({ type: "chat", body })}
         slowModeSeconds={settings?.slowModeSeconds}
         lastChatAt={participant?.lastChatAt}
+        participants={roomState?.participants ?? []}
       />
     </>
   );
@@ -672,10 +749,11 @@ export function RoomClient({
             ))}
           </ul>
         )}
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
           <Button
             variant="secondary"
             size="sm"
+            className="shrink-0 whitespace-nowrap"
             onClick={() => {
               window.open(`/api/auth/spotify?room=${slug}`, "_blank", "noopener,noreferrer");
             }}
@@ -685,10 +763,24 @@ export function RoomClient({
           <Button
             variant="secondary"
             size="sm"
+            className="shrink-0 whitespace-nowrap"
             onClick={() => (window.location.href = `/import/soundcloud?room=${slug}`)}
           >
             Import SoundCloud
           </Button>
+          {isHost && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0 whitespace-nowrap"
+              onClick={() =>
+                signedIn ? setPlaylistPickerOpen(true) : toast("Sign in to load playlists", "error")
+              }
+            >
+              <FolderOpen className="mr-1.5 size-4" />
+              Load playlist
+            </Button>
+          )}
         </div>
       </div>
 
@@ -706,7 +798,22 @@ export function RoomClient({
           <RequestList {...requestListProps} />
         </TabsContent>
 
-        <TabsContent value="queue" className="flex-1 overflow-y-auto px-2">
+        <TabsContent value="queue" className="flex flex-1 flex-col overflow-hidden px-2">
+          {isHost && (roomState?.queue.length ?? 0) > 0 && (
+            <div className="mb-2 flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  signedIn ? setSavePlaylistOpen(true) : toast("Sign in to save playlists", "error")
+                }
+              >
+                <Save className="mr-1.5 size-4" />
+                Save queue
+              </Button>
+            </div>
+          )}
+          <div className="flex-1 overflow-y-auto">
           <QueueList
             items={roomState?.queue ?? []}
             currentItemId={playback?.queueItemId}
@@ -719,6 +826,7 @@ export function RoomClient({
               send({ type: "queue:reorder", itemId, newIndex })
             }
           />
+          </div>
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 overflow-y-auto px-2">
@@ -778,6 +886,7 @@ export function RoomClient({
                     participants={roomState?.participants ?? []}
                     currentId={participant?.id}
                     isHost={isHost}
+                    isRoomOwner={isRoomHost && (hasOwner || !!userId)}
                     onKick={(id) => send({ type: "moderation:kick", participantId: id })}
                     onBan={(id) => send({ type: "moderation:ban", participantId: id })}
                     onPromote={(id) =>
@@ -786,11 +895,17 @@ export function RoomClient({
                     onDemote={(id) =>
                       send({ type: "moderation:promote", participantId: id, role: "guest" })
                     }
+                    onTransferOwnership={handleTransferOwnership}
                   />
                 </div>
               )}
             </div>
-            <ShareInviteButton slug={slug} />
+            <DiscordStatusButton
+              title={currentTrack?.title ?? playback?.title}
+              artist={currentTrack?.artist}
+              slug={slug}
+            />
+            <ShareInviteButton slug={slug} title={roomTitle} privacy={privacy} />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -988,6 +1103,19 @@ export function RoomClient({
           onClose={() => setPickRequest(null)}
         />
       )}
+
+      <SavePlaylistDialog
+        open={savePlaylistOpen}
+        queue={roomState?.queue ?? []}
+        onClose={() => setSavePlaylistOpen(false)}
+        onSaved={(name) => toast(`Saved "${name}"`, "success")}
+      />
+
+      <PlaylistPickerDialog
+        open={playlistPickerOpen}
+        onClose={() => setPlaylistPickerOpen(false)}
+        onLoad={importPlaylistItems}
+      />
 
       {error && (
         <div className="fixed bottom-4 left-4 z-50 rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
