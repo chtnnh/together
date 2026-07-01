@@ -1,6 +1,6 @@
 {
   "name": "@together/web",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -20,6 +20,7 @@
     "@together/shared": "workspace:*",
     "@together/track-resolver": "workspace:*",
     "@together/ui": "workspace:*",
+    "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.2",

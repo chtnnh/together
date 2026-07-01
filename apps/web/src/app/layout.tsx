@@ -1,5 +1,6 @@
 import "@together/ui/globals.css";
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { ToastProvider } from "@/components/toast";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ServiceWorkerRegister />
           <div id="main-content">{children}</div>
         </ToastProvider>
+        <Analytics />
       </body>
     </html>
   );

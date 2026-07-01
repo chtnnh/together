@@ -276,4 +276,4 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ## Acknowledgments
 
-Built by [chtnnh](https://me.chtnnhfoundation.org). v0.1.0 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
+Built by [chtnnh](https://me.chtnnhfoundation.org). v0.2.2 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)

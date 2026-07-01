@@ -235,7 +235,7 @@ export default function HomePageClient() {
             </div>
             <span className="text-lg font-bold tracking-tight">Together</span>
             <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-              v0.2.1
+              v0.2.2
             </span>
           </div>
           <a
@@ -531,7 +531,7 @@ export default function HomePageClient() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-[var(--text-muted)] sm:flex-row">
           <div className="flex items-center gap-2">
             <Music2 className="h-4 w-4 text-[var(--accent)]" />
-            <span>Together v0.2.1</span>
+            <span>Together v0.2.2</span>
           </div>
           <p>Sync playback. Share the queue. No install required.</p>
         </div>
