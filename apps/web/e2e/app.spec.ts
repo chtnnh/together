@@ -38,10 +38,12 @@ test.describe("Room flow", () => {
 });
 
 test.describe("Settings page", () => {
-  test("shows sign in form", async ({ page }) => {
+  test("shows sign in form or setup notice", async ({ page }) => {
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
-    await expect(page.locator("#email")).toBeVisible();
+    await expect(
+      page.locator("#email").or(page.getByText(/Sign-in requires Supabase/i)),
+    ).toBeVisible();
   });
 });
 

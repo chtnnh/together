@@ -4,39 +4,64 @@ import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@together/ui";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-client";
+import { isSupabaseConfigured } from "@/lib/supabase-config";
 
 export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const supabaseConfigured = isSupabaseConfigured();
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
-      setUser(data.user);
-      if (data.user?.email) setEmail(data.user.email);
-    });
-  }, []);
+    if (!supabaseConfigured) return;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
+        setUser(data.user);
+        if (data.user?.email) setEmail(data.user.email);
+      });
+    } catch {
+      // Handled by supabaseConfigured gate in UI.
+    }
+  }, [supabaseConfigured]);
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabaseConfigured) {
+      setMessage(
+        "Sign-in is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.",
+      );
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/settings`,
-      },
-    });
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/settings`,
+        },
+      });
 
-    setLoading(false);
-    setMessage(error ? error.message : "Check your email for a sign-in link!");
+      setMessage(error ? error.message : "Check your email for a sign-in link!");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not reach Supabase";
+      setMessage(
+        msg.includes("fetch") || msg.includes("NetworkError")
+          ? "Could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL and your network connection."
+          : msg,
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignOut = async () => {
+    if (!supabaseConfigured) return;
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
     setUser(null);
@@ -66,6 +91,18 @@ export default function SettingsPage() {
           <Button variant="destructive" className="w-full" onClick={handleSignOut}>
             Sign out
           </Button>
+        </div>
+      ) : !supabaseConfigured ? (
+        <div className="space-y-4 rounded-xl border border-[var(--border)] p-6">
+          <p className="text-sm text-[var(--text-muted)]">
+            Sign-in requires Supabase. Add{" "}
+            <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+            <code className="text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your root{" "}
+            <code className="text-xs">.env</code>, then restart the dev server.
+          </p>
+          <p className="text-xs text-[var(--text-muted)]">
+            Anonymous use works without an account. Magic links are optional for saving playlists.
+          </p>
         </div>
       ) : (
         <form onSubmit={handleMagicLink} className="space-y-4 rounded-xl border border-[var(--border)] p-6">
