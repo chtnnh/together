@@ -13,6 +13,7 @@ interface UseRoomSocketOptions {
   onKicked?: (reason: string) => void;
   onActivity?: (activity: RoomActivity) => void;
   onReaction?: (reaction: RoomReaction) => void;
+  onNotify?: (message: string) => void;
 }
 
 const MAX_RECONNECT_ATTEMPTS = 8;
@@ -25,6 +26,7 @@ export function useRoomSocket({
   onKicked,
   onActivity,
   onReaction,
+  onNotify,
 }: UseRoomSocketOptions) {
   const [connected, setConnected] = useState(false);
   const [synced, setSynced] = useState(false);
@@ -33,6 +35,7 @@ export function useRoomSocket({
   const [offline, setOffline] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const errorClearRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingRef = useRef<ClientEvent[]>([]);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const reconnectAttempt = useRef(0);
@@ -48,12 +51,14 @@ export function useRoomSocket({
   const onKickedRef = useRef(onKicked);
   const onActivityRef = useRef(onActivity);
   const onReactionRef = useRef(onReaction);
+  const onNotifyRef = useRef(onNotify);
   displayNameRef.current = displayName;
   userIdRef.current = userId;
   enabledRef.current = enabled;
   onKickedRef.current = onKicked;
   onActivityRef.current = onActivity;
   onReactionRef.current = onReaction;
+  onNotifyRef.current = onNotify;
 
   const send = useCallback((event: ClientEvent) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -182,7 +187,13 @@ export function useRoomSocket({
             );
             break;
           case "error":
-            setError(data.message);
+            if (data.message === "Excited much?") {
+              onNotifyRef.current?.(data.message);
+            } else {
+              setError(data.message);
+              clearTimeout(errorClearRef.current);
+              errorClearRef.current = setTimeout(() => setError(null), 3500);
+            }
             break;
           case "kicked":
             onKickedRef.current?.(data.reason);
