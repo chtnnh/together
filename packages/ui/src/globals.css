@@ -93,3 +93,16 @@ body {
     transform: translate(-50%, -48px) scale(1.2);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-float-anim {
+    animation: none !important;
+    opacity: 0.85;
+  }
+}
+
+html[data-reduced-motion="true"] .reaction-float-anim,
+html[data-reduced-motion="system"] .reaction-float-anim {
+  animation: none !important;
+  opacity: 0.85;
+}
