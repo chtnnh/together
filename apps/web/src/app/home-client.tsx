@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, Label } from "@together/ui";
+import Link from "next/link";
+import { getRecentRooms, type RecentRoom } from "@/lib/recent-rooms";
 import {
   ArrowRight,
   Clock,
@@ -150,8 +152,31 @@ export default function HomePageClient() {
   const [roomPassword, setRoomPassword] = useState("");
   const [roomTitle, setRoomTitle] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
+  const [recentRooms, setRecentRooms] = useState<RecentRoom[]>([]);
+  const [publicRooms, setPublicRooms] = useState<
+    Array<{ slug: string; title: string; participantCount: number }>
+  >([]);
 
   const kicked = searchParams.get("kicked");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#get-started") {
+      document.getElementById("get-started")?.scrollIntoView({ behavior: "smooth" });
+    }
+    setRecentRooms(getRecentRooms());
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/rooms/public")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setPublicRooms(data);
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, []);
 
   const handleCreate = async () => {
     if (!displayName.trim()) return;
@@ -210,7 +235,7 @@ export default function HomePageClient() {
             </div>
             <span className="text-lg font-bold tracking-tight">Together</span>
             <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-              v0.1.0
+              v0.2.0
             </span>
           </div>
           <a
@@ -289,6 +314,29 @@ export default function HomePageClient() {
         </div>
       </section>
 
+      {recentRooms.length > 0 && (
+        <section className="border-b border-[var(--border)] bg-[var(--bg-secondary)]/20 py-10">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="mb-4 text-center text-xl font-bold md:text-left">Recent rooms</h2>
+            <ul className="mx-auto grid max-w-3xl gap-2 sm:grid-cols-2 lg:max-w-none lg:grid-cols-3">
+              {recentRooms.map((room) => (
+                <li key={room.slug}>
+                  <Link
+                    href={`/r/${room.slug}`}
+                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
+                  >
+                    <span className="truncate font-medium">{room.title}</span>
+                    <span className="ml-2 shrink-0 text-xs text-[var(--text-muted)]">
+                      /r/{room.slug}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       {/* How it works */}
       <section className="border-y border-[var(--border)] bg-[var(--bg-secondary)]/30 py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-4">
@@ -314,7 +362,7 @@ export default function HomePageClient() {
       <section className="py-16 md:py-24">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-3 text-2xl font-bold md:text-3xl">Everything in v0.1.0</h2>
+            <h2 className="mb-3 text-2xl font-bold md:text-3xl">Everything in v0.2.0</h2>
             <p className="mx-auto max-w-xl text-[var(--text-muted)]">
               Built for group listening — sync, queues, chat, and moderation out of the box.
             </p>
@@ -326,6 +374,29 @@ export default function HomePageClient() {
           </div>
         </div>
       </section>
+
+      {publicRooms.length > 0 && (
+        <section className="border-t border-[var(--border)] py-12">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="mb-4 text-xl font-bold">Live public rooms</h2>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {publicRooms.map((room) => (
+                <li key={room.slug}>
+                  <Link
+                    href={`/r/${room.slug}`}
+                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
+                  >
+                    <span className="truncate font-medium">{room.title}</span>
+                    <span className="ml-2 shrink-0 text-xs text-[var(--text-muted)]">
+                      {room.participantCount} listening
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Get started */}
       <section id="get-started" className="border-t border-[var(--border)] bg-[var(--bg-secondary)]/30 py-16 md:py-24">
@@ -460,7 +531,7 @@ export default function HomePageClient() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-[var(--text-muted)] sm:flex-row">
           <div className="flex items-center gap-2">
             <Music2 className="h-4 w-4 text-[var(--accent)]" />
-            <span>Together v0.1.0</span>
+            <span>Together v0.2.0</span>
           </div>
           <p>Sync playback. Share the queue. No install required.</p>
         </div>
