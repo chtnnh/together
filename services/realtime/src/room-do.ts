@@ -113,6 +113,12 @@ export class RoomDurableObject implements DurableObject {
       return Response.json(this.getPublicState());
     }
 
+    if (url.pathname === "/stats") {
+      return Response.json({
+        participantCount: this.state.participants.length,
+      });
+    }
+
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 426 });
     }
@@ -366,6 +372,9 @@ export class RoomDurableObject implements DurableObject {
         break;
       case "reaction:send":
         this.handleReaction(event.emoji, participant, ws);
+        break;
+      case "ownership:transfer":
+        await this.handleOwnershipTransfer(event.targetParticipantId, participant);
         break;
       case "leave":
         break;
@@ -895,6 +904,28 @@ export class RoomDurableObject implements DurableObject {
     this.broadcast({
       type: "activity",
       activity: { kind: "promoted", displayName: target.displayName, role },
+    });
+  }
+
+  private async handleOwnershipTransfer(targetParticipantId: string, actor: Participant) {
+    if (actor.role !== "host") return;
+    const target = this.state.participants.find((p) => p.id === targetParticipantId);
+    if (!target?.userId) return;
+
+    this.state.participants = this.state.participants.map((p) => {
+      if (p.id === targetParticipantId) return { ...p, role: "host" as const };
+      if (p.id === actor.id) return { ...p, role: "co-host" as const };
+      return p;
+    });
+    await this.persist();
+    this.broadcast({ type: "participants", participants: this.state.participants });
+    this.broadcast({
+      type: "activity",
+      activity: {
+        kind: "promoted",
+        displayName: target.displayName,
+        role: "host",
+      },
     });
   }
 
