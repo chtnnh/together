@@ -60,6 +60,33 @@ export function useUserPreferences() {
     setLoaded(true);
   }, []);
 
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY || !event.newValue) return;
+      try {
+        const parsed = JSON.parse(event.newValue) as Partial<UserPreferences>;
+        setPrefsState((prev) => {
+          const theme = THEME_PRESETS.includes(parsed.theme as UserPreferences["theme"])
+            ? (parsed.theme as UserPreferences["theme"])
+            : prev.theme;
+          const next: UserPreferences = {
+            theme,
+            audioOnly: parsed.audioOnly ?? prev.audioOnly,
+            quality: parsed.quality ?? prev.quality,
+            volume: clampVolume(parsed.volume ?? prev.volume),
+            muted: parsed.muted ?? prev.muted,
+          };
+          applyUserTheme(next.theme);
+          return next;
+        });
+      } catch {
+        // ignore invalid cross-tab payload
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const setPrefs = useCallback((patch: Partial<UserPreferences>) => {
     setPrefsState((prev) => {
       const next: UserPreferences = {
