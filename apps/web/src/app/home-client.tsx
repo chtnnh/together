@@ -26,7 +26,10 @@ import {
   Youtube,
   Zap,
 } from "lucide-react";
-import { setDisplayName } from "@/lib/utils";
+import { getDisplayName, setDisplayName } from "@/lib/utils";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { AccountNav } from "@/components/account-nav";
+import { SignInModal } from "@/components/sign-in-modal";
 
 const FEATURES = [
   {
@@ -144,7 +147,9 @@ function FeatureCard({
 export default function HomePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signedIn, loading: authLoading } = useSupabaseUser();
   const [displayName, setDisplayNameState] = useState("");
+  const [signInOpen, setSignInOpen] = useState(false);
   const [roomSlug, setRoomSlug] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -153,6 +158,9 @@ export default function HomePageClient() {
   const [roomTitle, setRoomTitle] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [recentRooms, setRecentRooms] = useState<RecentRoom[]>([]);
+  const [ownedRooms, setOwnedRooms] = useState<
+    Array<{ slug: string; title: string; privacy: string }>
+  >([]);
   const [publicRooms, setPublicRooms] = useState<
     Array<{ slug: string; title: string; participantCount: number }>
   >([]);
@@ -165,7 +173,24 @@ export default function HomePageClient() {
       document.getElementById("get-started")?.scrollIntoView({ behavior: "smooth" });
     }
     setRecentRooms(getRecentRooms());
+    const storedName = getDisplayName();
+    if (storedName) setDisplayNameState(storedName);
   }, []);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setOwnedRooms([]);
+      return;
+    }
+    fetch("/api/rooms/mine")
+      .then(async (res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setOwnedRooms(data);
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, [signedIn]);
 
   useEffect(() => {
     fetch("/api/rooms/public")
@@ -238,12 +263,19 @@ export default function HomePageClient() {
               v0.2.2
             </span>
           </div>
-          <a
-            href="#get-started"
-            className="hidden text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:inline"
-          >
-            Get started
-          </a>
+          <div className="flex items-center gap-2">
+            <AccountNav
+              signedIn={signedIn}
+              authLoading={authLoading}
+              onSignIn={() => setSignInOpen(true)}
+            />
+            <a
+              href="#get-started"
+              className="hidden text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:inline"
+            >
+              Get started
+            </a>
+          </div>
         </div>
       </header>
 
@@ -313,6 +345,29 @@ export default function HomePageClient() {
           </div>
         </div>
       </section>
+
+      {ownedRooms.length > 0 && (
+        <section className="border-b border-[var(--border)] bg-[var(--bg-secondary)]/20 py-10">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="mb-4 text-center text-xl font-bold md:text-left">Your rooms</h2>
+            <ul className="mx-auto grid max-w-3xl gap-2 sm:grid-cols-2 lg:max-w-none lg:grid-cols-3">
+              {ownedRooms.map((room) => (
+                <li key={room.slug}>
+                  <Link
+                    href={`/r/${room.slug}`}
+                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
+                  >
+                    <span className="truncate font-medium">{room.title}</span>
+                    <span className="ml-2 shrink-0 text-xs text-[var(--text-muted)]">
+                      /r/{room.slug}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {recentRooms.length > 0 && (
         <section className="border-b border-[var(--border)] bg-[var(--bg-secondary)]/20 py-10">
@@ -536,6 +591,8 @@ export default function HomePageClient() {
           <p>Sync playback. Share the queue. No install required.</p>
         </div>
       </footer>
+
+      <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} returnTo="/" />
     </div>
   );
 }
