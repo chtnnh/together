@@ -2,6 +2,7 @@ import type { RoomSettings } from "@together/shared";
 import { roomSettingsSchema } from "@together/shared";
 import bcrypt from "bcryptjs";
 import { generateSlug, signRoomToken } from "./utils";
+import { formatPublicDbError } from "./db-errors";
 
 export interface MemoryRoom {
   id: string;
@@ -26,29 +27,8 @@ export function isMemoryStoreEnabled(): boolean {
   return !process.env.DATABASE_URL;
 }
 
-function getDbErrorMessage(error: unknown): string {
-  const cause =
-    error && typeof error === "object" && "cause" in error
-      ? (error as { cause?: unknown }).cause
-      : error;
-
-  if (cause && typeof cause === "object") {
-    const pg = cause as { code?: string; message?: string; detail?: string };
-    if (pg.code === "42P01") {
-      return "Database tables are missing. Run: pnpm db:migrate";
-    }
-    if (pg.code === "23503") {
-      return "Account not synced to database. Sign out and sign in again.";
-    }
-    if (pg.code === "ECONNREFUSED") {
-      return "Cannot connect to Postgres. Is Docker running?";
-    }
-    if (pg.message) {
-      return pg.detail ? `${pg.message} (${pg.detail})` : pg.message;
-    }
-  }
-
-  return error instanceof Error ? error.message : "Database operation failed";
+function getDbErrorMessage(error: unknown, fallback: string): string {
+  return formatPublicDbError(error, fallback);
 }
 
 function toDbInt(value: number | undefined): number | undefined {
@@ -158,7 +138,7 @@ export async function createRoom(input: {
 
     return { ...room, inviteToken };
   } catch (error) {
-    throw new Error(getDbErrorMessage(error), { cause: error });
+    throw new Error(getDbErrorMessage(error, "Failed to create room"), { cause: error });
   }
 }
 
@@ -320,7 +300,7 @@ export async function savePlaylist(input: {
 
     return playlist;
   } catch (error) {
-    throw new Error(getDbErrorMessage(error), { cause: error });
+    throw new Error(getDbErrorMessage(error, "Failed to save playlist"), { cause: error });
   }
 }
 
@@ -391,12 +371,13 @@ export async function setCachedResolution(
 
 export async function ensureUser(userId: string, email?: string | null) {
   if (isMemoryStoreEnabled()) return;
-  const { getDb, users } = await import("@together/db");
+  const { getDb } = await import("@together/db");
+  const { sql } = await import("drizzle-orm");
   const db = getDb();
-  await db
-    .insert(users)
-    .values({ id: userId, email: email ?? null })
-    .onConflictDoNothing({ target: users.id });
+  // Raw SQL — only id/email so this works even before optional columns (e.g. preferences) are migrated.
+  await db.execute(
+    sql`INSERT INTO users (id, email) VALUES (${userId}, ${email ?? null}) ON CONFLICT (id) DO NOTHING`,
+  );
 }
 
 export async function getUserPreferences(userId: string) {
