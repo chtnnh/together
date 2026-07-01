@@ -2,35 +2,52 @@
 
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import type { Participant } from "@together/shared";
-import { UserX, Shield, ShieldOff } from "lucide-react";
+import { Crown, Shield, ShieldOff, UserX } from "lucide-react";
 
 interface ParticipantsPanelProps {
   participants: Participant[];
   currentId?: string;
+  /** Host or co-host — can moderate */
   isHost: boolean;
+  /** Room host — can transfer ownership to signed-in participants */
+  isRoomOwner?: boolean;
   onKick: (id: string) => void;
   onBan: (id: string) => void;
   onPromote: (id: string) => void;
   onDemote: (id: string) => void;
+  onTransferOwnership?: (id: string, userId: string) => void;
 }
 
 export function ParticipantsPanel({
   participants,
   currentId,
   isHost,
+  isRoomOwner = false,
   onKick,
   onBan,
   onPromote,
   onDemote,
+  onTransferOwnership,
 }: ParticipantsPanelProps) {
+  const transferTargets = participants.filter(
+    (p) => p.id !== currentId && p.role !== "host" && p.userId,
+  );
+
   return (
     <div className="space-y-1 p-3">
+      {isRoomOwner && (
+        <p className="mb-2 px-1 text-xs text-[var(--text-muted)]">
+          {transferTargets.length > 0
+            ? "Crown transfers room ownership (signed-in members only)."
+            : "Transfer ownership requires a signed-in co-host or guest."}
+        </p>
+      )}
       {participants.map((p) => (
         <div
           key={p.id}
           className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-[var(--bg-secondary)]"
         >
-          <div>
+          <div className="min-w-0">
             <span className="text-sm font-medium">
               {p.displayName}
               {p.id === currentId && " (you)"}
@@ -38,7 +55,22 @@ export function ParticipantsPanel({
             <span className="ml-2 text-xs text-[var(--text-muted)]">{p.role}</span>
           </div>
           {isHost && p.id !== currentId && p.role !== "host" && (
-            <div className="flex gap-1">
+            <div className="flex shrink-0 gap-1">
+              {isRoomOwner && p.userId && onTransferOwnership && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Transfer ownership to ${p.displayName}`}
+                      onClick={() => onTransferOwnership(p.id, p.userId!)}
+                    >
+                      <Crown className="h-4 w-4 text-amber-400" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Transfer ownership</TooltipContent>
+                </Tooltip>
+              )}
               {p.role === "guest" && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -69,11 +101,7 @@ export function ParticipantsPanel({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onBan(p.id)}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => onBan(p.id)}>
                     <UserX className="h-4 w-4 text-red-400" />
                   </Button>
                 </TooltipTrigger>

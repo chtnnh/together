@@ -629,6 +629,7 @@ export function RoomClient({
       canSkip={canSkip}
       onReactionSend={(emoji) => send({ type: "reaction:send", emoji })}
       incomingReactions={incomingReactions}
+      reducedMotion={userPrefs.reducedMotion}
     />
   );
 
@@ -886,7 +887,7 @@ export function RoomClient({
                     participants={roomState?.participants ?? []}
                     currentId={participant?.id}
                     isHost={isHost}
-                    isRoomOwner={isRoomHost && (hasOwner || !!userId)}
+                    isRoomOwner={isRoomHost}
                     onKick={(id) => send({ type: "moderation:kick", participantId: id })}
                     onBan={(id) => send({ type: "moderation:ban", participantId: id })}
                     onPromote={(id) =>

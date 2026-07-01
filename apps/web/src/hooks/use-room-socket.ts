@@ -248,6 +248,21 @@ export function useRoomSocket({
     };
   }, [roomId, enabled, connect, closeSocket]);
 
+  useEffect(() => {
+    if (!enabled || !roomId || !displayNameRef.current.trim()) return;
+    if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+
+    wsRef.current.send(
+      JSON.stringify({
+        type: "join",
+        roomId,
+        displayName: displayNameRef.current,
+        anonId: anonIdRef.current || getAnonId(),
+        userId: userIdRef.current ?? null,
+      } satisfies ClientEvent),
+    );
+  }, [userId, enabled, roomId]);
+
   const anonId = anonIdRef.current;
   const participant = roomState?.participants.find(
     (p) => p.anonId === anonId || (userId && p.userId === userId),
