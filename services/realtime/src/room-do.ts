@@ -206,7 +206,11 @@ export class RoomDurableObject implements DurableObject {
 
           this.sessions.set(ws, { participantId: participantId!, ws });
 
-          this.send(ws, { type: "state", state: this.getPublicState(participantId!) });
+          this.send(ws, {
+            type: "state",
+            state: this.getPublicState(participantId!),
+            serverNow: Date.now(),
+          });
           if (!existing) {
             this.broadcast({ type: "participants", participants: this.state.participants }, ws);
           }
@@ -280,6 +284,11 @@ export class RoomDurableObject implements DurableObject {
         await this.handlePlaybackUpdate(event.playback);
         break;
       case "playback:sync":
+        this.send(ws, {
+          type: "playback",
+          playback: this.getAdjustedPlayback(),
+          serverNow: Date.now(),
+        });
         break;
       case "queue:add-request":
         await this.handleAddRequest(event.item, participant);
@@ -494,7 +503,18 @@ export class RoomDurableObject implements DurableObject {
     }
 
     await this.persist();
-    this.broadcast({ type: "playback", playback: this.getAdjustedPlayback() });
+    this.broadcastPlayback();
+  }
+
+  private broadcastPlayback(exclude?: WebSocket) {
+    this.broadcast(
+      {
+        type: "playback",
+        playback: this.getAdjustedPlayback(),
+        serverNow: Date.now(),
+      },
+      exclude,
+    );
   }
 
   private getAdjustedPlayback(): PlaybackState {

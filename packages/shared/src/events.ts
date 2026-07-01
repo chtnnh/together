@@ -159,6 +159,7 @@ export const serverEvents = {
   state: z.object({
     type: z.literal("state"),
     state: z.any(),
+    serverNow: z.number().optional(),
   }),
   chat: z.object({
     type: z.literal("chat"),
@@ -167,6 +168,7 @@ export const serverEvents = {
   playback: z.object({
     type: z.literal("playback"),
     playback: playbackStateSchema,
+    serverNow: z.number().optional(),
   }),
   queue: z.object({
     type: z.literal("queue"),
