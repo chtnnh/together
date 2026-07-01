@@ -3,6 +3,7 @@ import {
   getUserPlaylists,
   savePlaylist,
 } from "@/lib/rooms";
+import { formatPublicDbError } from "@/lib/db-errors";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { z } from "zod";
 
@@ -19,8 +20,10 @@ export async function GET() {
     return NextResponse.json(playlists);
   } catch (err) {
     console.error("GET /api/playlists failed:", err);
-    const message = err instanceof Error ? err.message : "Failed to load playlists";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: formatPublicDbError(err, "Failed to load playlists") },
+      { status: 500 },
+    );
   }
 }
 
@@ -69,7 +72,9 @@ export async function POST(request: Request) {
       );
     }
     console.error("POST /api/playlists failed:", err);
-    const message = err instanceof Error ? err.message : "Failed to save playlist";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: formatPublicDbError(err, "Failed to save playlist") },
+      { status: 500 },
+    );
   }
 }
