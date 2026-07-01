@@ -8,7 +8,7 @@ test.describe("Phase 4.3 — Now-playing reactions", () => {
   });
 
   test("exports five reaction emojis", () => {
-    expect(REACTION_EMOJIS).toEqual(["🔥", "👏", "💀", "❤️", "😂"]);
+    expect(REACTION_EMOJIS).toEqual(["🔥", "😭", "💀", "❤️", "😂"]);
   });
 
   test("shows reaction buttons on the now-playing bar", async ({ page }) => {

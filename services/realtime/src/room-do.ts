@@ -29,7 +29,7 @@ export class RoomDurableObject implements DurableObject {
   private bans = new Set<string>();
   private promoteVotes = new Map<string, Set<string>>();
   private lastPlaybackEndedAt = 0;
-  private lastReactionAt = new Map<string, number>();
+  private reactionTimestamps = new Map<string, number[]>();
 
   constructor(
     private ctx: DurableObjectState,
@@ -400,16 +400,21 @@ export class RoomDurableObject implements DurableObject {
 
   private handleReaction(emoji: ReactionEmoji, participant: Participant, ws: WebSocket) {
     const now = Date.now();
-    const last = this.lastReactionAt.get(participant.id) ?? 0;
-    if (now - last < 2000) {
+    const windowMs = 1000;
+    const maxBurst = 2;
+    const recent = (this.reactionTimestamps.get(participant.id) ?? []).filter(
+      (t) => now - t < windowMs,
+    );
+    if (recent.length >= maxBurst) {
       this.send(ws, {
         type: "error",
         code: "RATE_LIMIT",
-        message: "Slow down on reactions",
+        message: "Excited much?",
       });
       return;
     }
-    this.lastReactionAt.set(participant.id, now);
+    recent.push(now);
+    this.reactionTimestamps.set(participant.id, recent);
     this.broadcast({
       type: "reaction",
       reaction: {

@@ -13,7 +13,7 @@ import {
 
 const clientEventBase = z.object({ type: z.string() });
 
-export const REACTION_EMOJIS = ["🔥", "👏", "💀", "❤️", "😂"] as const;
+export const REACTION_EMOJIS = ["🔥", "😭", "💀", "❤️", "😂"] as const;
 export const reactionEmojiSchema = z.enum(REACTION_EMOJIS);
 export type ReactionEmoji = z.infer<typeof reactionEmojiSchema>;
 
