@@ -1,5 +1,7 @@
 "use client";
 
+// TODO(v0.3): Spotify import page — not linked from room UI until OAuth flow is production-ready.
+
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@together/ui";

@@ -54,15 +54,15 @@ test.describe("Room creation flow", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
-  test("shows import buttons without Apple Music until v0.3", async ({ page }) => {
+  test("hides provider import buttons until integrations ship", async ({ page }) => {
     await page.goto("/");
     await page.locator("#create-name").fill("DJ");
     await page.getByRole("button", { name: "Create room" }).click();
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByRole("button", { name: "Import Spotify" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Import SoundCloud" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Import Spotify" })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Import SoundCloud" })).not.toBeVisible();
     await expect(page.getByRole("button", { name: "Import Apple Music" })).not.toBeVisible();
   });
 

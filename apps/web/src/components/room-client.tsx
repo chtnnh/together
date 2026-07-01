@@ -750,26 +750,8 @@ export function RoomClient({
             ))}
           </ul>
         )}
-        <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={() => {
-              window.open(`/api/auth/spotify?room=${slug}`, "_blank", "noopener,noreferrer");
-            }}
-          >
-            Import Spotify
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={() => (window.location.href = `/import/soundcloud?room=${slug}`)}
-          >
-            Import SoundCloud
-          </Button>
-          {isHost && (
+        {isHost && (
+          <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
             <Button
               variant="secondary"
               size="sm"
@@ -781,8 +763,8 @@ export function RoomClient({
               <FolderOpen className="mr-1.5 size-4" />
               Load playlist
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex flex-1 flex-col overflow-hidden">

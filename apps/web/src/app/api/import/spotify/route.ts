@@ -1,3 +1,4 @@
+// TODO(v0.3): Spotify import API — UI not linked until OAuth flow is production-ready.
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSpotifyPlaylists, getSpotifyPlaylistTracks } from "@/lib/spotify";

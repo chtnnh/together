@@ -1,4 +1,4 @@
-const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
+// TODO(v0.3): Spotify import — server routes kept; UI hidden until OAuth flow is production-ready.
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_API = "https://api.spotify.com/v1";
 

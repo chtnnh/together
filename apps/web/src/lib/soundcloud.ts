@@ -1,4 +1,4 @@
-const SOUNDCLOUD_API = "https://api-v2.soundcloud.com";
+// TODO(v0.3): SoundCloud import — server routes kept; UI hidden (SoundCloud API requires Artist Pro).
 
 export interface SoundCloudTrack {
   title: string;

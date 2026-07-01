@@ -1,3 +1,4 @@
+// TODO(v0.3): SoundCloud import API — UI not linked until Artist Pro API access is available.
 import { NextResponse } from "next/server";
 import { importSoundCloudUrl } from "@/lib/soundcloud";
 import { resolveTrackWithCache } from "@/lib/youtube";

@@ -42,9 +42,9 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 - Clear all requests or queue in one click
 - Queue history with one-click re-add
 - YouTube URL paste and search
-- **Spotify & SoundCloud** playlist import (optional OAuth / API keys)
 - Smart track resolution (ISRC-first, fuzzy title/artist matching, alternate picker)
 - **Recent rooms** on home and **live public room directory**
+- Spotify & SoundCloud import — server routes in place; UI deferred (TODO v0.3)
 
 ### Room & moderation
 - Public, unlisted, or password-protected rooms with **signed invite links**
@@ -148,6 +148,12 @@ pnpm db:migrate
 ```
 
 This applies all SQL in `packages/db/drizzle/` via Drizzle Kit.
+
+**Production:** point at `.env.prod` without overwriting local `.env`:
+
+```bash
+ENV_FILE=.env.prod pnpm db:migrate
+```
 
 **Supabase:** use the **Session pooler** URI (port `5432`) for migrations if the direct host fails — `db.*.supabase.co` is IPv6-only and many networks cannot reach it.
 
