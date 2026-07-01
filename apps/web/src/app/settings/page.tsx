@@ -40,10 +40,12 @@ export default function SettingsPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
+      const next = new URLSearchParams(window.location.search).get("next") ?? "/settings";
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/settings`,
+          emailRedirectTo: redirectTo,
         },
       });
 

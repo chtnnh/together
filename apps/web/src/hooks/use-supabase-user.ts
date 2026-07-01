@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from "@/lib/supabase-config";
 
 export function useSupabaseUser() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export function useSupabaseUser() {
       const supabase = createSupabaseBrowserClient();
       supabase.auth.getUser().then(({ data }) => {
         setUserId(data.user?.id ?? null);
+        setEmail(data.user?.email ?? null);
         setLoading(false);
       });
 
@@ -25,6 +27,8 @@ export function useSupabaseUser() {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
         setUserId(session?.user?.id ?? null);
+        setEmail(session?.user?.email ?? null);
+        setLoading(false);
       });
 
       return () => subscription.unsubscribe();
@@ -33,5 +37,5 @@ export function useSupabaseUser() {
     }
   }, []);
 
-  return { userId, loading, signedIn: !!userId };
+  return { userId, email, loading, signedIn: !!userId };
 }
