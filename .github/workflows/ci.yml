@@ -1,5 +1,8 @@
 name: CI
 
+# Realtime worker deploys via Cloudflare Workers Git integration (not this workflow).
+# Web deploys via Vercel Git integration.
+
 on:
   push:
     branches: [main]
