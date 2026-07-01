@@ -10,6 +10,8 @@ interface PlaybackVolumeControlProps {
   onVolumeChange: (volume: number) => void;
   onMutedChange: (muted: boolean) => void;
   disabled?: boolean;
+  align?: "left" | "right" | "center";
+  compact?: boolean;
 }
 
 function clampVolume(value: number): number {
@@ -22,6 +24,8 @@ export function PlaybackVolumeControl({
   onVolumeChange,
   onMutedChange,
   disabled,
+  align = "center",
+  compact = false,
 }: PlaybackVolumeControlProps) {
   const [dragging, setDragging] = useState(false);
   const [dragValue, setDragValue] = useState(0);
@@ -88,7 +92,11 @@ export function PlaybackVolumeControl({
   };
 
   return (
-    <div className="flex items-center justify-center gap-2 px-1">
+    <div
+      className={`flex items-center gap-2 px-1 ${
+        align === "right" ? "justify-end" : align === "left" ? "justify-start" : "justify-center"
+      }`}
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -119,7 +127,7 @@ export function PlaybackVolumeControl({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="h-1.5 w-full max-w-40 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        className={`h-1.5 w-full cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 ${compact ? "max-w-24" : "max-w-40"}`}
         style={{
           background: `linear-gradient(to right, var(--accent) ${pct}%, var(--border) ${pct}%)`,
         }}

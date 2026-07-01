@@ -11,11 +11,12 @@ interface FloatingReaction extends RoomReaction {
 interface NowPlayingReactionsProps {
   onSend: (emoji: ReactionEmoji) => void;
   incoming: RoomReaction[];
+  inline?: boolean;
 }
 
 const FLOAT_MS = 2500;
 
-export function NowPlayingReactions({ onSend, incoming }: NowPlayingReactionsProps) {
+export function NowPlayingReactions({ onSend, incoming, inline = false }: NowPlayingReactionsProps) {
   const [floating, setFloating] = useState<FloatingReaction[]>([]);
   const lastReactionIdRef = useRef<string | null>(null);
 
@@ -38,20 +39,23 @@ export function NowPlayingReactions({ onSend, incoming }: NowPlayingReactionsPro
   }, [incoming]);
 
   return (
-    <div className="relative" data-testid="now-playing-reactions">
-      <div className="pointer-events-none absolute inset-x-0 bottom-full mb-1 h-16 overflow-hidden">
+    <div
+      className={`relative ${inline ? "shrink-0" : ""}`}
+      data-testid="now-playing-reactions"
+    >
+      <div className="pointer-events-none absolute inset-x-0 bottom-full mb-1 h-12 overflow-hidden">
         {floating.map((reaction) => (
-          <span
-            key={reaction.id}
-            className="absolute bottom-0 left-1/2 animate-[reaction-float_2.5s_ease-out_forwards] text-2xl"
-            style={{ marginLeft: reaction.offsetX }}
-            aria-hidden
-          >
-            {reaction.emoji}
-          </span>
-        ))}
+            <span
+              key={reaction.id}
+              className="absolute bottom-0 left-1/2 animate-[reaction-float_2.5s_ease-out_forwards] text-2xl"
+              style={{ marginLeft: reaction.offsetX }}
+              aria-hidden
+            >
+              {reaction.emoji}
+            </span>
+          ))}
       </div>
-      <div className="flex flex-wrap justify-center gap-1">
+      <div className={`flex gap-0.5 ${inline ? "justify-end" : "flex-wrap justify-center"}`}>
         {REACTION_EMOJIS.map((emoji) => (
           <Tooltip key={emoji}>
             <TooltipTrigger asChild>
@@ -59,7 +63,7 @@ export function NowPlayingReactions({ onSend, incoming }: NowPlayingReactionsPro
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-lg"
+                className={inline ? "size-8 text-base" : "h-8 w-8 text-lg"}
                 aria-label={`React ${emoji}`}
                 onClick={() => onSend(emoji)}
               >

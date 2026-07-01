@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlaybackState, ReactionEmoji, RoomReaction } from "@together/shared";
-import { Button, SkipVoteBar, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
+import { SkipVoteBar, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Pause, Play, SkipForward } from "lucide-react";
 import { PlaybackSeekBar } from "@/components/playback-seek-bar";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
@@ -54,10 +54,11 @@ export function NowPlayingBar({
   incomingReactions = [],
 }: NowPlayingBarProps) {
   const displayTitle = title ?? playback?.title ?? "Nothing playing";
+  const showTransport = canControlPlayback && playback?.videoId;
 
   return (
     <div
-      className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3"
+      className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3"
       data-testid="now-playing-bar"
     >
       <div className="flex items-center gap-3">
@@ -78,68 +79,89 @@ export function NowPlayingBar({
             <p className="truncate text-sm text-[var(--text-muted)]">{artist}</p>
           )}
         </div>
-        {canControlPlayback && playback?.videoId && (
-          <div className="flex shrink-0 items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={onPlayPause}
-                  disabled={!ready}
-                  aria-label={playback.playing ? "Pause" : "Play"}
-                >
-                  {playback.playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{playback.playing ? "Pause" : "Play"}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  aria-label="Skip to next"
-                  onClick={onSkip}
-                  disabled={!canSkip}
-                >
-                  <SkipForward className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Skip to next</TooltipContent>
-            </Tooltip>
-          </div>
-        )}
+        <PlaybackVolumeControl
+          volume={volume}
+          muted={muted}
+          onVolumeChange={onVolumeChange}
+          onMutedChange={onMutedChange}
+          disabled={!ready}
+          align="right"
+          compact
+        />
       </div>
 
       {playback?.videoId && (
-        <PlaybackSeekBar
-          playback={playback}
-          durationMs={durationMs}
-          disabled={!canControlPlayback || !ready}
-          onSeek={onSeek}
-        />
+        <div className="flex items-center gap-2">
+          {showTransport && (
+            <div className="flex shrink-0 items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onPlayPause}
+                    disabled={!ready}
+                    aria-label={playback.playing ? "Pause" : "Play"}
+                    className="inline-flex size-10 items-center justify-center rounded-md text-[var(--text)] transition-colors hover:bg-[var(--bg)] disabled:opacity-50"
+                  >
+                    {playback.playing ? (
+                      <Pause className="size-5" strokeWidth={2.5} />
+                    ) : (
+                      <Play className="size-5" strokeWidth={2.5} />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{playback.playing ? "Pause" : "Play"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Skip to next"
+                    onClick={onSkip}
+                    disabled={!canSkip}
+                    className="inline-flex size-10 items-center justify-center rounded-md text-[var(--text)] transition-colors hover:bg-[var(--bg)] disabled:opacity-50"
+                  >
+                    <SkipForward className="size-5" strokeWidth={2.5} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Skip to next</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <PlaybackSeekBar
+              playback={playback}
+              durationMs={durationMs}
+              disabled={!canControlPlayback || !ready}
+              onSeek={onSeek}
+            />
+          </div>
+        </div>
       )}
 
-      {skipVotes && (
-        <SkipVoteBar
-          voteCount={skipVotes.voteCount}
-          required={skipVotes.required}
-          hasVoted={skipVotes.hasVoted}
-          onVote={skipVotes.onVote}
-        />
-      )}
-
-      <PlaybackVolumeControl
-        volume={volume}
-        muted={muted}
-        onVolumeChange={onVolumeChange}
-        onMutedChange={onMutedChange}
-        disabled={!ready}
-      />
-
-      {onReactionSend && (
-        <NowPlayingReactions onSend={onReactionSend} incoming={incomingReactions} />
+      {(skipVotes || onReactionSend) && (
+        <div className="flex items-end justify-between gap-3 pt-1">
+          {skipVotes ? (
+            <div className="w-1/2 min-w-0">
+              <SkipVoteBar
+                voteCount={skipVotes.voteCount}
+                required={skipVotes.required}
+                hasVoted={skipVotes.hasVoted}
+                onVote={skipVotes.onVote}
+                compact
+              />
+            </div>
+          ) : (
+            <div className="w-1/2" />
+          )}
+          {onReactionSend ? (
+            <NowPlayingReactions
+              onSend={onReactionSend}
+              incoming={incomingReactions}
+              inline
+            />
+          ) : null}
+        </div>
       )}
     </div>
   );
