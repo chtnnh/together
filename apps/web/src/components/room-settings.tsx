@@ -18,6 +18,7 @@ import type { RoomSettings } from "@together/shared";
 import { QUALITY_OPTIONS, THEME_PRESETS } from "@together/shared";
 import type { UserPreferences } from "@/hooks/use-user-preferences";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { X } from "lucide-react";
 
 interface SettingsDrawerProps {
@@ -32,6 +33,11 @@ interface SettingsDrawerProps {
   onUserPrefsUpdate: (prefs: Partial<UserPreferences>) => void;
   onClose: () => void;
   onClaim?: () => void;
+}
+
+function themeLabel(theme: (typeof THEME_PRESETS)[number]): string {
+  if (theme === "high-contrast") return "High contrast";
+  return theme.charAt(0).toUpperCase() + theme.slice(1);
 }
 
 function SettingRow({
@@ -78,6 +84,7 @@ export function SettingsDrawer({
   onClaim,
 }: SettingsDrawerProps) {
   const [titleDraft, setTitleDraft] = useState(roomTitle);
+  const drawerRef = useFocusTrap(true, onClose);
 
   useEffect(() => {
     setTitleDraft(roomTitle);
@@ -90,9 +97,11 @@ export function SettingsDrawer({
       role="presentation"
     >
       <div
+        ref={drawerRef}
         className="h-full w-full max-w-md overflow-y-auto bg-[var(--bg)] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Settings"
       >
         <div className="mb-6 flex items-center justify-between">
@@ -120,6 +129,17 @@ export function SettingsDrawer({
               />
             </SettingRow>
 
+            <SettingRow
+              label="Reduce motion"
+              description="Disable floating reactions and other animations."
+            >
+              <Switch
+                aria-label="Reduce motion"
+                checked={userPrefs.reducedMotion}
+                onCheckedChange={(v) => onUserPrefsUpdate({ reducedMotion: v })}
+              />
+            </SettingRow>
+
             <div>
               <Label className="mb-2 block">Theme</Label>
               <Select
@@ -134,7 +154,7 @@ export function SettingsDrawer({
                 <SelectContent>
                   {THEME_PRESETS.map((t) => (
                     <SelectItem key={t} value={t}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                      {themeLabel(t)}
                     </SelectItem>
                   ))}
                 </SelectContent>

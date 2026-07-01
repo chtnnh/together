@@ -66,6 +66,13 @@ export function getThemeVars(
       "--text-muted": "#c4b5fd",
       "--border": "#312e81",
     },
+    "high-contrast": {
+      "--bg": "#000000",
+      "--bg-secondary": "#0a0a0a",
+      "--text": "#ffffff",
+      "--text-muted": "#d4d4d4",
+      "--border": "#ffffff",
+    },
   };
 
   const base = themes[theme] ?? themes.midnight!;

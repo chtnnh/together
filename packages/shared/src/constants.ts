@@ -20,6 +20,7 @@ export const THEME_PRESETS = [
   "sunset",
   "forest",
   "lavender",
+  "high-contrast",
 ] as const;
 
 /** Default accent color per theme preset */
@@ -29,6 +30,7 @@ export const THEME_ACCENTS: Record<(typeof THEME_PRESETS)[number], string> = {
   sunset: "#f97316",
   forest: "#22c55e",
   lavender: "#a78bfa",
+  "high-contrast": "#facc15",
 };
 
 export const QUALITY_OPTIONS = ["auto", "720p", "480p", "144p"] as const;
