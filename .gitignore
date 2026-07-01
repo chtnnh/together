@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store
 .turbo
 dist
 .next
@@ -8,6 +9,7 @@ dist
 .env.local
 .env.*.local
 *.log
+*.tsbuildinfo
 .wrangler
 .dev.vars
 playwright-report
