@@ -463,3 +463,34 @@ export async function listPublicRooms(limit = 24) {
     .orderBy(desc(rooms.createdAt))
     .limit(limit);
 }
+
+export async function listOwnedRooms(userId: string, limit = 24) {
+  if (isMemoryStoreEnabled()) {
+    return [...memoryRooms.values()]
+      .filter((r) => r.ownerUserId === userId)
+      .slice(0, limit)
+      .map((r) => ({
+        id: r.id,
+        slug: r.slug,
+        title: r.title,
+        privacy: r.privacy,
+        createdAt: r.createdAt,
+      }));
+  }
+
+  const { getDb, rooms } = await import("@together/db");
+  const { eq, desc } = await import("drizzle-orm");
+  const db = getDb();
+  return db
+    .select({
+      id: rooms.id,
+      slug: rooms.slug,
+      title: rooms.title,
+      privacy: rooms.privacy,
+      createdAt: rooms.createdAt,
+    })
+    .from(rooms)
+    .where(eq(rooms.ownerUserId, userId))
+    .orderBy(desc(rooms.createdAt))
+    .limit(limit);
+}
