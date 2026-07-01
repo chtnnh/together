@@ -1,28 +1,53 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getRoomBySlug } from "@/lib/rooms";
-import { hasPasswordCookie } from "@/lib/room-access";
+import { hasPasswordCookie, verifyRoomAccess } from "@/lib/room-access";
 import { RoomClient } from "@/components/room-client";
 
 interface RoomPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ token?: string }>;
 }
 
-export default async function RoomPage({ params, searchParams }: RoomPageProps) {
+export async function generateMetadata({ params }: RoomPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const { token: _legacyToken } = await searchParams;
+  const room = await getRoomBySlug(slug);
+  if (!room) {
+    return { title: "Room not found · Together" };
+  }
+
+  const title = ("title" in room ? room.title : null) || slug;
+  const description = `Listen together in ${title}. Synced YouTube playback, queue, and chat.`;
+
+  return {
+    title: `${title} · Together`,
+    description,
+    openGraph: {
+      title: `${title} · Together`,
+      description,
+      type: "website",
+      siteName: "Together",
+      images: [{ url: `/r/${slug}/opengraph-image`, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} · Together`,
+      description,
+    },
+  };
+}
+
+export default async function RoomPage({ params }: RoomPageProps) {
+  const { slug } = await params;
 
   const room = await getRoomBySlug(slug);
   if (!room) notFound();
 
-  // Unlisted rooms are accessed by slug alone — legacy ?token= links redirect to clean URL
-  if (_legacyToken) {
-    redirect(`/r/${slug}`);
-  }
-
   const needsPassword = room.privacy === "private" && !!room.passwordHash;
+  const hasAccess = needsPassword
+    ? (await hasPasswordCookie(slug)) || (await verifyRoomAccess(slug))
+    : true;
 
-  if (needsPassword && !(await hasPasswordCookie(slug))) {
+  if (needsPassword && !hasAccess) {
     redirect(`/r/${slug}/join`);
   }
 

@@ -1,21 +1,45 @@
 import { NextResponse } from "next/server";
 import { getRoomBySlug, verifyRoomPassword } from "@/lib/rooms";
-import { roomPasswordCookieName, cookieOptions } from "@/lib/room-access";
+import {
+  cookieOptions,
+  roomAccessCookieName,
+  roomPasswordCookieName,
+} from "@/lib/room-access";
+import { verifyRoomToken } from "@/lib/utils";
 
-/** Private rooms only — verify password and set session cookie */
+/** Private rooms — verify password or invite token and set session cookie */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const body = (await request.json()) as { password?: string };
+  const body = (await request.json()) as { password?: string; token?: string };
 
   const room = await getRoomBySlug(slug);
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
 
-  if (room.privacy !== "private" || !room.passwordHash) {
+  if (room.privacy !== "private") {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.token) {
+    const verified = await verifyRoomToken(body.token);
+    if (!verified || verified.slug !== slug) {
+      return NextResponse.json({ error: "Invalid invite link" }, { status: 401 });
+    }
+
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set(
+      roomAccessCookieName(slug),
+      body.token,
+      cookieOptions(`/r/${slug}`),
+    );
+    return response;
+  }
+
+  if (!room.passwordHash) {
     return NextResponse.json({ ok: true });
   }
 
