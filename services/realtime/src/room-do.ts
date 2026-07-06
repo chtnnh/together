@@ -141,6 +141,36 @@ export class RoomDurableObject implements DurableObject {
       });
     }
 
+    if (url.pathname === "/purge" && request.method === "POST") {
+      const auth = request.headers.get("authorization");
+      if (auth !== `Bearer ${this.env.ROOM_TOKEN_SECRET}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      for (const [ws] of this.sessions) {
+        try {
+          ws.close(1000, "Room purged");
+        } catch {
+          // ignore
+        }
+      }
+      this.sessions.clear();
+
+      const { roomId, slug, title, settings, passwordRequired } = this.state;
+      this.state = this.createInitialState(roomId);
+      this.state.slug = slug;
+      this.state.roomId = roomId;
+      this.state.title = title;
+      this.state.settings = settings;
+      this.state.passwordRequired = passwordRequired;
+      this.bans.clear();
+      this.bansHydrated = false;
+      await this.cancelEmptyRoomAlarm();
+      await this.ctx.storage.deleteAll();
+
+      return Response.json({ ok: true });
+    }
+
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 426 });
     }
@@ -162,6 +192,15 @@ export class RoomDurableObject implements DurableObject {
 
         if (parsed.type === "join") {
           void this.hydrateBansFromDatabase();
+          if (parsed.userId && (await this.isGloballyBanned(parsed.userId))) {
+            this.send(ws, {
+              type: "error",
+              code: "BANNED",
+              message: "Your account has been suspended",
+            });
+            ws.close(4003, "Banned");
+            return;
+          }
           if (this.isBanned(parsed.anonId, parsed.userId ?? null)) {
             this.send(ws, { type: "error", code: "BANNED", message: "You are banned from this room" });
             ws.close(4003, "Banned");
@@ -1170,6 +1209,24 @@ export class RoomDurableObject implements DurableObject {
       await this.ctx.storage.put("bans", [...this.bans]);
     } catch {
       // Best-effort.
+    }
+  }
+
+  private async isGloballyBanned(userId: string): Promise<boolean> {
+    const appUrl = this.env.APP_URL;
+    const secret = this.env.ROOM_TOKEN_SECRET;
+    if (!appUrl || !secret) return false;
+
+    try {
+      const res = await fetch(
+        `${appUrl.replace(/\/$/, "")}/api/internal/users/${userId}/banned`,
+        { headers: { Authorization: `Bearer ${secret}` } },
+      );
+      if (!res.ok) return false;
+      const data = (await res.json()) as { banned?: boolean };
+      return data.banned === true;
+    } catch {
+      return false;
     }
   }
 

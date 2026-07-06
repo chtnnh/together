@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { getRoomBySlug } from "@/lib/rooms";
 import { hasPasswordCookie, verifyRoomAccess } from "@/lib/room-access";
 import { RoomClient } from "@/components/room-client";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { isUserGloballyBanned } from "@/lib/admin-data";
 
 interface RoomPageProps {
   params: Promise<{ slug: string }>;
@@ -50,6 +52,14 @@ export default async function RoomPage({ params }: RoomPageProps) {
 
   if (needsPassword && !hasAccess) {
     redirect(`/r/${slug}/join`);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user && (await isUserGloballyBanned(user.id))) {
+    redirect("/banned");
   }
 
   await initRealtimeRoom(
