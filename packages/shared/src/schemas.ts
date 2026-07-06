@@ -160,6 +160,15 @@ export const roomStateSchema = z.object({
 
 export type RoomState = z.infer<typeof roomStateSchema>;
 
+export const roomLiveSnapshotSchema = z.object({
+  playback: playbackStateSchema,
+  queue: z.array(queueItemSchema),
+  requests: z.array(requestItemSchema),
+  updatedAt: z.number(),
+});
+
+export type RoomLiveSnapshot = z.infer<typeof roomLiveSnapshotSchema>;
+
 export const createRoomInputSchema = z.object({
   displayName: displayNameSchema,
   title: z.string().min(1).max(64).trim().optional(),

@@ -49,6 +49,8 @@ export const rooms = pgTable("rooms", {
   privacy: privacyEnum("privacy").notNull().default("unlisted"),
   passwordHash: text("password_hash"),
   inviteToken: text("invite_token"),
+  liveSnapshot: jsonb("live_snapshot").$type<import("@together/shared").RoomLiveSnapshot>(),
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

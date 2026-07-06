@@ -18,6 +18,10 @@ import {
 import { parseClientEvent } from "@together/shared/events";
 import { generateId } from "./utils";
 
+const EMPTY_ROOM_GRACE_MS = 5 * 60 * 1000;
+const CHAT_NOTICE =
+  "Chat is live for this session only — messages aren't saved and may clear when the room goes quiet.";
+
 interface Session {
   participantId: string;
   ws: WebSocket;
@@ -30,6 +34,7 @@ export class RoomDurableObject implements DurableObject {
   private promoteVotes = new Map<string, Set<string>>();
   private lastPlaybackEndedAt = 0;
   private reactionTimestamps = new Map<string, number[]>();
+  private bansHydrated = false;
 
   constructor(
     private ctx: DurableObjectState,
@@ -43,6 +48,8 @@ export class RoomDurableObject implements DurableObject {
           ...stored,
           title: stored.title ?? "",
           history: stored.history ?? [],
+          participants: [],
+          chat: [],
         };
       }
       const storedBans = await this.ctx.storage.get<string[]>("bans");
@@ -87,6 +94,11 @@ export class RoomDurableObject implements DurableObject {
         title?: string;
         settings?: Partial<RoomSettings>;
         passwordRequired?: boolean;
+        snapshot?: {
+          playback: PlaybackState;
+          queue: QueueItem[];
+          requests: RequestItem[];
+        };
       };
       const previousRoomId = this.state.roomId;
       this.state.roomId = body.roomId;
@@ -105,6 +117,16 @@ export class RoomDurableObject implements DurableObject {
         }
       }
       this.state.passwordRequired = body.passwordRequired ?? false;
+      if (
+        body.snapshot &&
+        this.state.queue.length === 0 &&
+        !this.state.playback.videoId
+      ) {
+        this.state.playback = body.snapshot.playback;
+        this.state.queue = body.snapshot.queue;
+        this.state.requests = body.snapshot.requests;
+      }
+      void this.hydrateBansFromDatabase();
       await this.persist();
       return Response.json({ ok: true });
     }
@@ -115,7 +137,7 @@ export class RoomDurableObject implements DurableObject {
 
     if (url.pathname === "/stats") {
       return Response.json({
-        participantCount: this.state.participants.length,
+        participantCount: this.getLiveParticipantCount(),
       });
     }
 
@@ -139,6 +161,7 @@ export class RoomDurableObject implements DurableObject {
         const parsed = parseClientEvent(data);
 
         if (parsed.type === "join") {
+          void this.hydrateBansFromDatabase();
           if (this.isBanned(parsed.anonId, parsed.userId ?? null)) {
             this.send(ws, { type: "error", code: "BANNED", message: "You are banned from this room" });
             ws.close(4003, "Banned");
@@ -205,12 +228,14 @@ export class RoomDurableObject implements DurableObject {
           const becameHost = !existing && participant.role === "host";
 
           this.sessions.set(ws, { participantId: participantId!, ws });
+          void this.cancelEmptyRoomAlarm();
 
           this.send(ws, {
             type: "state",
             state: this.getPublicState(participantId!),
             serverNow: Date.now(),
           });
+          this.send(ws, { type: "chat:notice", body: CHAT_NOTICE });
           if (!existing) {
             this.broadcast({ type: "participants", participants: this.state.participants }, ws);
           }
@@ -252,23 +277,28 @@ export class RoomDurableObject implements DurableObject {
       if (!session) return;
 
       this.sessions.delete(ws);
-      const { participantId: closedId } = session;
-
-      const stillConnected = [...this.sessions.values()].some(
-        (s) => s.participantId === closedId,
-      );
-      if (stillConnected) return;
-
-      const leaving = this.state.participants.find((p) => p.id === closedId);
-      this.state.participants = this.state.participants.filter((p) => p.id !== closedId);
-      this.broadcast({ type: "participants", participants: this.state.participants });
-      if (leaving) {
-        this.broadcast({
-          type: "activity",
-          activity: { kind: "leave", displayName: leaving.displayName },
-        });
+      this.removeParticipant(session.participantId);
+      if (this.sessions.size === 0) {
+        void this.scheduleEmptyRoomAlarm();
       }
     });
+  }
+
+  private removeParticipant(participantId: string) {
+    const stillConnected = [...this.sessions.values()].some(
+      (s) => s.participantId === participantId,
+    );
+    if (stillConnected) return;
+
+    const leaving = this.state.participants.find((p) => p.id === participantId);
+    this.state.participants = this.state.participants.filter((p) => p.id !== participantId);
+    this.broadcast({ type: "participants", participants: this.state.participants });
+    if (leaving) {
+      this.broadcast({
+        type: "activity",
+        activity: { kind: "leave", displayName: leaving.displayName },
+      });
+    }
   }
 
   private async handleEvent(event: ClientEvent, participant: Participant, ws: WebSocket) {
@@ -386,6 +416,12 @@ export class RoomDurableObject implements DurableObject {
         await this.handleOwnershipTransfer(event.targetParticipantId, participant);
         break;
       case "leave":
+        this.removeParticipant(participant.id);
+        try {
+          ws.close(1000, "Left room");
+        } catch {
+          // ignore
+        }
         break;
     }
   }
@@ -462,7 +498,6 @@ export class RoomDurableObject implements DurableObject {
 
     participant.lastChatAt = now;
     this.state.chat = [...this.state.chat, message].slice(-CHAT_BUFFER_SIZE);
-    await this.persist();
     this.broadcast({ type: "chat", message }, ws);
     this.send(ws, { type: "chat", message });
   }
@@ -892,6 +927,7 @@ export class RoomDurableObject implements DurableObject {
     this.bans.add(target.anonId);
     if (target.userId) this.bans.add(target.userId);
     await this.ctx.storage.put("bans", [...this.bans]);
+    void this.syncBanToDatabase(target.anonId, target.userId ?? null, actor.userId ?? null);
 
     this.broadcast({
       type: "activity",
@@ -919,7 +955,6 @@ export class RoomDurableObject implements DurableObject {
     this.state.participants = this.state.participants.map((p) =>
       p.id === targetId ? { ...p, role } : p,
     );
-    await this.persist();
     this.broadcast({ type: "participants", participants: this.state.participants });
     this.broadcast({
       type: "activity",
@@ -1027,7 +1062,45 @@ export class RoomDurableObject implements DurableObject {
   }
 
   private async persist() {
-    await this.ctx.storage.put("state", this.state);
+    const { participants: _p, chat: _c, ...durable } = this.state;
+    await this.ctx.storage.put("state", durable);
+  }
+
+  private getLiveParticipantCount(): number {
+    const ids = new Set<string>();
+    for (const session of this.sessions.values()) {
+      ids.add(session.participantId);
+    }
+    return ids.size;
+  }
+
+  private async scheduleEmptyRoomAlarm() {
+    await this.ctx.storage.setAlarm(Date.now() + EMPTY_ROOM_GRACE_MS);
+  }
+
+  private async cancelEmptyRoomAlarm() {
+    const alarm = await this.ctx.storage.getAlarm();
+    if (alarm !== null) {
+      await this.ctx.storage.deleteAlarm();
+    }
+  }
+
+  async alarm(): Promise<void> {
+    if (this.sessions.size > 0) return;
+
+    await this.syncSnapshotToDatabase();
+
+    const { roomId, slug, title, settings, passwordRequired } = this.state;
+    this.state = this.createInitialState(roomId);
+    this.state.slug = slug;
+    this.state.roomId = roomId;
+    this.state.title = title;
+    this.state.settings = settings;
+    this.state.passwordRequired = passwordRequired;
+
+    this.bans.clear();
+    this.bansHydrated = false;
+    await this.ctx.storage.deleteAll();
   }
 
   /** Best-effort sync of live DO settings to Postgres for owned rooms. */
@@ -1048,6 +1121,79 @@ export class RoomDurableObject implements DurableObject {
       });
     } catch {
       // Web app may be unavailable in dev; client PATCH remains fallback.
+    }
+  }
+
+  private async syncSnapshotToDatabase(): Promise<void> {
+    const appUrl = this.env.APP_URL;
+    const secret = this.env.ROOM_TOKEN_SECRET;
+    const slug = this.state.slug;
+    if (!appUrl || !secret || !slug) return;
+
+    try {
+      await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/rooms/${slug}/snapshot`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({
+          playback: this.state.playback,
+          queue: this.state.queue,
+          requests: this.state.requests,
+          updatedAt: Date.now(),
+        }),
+      });
+    } catch {
+      // Best-effort; snapshot may be unavailable in dev.
+    }
+  }
+
+  private async hydrateBansFromDatabase(): Promise<void> {
+    if (this.bansHydrated) return;
+    this.bansHydrated = true;
+
+    const appUrl = this.env.APP_URL;
+    const secret = this.env.ROOM_TOKEN_SECRET;
+    const slug = this.state.slug;
+    if (!appUrl || !secret || !slug) return;
+
+    try {
+      const res = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/rooms/${slug}/bans`, {
+        headers: { Authorization: `Bearer ${secret}` },
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { bans?: string[] };
+      for (const id of data.bans ?? []) {
+        this.bans.add(id);
+      }
+      await this.ctx.storage.put("bans", [...this.bans]);
+    } catch {
+      // Best-effort.
+    }
+  }
+
+  private async syncBanToDatabase(
+    anonId: string,
+    userId: string | null,
+    bannedBy: string | null,
+  ): Promise<void> {
+    const appUrl = this.env.APP_URL;
+    const secret = this.env.ROOM_TOKEN_SECRET;
+    const slug = this.state.slug;
+    if (!appUrl || !secret || !slug) return;
+
+    try {
+      await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/rooms/${slug}/bans`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ anonId, userId, bannedBy }),
+      });
+    } catch {
+      // Best-effort.
     }
   }
 }

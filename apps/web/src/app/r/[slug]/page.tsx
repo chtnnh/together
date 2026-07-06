@@ -58,6 +58,7 @@ export default async function RoomPage({ params }: RoomPageProps) {
     room.settings,
     needsPassword,
     ("title" in room ? room.title : null) ?? "",
+    "liveSnapshot" in room ? room.liveSnapshot : null,
   );
 
   return (
@@ -77,6 +78,7 @@ async function initRealtimeRoom(
   settings: unknown,
   passwordRequired: boolean,
   title: string,
+  snapshot: import("@together/shared").RoomLiveSnapshot | null | undefined,
 ) {
   const base = process.env.NEXT_PUBLIC_REALTIME_URL?.replace(/^ws/, "http") ?? "http://localhost:8787";
 
@@ -84,7 +86,14 @@ async function initRealtimeRoom(
     await fetch(`${base}/room/${roomId}/init`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId, slug, settings, passwordRequired, title }),
+      body: JSON.stringify({
+        roomId,
+        slug,
+        settings,
+        passwordRequired,
+        title,
+        snapshot: snapshot ?? undefined,
+      }),
     });
   } catch {
     // Realtime worker may not be running in dev

@@ -13,6 +13,8 @@ export interface MemoryRoom {
   privacy: "public" | "unlisted" | "private";
   passwordHash: string | null;
   inviteToken: string | null;
+  liveSnapshot?: import("@together/shared").RoomLiveSnapshot | null;
+  lastActiveAt?: Date | null;
   createdAt: Date;
 }
 
@@ -257,6 +259,76 @@ export async function getRoomBans(roomId: string) {
   const { eq } = await import("drizzle-orm");
   const db = getDb();
   return db.select().from(roomBans).where(eq(roomBans.roomId, roomId));
+}
+
+export async function getRoomBanIds(roomId: string): Promise<string[]> {
+  const rows = await getRoomBans(roomId);
+  const ids: string[] = [];
+  for (const row of rows) {
+    if (row.userId) ids.push(row.userId);
+    if (row.anonFingerprint) ids.push(row.anonFingerprint);
+  }
+  return ids;
+}
+
+export async function addRoomBan(input: {
+  roomId: string;
+  anonId: string;
+  userId?: string | null;
+  bannedBy?: string | null;
+}) {
+  if (isMemoryStoreEnabled()) return;
+  const { getDb, roomBans } = await import("@together/db");
+  const db = getDb();
+  await db.insert(roomBans).values({
+    roomId: input.roomId,
+    anonFingerprint: input.anonId,
+    userId: input.userId ?? null,
+    bannedBy: input.bannedBy ?? null,
+  });
+}
+
+export async function saveRoomSnapshot(
+  roomId: string,
+  snapshot: import("@together/shared").RoomLiveSnapshot,
+) {
+  if (isMemoryStoreEnabled()) {
+    for (const room of memoryRooms.values()) {
+      if (room.id === roomId) {
+        room.liveSnapshot = snapshot;
+        room.lastActiveAt = new Date();
+        return room;
+      }
+    }
+    return null;
+  }
+
+  const { getDb, rooms } = await import("@together/db");
+  const { eq } = await import("drizzle-orm");
+  const db = getDb();
+  const [updated] = await db
+    .update(rooms)
+    .set({ liveSnapshot: snapshot, lastActiveAt: new Date() })
+    .where(eq(rooms.id, roomId))
+    .returning();
+  return updated ?? null;
+}
+
+export async function touchRoomActivity(roomId: string) {
+  if (isMemoryStoreEnabled()) {
+    for (const room of memoryRooms.values()) {
+      if (room.id === roomId) {
+        room.lastActiveAt = new Date();
+        return;
+      }
+    }
+    return;
+  }
+
+  const { getDb, rooms } = await import("@together/db");
+  const { eq } = await import("drizzle-orm");
+  const db = getDb();
+  await db.update(rooms).set({ lastActiveAt: new Date() }).where(eq(rooms.id, roomId));
 }
 
 export async function savePlaylist(input: {

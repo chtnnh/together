@@ -219,6 +219,10 @@ export const serverEvents = {
     type: z.literal("reaction"),
     reaction: roomReactionSchema,
   }),
+  chatNotice: z.object({
+    type: z.literal("chat:notice"),
+    body: z.string(),
+  }),
 };
 
 export const serverEventSchema = z.discriminatedUnion("type", [
@@ -236,6 +240,7 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   serverEvents.pong,
   serverEvents.resolveRequest,
   serverEvents.reaction,
+  serverEvents.chatNotice,
 ]);
 
 export type ServerEvent = z.infer<typeof serverEventSchema>;
