@@ -27,10 +27,14 @@ export const playlistSourceEnum = pgEnum("playlist_source", [
   "mixed",
 ]);
 
+export const appRoleEnum = pgEnum("app_role", ["user", "superadmin"]);
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }),
   preferences: jsonb("preferences").$type<import("@together/shared").UserAccountPreferences>(),
+  appRole: appRoleEnum("app_role").notNull().default("user"),
+  bannedAt: timestamp("banned_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -131,6 +135,16 @@ export const passwordAttempts = pgTable("password_attempts", {
   attempts: integer("attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: uuid("actor_id").references(() => users.id),
+  action: varchar("action", { length: 64 }).notNull(),
+  targetType: varchar("target_type", { length: 32 }).notNull(),
+  targetId: varchar("target_id", { length: 128 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

@@ -443,13 +443,20 @@ export async function setCachedResolution(
 
 export async function ensureUser(userId: string, email?: string | null) {
   if (isMemoryStoreEnabled()) return;
-  const { getDb } = await import("@together/db");
-  const { sql } = await import("drizzle-orm");
+  const { getDb, users } = await import("@together/db");
+  const { sql, eq } = await import("drizzle-orm");
   const db = getDb();
-  // Raw SQL — only id/email so this works even before optional columns (e.g. preferences) are migrated.
   await db.execute(
     sql`INSERT INTO users (id, email) VALUES (${userId}, ${email ?? null}) ON CONFLICT (id) DO NOTHING`,
   );
+
+  const allowlist = (process.env.SUPERADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (email && allowlist.includes(email.toLowerCase())) {
+    await db.update(users).set({ appRole: "superadmin" }).where(eq(users.id, userId));
+  }
 }
 
 export async function getUserPreferences(userId: string) {
