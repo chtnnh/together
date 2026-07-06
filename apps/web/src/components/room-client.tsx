@@ -47,7 +47,9 @@ import { getDisplayName, setDisplayName } from "@/lib/utils";
 import { ShareInviteButton } from "@/components/share-invite-button";
 import { DiscordStatusButton } from "@/components/discord-status-button";
 import { SavePlaylistDialog } from "@/components/save-playlist-dialog";
-import { PlaylistPickerDialog } from "@/components/playlist-picker-dialog";
+import { PlaylistsModal } from "@/components/playlists-modal";
+import { ImportPlaylistDialog } from "@/components/import-playlist-dialog";
+import { AccountSettingsModal } from "@/components/account-settings-modal";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
@@ -143,7 +145,9 @@ export function RoomClient({
   const [embedError, setEmbedError] = useState<{ code: number; message: string } | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [savePlaylistOpen, setSavePlaylistOpen] = useState(false);
-  const [playlistPickerOpen, setPlaylistPickerOpen] = useState(false);
+  const [playlistsModalOpen, setPlaylistsModalOpen] = useState(false);
+  const [importPlaylistOpen, setImportPlaylistOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [incomingReactions, setIncomingReactions] = useState<RoomReaction[]>([]);
   const [promoteVotedIds, setPromoteVotedIds] = useState<Set<string>>(() => new Set());
   const chatInitRef = useRef(false);
@@ -801,21 +805,29 @@ export function RoomClient({
             ))}
           </ul>
         )}
-        {isHost && (
-          <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
+        <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0 whitespace-nowrap"
+            onClick={() => setImportPlaylistOpen(true)}
+          >
+            Import playlist
+          </Button>
+          {isHost && (
             <Button
               variant="secondary"
               size="sm"
               className="shrink-0 whitespace-nowrap"
               onClick={() =>
-                signedIn ? setPlaylistPickerOpen(true) : openSignIn()
+                signedIn ? setPlaylistsModalOpen(true) : openSignIn()
               }
             >
               <FolderOpen className="mr-1.5 size-4" />
               Load playlist
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex flex-1 flex-col overflow-hidden">
@@ -944,6 +956,10 @@ export function RoomClient({
               signedIn={signedIn}
               authLoading={authLoading}
               onSignIn={openSignIn}
+              onPlaylistsClick={() =>
+                signedIn ? setPlaylistsModalOpen(true) : openSignIn()
+              }
+              onAccountClick={() => setAccountModalOpen(true)}
               compact
             />
             <Tooltip>
@@ -1158,10 +1174,24 @@ export function RoomClient({
         onSaved={(name) => toast(`Saved "${name}"`, "success")}
       />
 
-      <PlaylistPickerDialog
-        open={playlistPickerOpen}
-        onClose={() => setPlaylistPickerOpen(false)}
+      <PlaylistsModal
+        open={playlistsModalOpen}
+        onClose={() => setPlaylistsModalOpen(false)}
         onLoad={importPlaylistItems}
+        onSignIn={openSignIn}
+      />
+
+      <ImportPlaylistDialog
+        open={importPlaylistOpen}
+        onClose={() => setImportPlaylistOpen(false)}
+        onImport={importPlaylistItems}
+      />
+
+      <AccountSettingsModal
+        open={accountModalOpen}
+        onClose={() => setAccountModalOpen(false)}
+        userPrefs={userPrefs}
+        onUserPrefsUpdate={setUserPrefs}
       />
 
       {error && (
