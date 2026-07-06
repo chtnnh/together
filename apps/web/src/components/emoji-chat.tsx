@@ -64,13 +64,23 @@ export function ChatMessages({
   messages,
   participants = [],
   currentParticipantId,
+  joinNotice,
+  onDismissJoinNotice,
 }: {
   messages: ChatMessage[];
   participants?: Participant[];
   currentParticipantId?: string;
+  joinNotice?: string | null;
+  onDismissJoinNotice?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedToBottomRef = useRef(true);
+
+  useEffect(() => {
+    if (!joinNotice) return;
+    const id = setTimeout(() => onDismissJoinNotice?.(), 30000);
+    return () => clearTimeout(id);
+  }, [joinNotice, onDismissJoinNotice]);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
@@ -91,6 +101,16 @@ export function ChatMessages({
       onScroll={handleScroll}
       className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
     >
+      {joinNotice ? (
+        <p role="status" className="text-xs text-[var(--text-muted)]">
+          {joinNotice}
+        </p>
+      ) : null}
+      {messages.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+          No messages yet. Say hi — chat clears when the room goes quiet.
+        </p>
+      ) : null}
       {messages.map((msg) => {
         const mentionedYou =
           !!currentParticipantId &&

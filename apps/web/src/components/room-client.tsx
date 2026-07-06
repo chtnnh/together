@@ -169,7 +169,7 @@ export function RoomClient({
 
   const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences(signedIn);
 
-  const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline, clockOffsetMs } = useRoomSocket({
+  const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline, clockOffsetMs, chatNotice, dismissChatNotice } = useRoomSocket({
     roomId,
     displayName,
     userId,
@@ -685,9 +685,14 @@ export function RoomClient({
         messages={roomState?.chat ?? []}
         participants={roomState?.participants ?? []}
         currentParticipantId={participant?.id}
+        joinNotice={chatNotice}
+        onDismissJoinNotice={dismissChatNotice}
       />
       <ChatInput
-        onSend={(body) => send({ type: "chat", body })}
+        onSend={(body) => {
+          dismissChatNotice();
+          send({ type: "chat", body });
+        }}
         slowModeSeconds={settings?.slowModeSeconds}
         lastChatAt={participant?.lastChatAt}
         participants={roomState?.participants ?? []}

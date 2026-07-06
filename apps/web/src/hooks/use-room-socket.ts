@@ -35,6 +35,7 @@ export function useRoomSocket({
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [clockOffsetMs, setClockOffsetMs] = useState(0);
+  const [chatNotice, setChatNotice] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const clockOffsetRef = useRef(0);
@@ -221,6 +222,9 @@ export function useRoomSocket({
           case "pong":
             applyServerNow(data.serverAt);
             break;
+          case "chat:notice":
+            setChatNotice(data.body);
+            break;
         }
       };
 
@@ -309,6 +313,8 @@ export function useRoomSocket({
     error,
     offline,
     clockOffsetMs,
+    chatNotice,
+    dismissChatNotice: () => setChatNotice(null),
     send,
     participant,
     isHost: isHostish,
