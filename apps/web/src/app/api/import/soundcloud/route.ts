@@ -1,8 +1,7 @@
-// TODO(v0.3): SoundCloud import API — UI not linked until Artist Pro API access is available.
+// SoundCloud import — public playlist/track URLs via client ID.
 import { NextResponse } from "next/server";
 import { importSoundCloudUrl } from "@/lib/soundcloud";
-import { resolveTrackWithCache } from "@/lib/youtube";
-import { shouldAutoQueue } from "@together/track-resolver";
+import { resolveImportTracks } from "@/lib/import-tracks";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 
@@ -23,28 +22,7 @@ export async function POST(request: Request) {
   try {
     const { url } = schema.parse(await request.json());
     const tracks = await importSoundCloudUrl(url);
-    const resolved = [];
-
-    for (const track of tracks) {
-      const result = await resolveTrackWithCache({
-        source: "manual",
-        title: track.title,
-        artist: track.artist,
-        durationMs: track.durationMs,
-        externalId: track.externalId,
-      });
-
-      resolved.push({
-        source: "manual" as const,
-        title: track.title,
-        artist: track.artist,
-        durationMs: track.durationMs,
-        externalId: track.externalId,
-        videoId: shouldAutoQueue(result.confidence) ? result.videoId : null,
-        confidence: result.confidence,
-        alternates: result.alternates,
-      });
-    }
+    const resolved = await resolveImportTracks(tracks, "manual");
 
     if (resolved.length === 0) {
       return NextResponse.json({ error: "No tracks found at that SoundCloud URL" }, { status: 404 });

@@ -1,5 +1,30 @@
 import { SignJWT } from "jose";
 
+export function isAppleMusicConfigured(): boolean {
+  return !!(
+    process.env.APPLE_MUSIC_TEAM_ID &&
+    process.env.APPLE_MUSIC_KEY_ID &&
+    process.env.APPLE_MUSIC_PRIVATE_KEY
+  );
+}
+
+export function parseAppleMusicPlaylistUrl(input: string): { storefront: string; id: string } | null {
+  const trimmed = input.trim();
+  try {
+    const url = new URL(trimmed);
+    if (!/(^|\.)music\.apple\.com$/i.test(url.hostname)) return null;
+    const parts = url.pathname.split("/").filter(Boolean);
+    const storefront = parts[0];
+    const playlistIndex = parts.indexOf("playlist");
+    if (!storefront || playlistIndex === -1) return null;
+    const id = parts[parts.length - 1];
+    if (!id || id === "playlist") return null;
+    return { storefront, id };
+  } catch {
+    return null;
+  }
+}
+
 export async function generateAppleMusicToken(): Promise<string> {
   const teamId = process.env.APPLE_MUSIC_TEAM_ID;
   const keyId = process.env.APPLE_MUSIC_KEY_ID;
@@ -90,6 +115,55 @@ export async function getAppleMusicPlaylistTracks(
       },
     });
     if (!res.ok) break;
+
+    const data = (await res.json()) as {
+      data: Array<{
+        id: string;
+        attributes: {
+          name: string;
+          artistName: string;
+          durationInMillis: number;
+          isrc?: string;
+        };
+      }>;
+      next?: string;
+    };
+
+    for (const item of data.data) {
+      tracks.push({
+        title: item.attributes.name,
+        artist: item.attributes.artistName,
+        durationMs: item.attributes.durationInMillis,
+        externalId: item.id,
+        isrc: item.attributes.isrc,
+      });
+    }
+    url = data.next ?? null;
+  }
+
+  return tracks;
+}
+
+export async function getCatalogPlaylistTracks(storefront: string, playlistId: string) {
+  const developerToken = await generateAppleMusicToken();
+  const tracks: Array<{
+    title: string;
+    artist: string;
+    durationMs: number;
+    externalId: string;
+    isrc?: string;
+  }> = [];
+
+  let url: string | null =
+    `https://api.music.apple.com/v1/catalog/${storefront}/playlists/${playlistId}/tracks?limit=100`;
+
+  while (url && tracks.length < 200) {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${developerToken}` },
+    });
+    if (!res.ok) {
+      throw new Error(`Apple Music playlist unavailable (${res.status})`);
+    }
 
     const data = (await res.json()) as {
       data: Array<{
