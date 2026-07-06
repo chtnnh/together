@@ -1,7 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="128" fill="#6366f1"/>
-  <path d="M192 168v176l288-176-288-176z" fill="#ffffff"/>
-  <circle cx="360" cy="152" r="24" fill="#ffffff" opacity="0.9"/>
-  <circle cx="392" cy="208" r="16" fill="#ffffff" opacity="0.7"/>
-  <circle cx="368" cy="264" r="12" fill="#ffffff" opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Together">
+  <defs>
+    <linearGradient id="sunset-bg" x1="128" y1="64" x2="384" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="128" fill="url(#sunset-bg)"/>
+
+  <g opacity="0.18" stroke="#fffbeb" stroke-width="4" stroke-linecap="round">
+    <path d="M56 168 H456"/>
+    <path d="M56 200 H456"/>
+    <path d="M56 232 H456"/>
+    <path d="M56 264 H456"/>
+    <path d="M56 296 H456"/>
+  </g>
+
+  <g fill="#fffbeb">
+    <rect x="143" y="126" width="290" height="18"/>
+    <!-- Stems trimmed to the head circle (no tail below the note) -->
+    <rect x="143" y="144" width="14" height="194"/>
+    <rect x="281" y="144" width="14" height="172"/>
+    <rect x="419" y="144" width="14" height="194"/>
+  </g>
+
+  <g fill="none" stroke="#fffbeb" stroke-width="8" stroke-linecap="round">
+    <path d="M 94 364 Q 118 352 142 364"/>
+    <path d="M 232 342 Q 256 330 280 342"/>
+    <path d="M 370 364 Q 394 352 418 364"/>
+  </g>
+
+  <circle cx="118" cy="318" r="32" fill="#fffbeb"/>
+  <circle cx="256" cy="296" r="32" fill="#fffbeb"/>
+  <circle cx="394" cy="318" r="32" fill="#fffbeb"/>
 </svg>
