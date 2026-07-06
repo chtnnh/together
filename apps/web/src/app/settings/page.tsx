@@ -5,8 +5,13 @@ import { Button, Input, Label } from "@together/ui";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 import { isSupabaseConfigured } from "@/lib/supabase-config";
+import { ThemeSelector } from "@/components/theme-selector";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
 
 export default function SettingsPage() {
+  const { signedIn } = useSupabaseUser();
+  const { prefs, setPrefs } = useUserPreferences(signedIn);
   const [email, setEmail] = useState("");
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -84,6 +89,13 @@ export default function SettingsPage() {
           <p className="text-sm text-[var(--text-muted)]">
             Signed in as <span className="text-[var(--text)]">{user.email}</span>
           </p>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3">
+            <div>
+              <Label className="text-sm font-medium">Theme</Label>
+              <p className="text-xs text-[var(--text-muted)]">Applies across the app</p>
+            </div>
+            <ThemeSelector value={prefs.theme} onChange={(theme) => setPrefs({ theme })} />
+          </div>
           <p className="text-sm text-[var(--text-muted)]">
             Your account lets you save playlists and persist room settings.
           </p>
