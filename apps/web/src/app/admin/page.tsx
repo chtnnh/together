@@ -65,6 +65,12 @@ export default function AdminDashboardPage() {
         <Link href="/admin/users" className="text-sm text-[var(--accent)] hover:underline">
           Manage users
         </Link>
+        <Link href="/admin/abuse" className="text-sm text-[var(--accent)] hover:underline">
+          Abuse queue
+        </Link>
+        <Link href="/admin/audit" className="text-sm text-[var(--accent)] hover:underline">
+          Audit log
+        </Link>
       </div>
     </div>
   );

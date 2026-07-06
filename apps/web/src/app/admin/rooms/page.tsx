@@ -33,6 +33,16 @@ export default function AdminRoomsPage() {
     load();
   }, []);
 
+  const handlePurge = async (slug: string) => {
+    if (!confirm(`Purge live state for ${slug}? Connected users will be disconnected.`)) return;
+    const res = await fetch(`/api/admin/rooms/${slug}/purge`, { method: "POST" });
+    if (!res.ok) {
+      setError("Failed to purge room");
+      return;
+    }
+    load();
+  };
+
   const handleDelete = async (slug: string) => {
     if (!confirm(`Delete room ${slug}?`)) return;
     const res = await fetch(`/api/admin/rooms/${slug}`, { method: "DELETE" });
@@ -72,9 +82,14 @@ export default function AdminRoomsPage() {
                     : "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(room.slug)}>
-                    Delete
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => handlePurge(room.slug)}>
+                      Purge live
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(room.slug)}>
+                      Delete
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

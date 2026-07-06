@@ -1,5 +1,14 @@
-import { getDb, playlists, playlistItems, rooms, users } from "@together/db";
-import { count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import {
+  adminAuditLog,
+  getDb,
+  passwordAttempts,
+  playlists,
+  playlistItems,
+  roomBans,
+  rooms,
+  users,
+} from "@together/db";
+import { count, desc, eq, gt, gte, isNotNull, or, sql } from "drizzle-orm";
 
 export async function fetchRoomParticipantCount(roomId: string): Promise<number> {
   const base =
@@ -105,11 +114,47 @@ export async function listAdminUsers(limit = 100) {
   return rows;
 }
 
+export async function isUserGloballyBanned(userId: string): Promise<boolean> {
+  if (!process.env.DATABASE_URL) return false;
+  const db = getDb();
+  const [row] = await db
+    .select({ bannedAt: users.bannedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return !!row?.bannedAt;
+}
+
+export async function purgeRoomDurableObject(roomId: string): Promise<boolean> {
+  const base =
+    process.env.NEXT_PUBLIC_REALTIME_URL?.replace(/^ws/, "http") ?? "http://127.0.0.1:8787";
+  const secret = process.env.ROOM_TOKEN_SECRET;
+  if (!secret) return false;
+
+  try {
+    const res = await fetch(`${base}/room/${roomId}/purge`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function deleteRoomBySlug(slug: string) {
   if (!process.env.DATABASE_URL) return false;
   const db = getDb();
-  const result = await db.delete(rooms).where(eq(rooms.slug, slug)).returning({ id: rooms.id });
-  return result.length > 0;
+  const [room] = await db
+    .select({ id: rooms.id })
+    .from(rooms)
+    .where(eq(rooms.slug, slug))
+    .limit(1);
+  if (!room) return false;
+
+  await db.delete(rooms).where(eq(rooms.slug, slug));
+  await purgeRoomDurableObject(room.id);
+  return true;
 }
 
 export async function setUserBanned(userId: string, banned: boolean) {
@@ -120,4 +165,72 @@ export async function setUserBanned(userId: string, banned: boolean) {
     .set({ bannedAt: banned ? new Date() : null })
     .where(eq(users.id, userId));
   return true;
+}
+
+export async function listAdminAuditLog(limit = 100) {
+  if (!process.env.DATABASE_URL) return [];
+  const db = getDb();
+
+  return db
+    .select({
+      id: adminAuditLog.id,
+      action: adminAuditLog.action,
+      targetType: adminAuditLog.targetType,
+      targetId: adminAuditLog.targetId,
+      metadata: adminAuditLog.metadata,
+      createdAt: adminAuditLog.createdAt,
+      actorEmail: users.email,
+    })
+    .from(adminAuditLog)
+    .leftJoin(users, eq(adminAuditLog.actorId, users.id))
+    .orderBy(desc(adminAuditLog.createdAt))
+    .limit(limit);
+}
+
+export async function listAbuseSignals(limit = 50) {
+  if (!process.env.DATABASE_URL) {
+    return { roomBans: [], passwordAttempts: [], bannedUsers: [] };
+  }
+
+  const db = getDb();
+  const now = new Date();
+
+  const [recentRoomBans, suspiciousAttempts, bannedUsers] = await Promise.all([
+    db
+      .select({
+        id: roomBans.id,
+        roomSlug: rooms.slug,
+        roomTitle: rooms.title,
+        userId: roomBans.userId,
+        anonFingerprint: roomBans.anonFingerprint,
+        createdAt: roomBans.createdAt,
+      })
+      .from(roomBans)
+      .innerJoin(rooms, eq(roomBans.roomId, rooms.id))
+      .orderBy(desc(roomBans.createdAt))
+      .limit(limit),
+    db
+      .select()
+      .from(passwordAttempts)
+      .where(
+        or(
+          gte(passwordAttempts.attempts, 3),
+          gt(passwordAttempts.lockedUntil, now),
+        ),
+      )
+      .orderBy(desc(passwordAttempts.updatedAt))
+      .limit(limit),
+    db
+      .select({
+        id: users.id,
+        email: users.email,
+        bannedAt: users.bannedAt,
+      })
+      .from(users)
+      .where(isNotNull(users.bannedAt))
+      .orderBy(desc(users.bannedAt))
+      .limit(limit),
+  ]);
+
+  return { roomBans: recentRoomBans, passwordAttempts: suspiciousAttempts, bannedUsers };
 }
