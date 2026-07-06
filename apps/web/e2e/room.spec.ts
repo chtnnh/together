@@ -54,16 +54,14 @@ test.describe("Room creation flow", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
-  test("hides provider import buttons until integrations ship", async ({ page }) => {
+  test("shows unified import playlist button in room", async ({ page }) => {
     await page.goto("/");
     await page.locator("#create-name").fill("DJ");
     await page.getByRole("button", { name: "Create room" }).click();
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByRole("button", { name: "Import Spotify" })).not.toBeVisible();
-    await expect(page.getByRole("button", { name: "Import SoundCloud" })).not.toBeVisible();
-    await expect(page.getByRole("button", { name: "Import Apple Music" })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Import playlist" })).toBeVisible();
   });
 
   test("shows helpful error when searching without API key", async ({ page }) => {
