@@ -588,7 +588,16 @@ export default function HomePageClient() {
             <Music2 className="h-4 w-4 text-[var(--accent)]" />
             <span>Together v0.2.3</span>
           </div>
-          <p>Sync playback. Share the queue. No install required.</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link href="/privacy" className="hover:text-[var(--text)]">
+              Privacy
+            </Link>
+            <Link href="/tos" className="hover:text-[var(--text)]">
+              Terms
+            </Link>
+            <span aria-hidden="true">·</span>
+            <span>Sync playback. Share the queue. No install required.</span>
+          </div>
         </div>
       </footer>
 

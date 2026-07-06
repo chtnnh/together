@@ -47,6 +47,20 @@ test.describe("Settings page", () => {
   });
 });
 
+test.describe("Legal pages", () => {
+  test("privacy policy is available", async ({ page }) => {
+    await page.goto("/privacy");
+    await expect(page.getByRole("heading", { name: "Privacy Policy", level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible();
+  });
+
+  test("terms of service is available", async ({ page }) => {
+    await page.goto("/tos");
+    await expect(page.getByRole("heading", { name: "Terms of Service", level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible();
+  });
+});
+
 test.describe("Playlists page", () => {
   test("prompts for authentication", async ({ page }) => {
     await page.goto("/playlists");
