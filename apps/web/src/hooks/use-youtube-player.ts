@@ -12,6 +12,10 @@ import {
   shouldResyncOnForeground,
 } from "@/lib/playback-visibility";
 import { CROSSFADE_MS } from "@/lib/playback-crossfade";
+import {
+  pickBestAvailableQuality,
+  qualityPreferenceToYoutubeQuality,
+} from "@/lib/youtube-quality";
 
 declare global {
   interface Window {
@@ -258,6 +262,27 @@ export function useYouTubePlayer({
     });
   }, []);
 
+  const applyQualityToPlayer = useCallback((player: YT.Player) => {
+    const q = qualityRef.current;
+    if (q === "auto") return;
+
+    safePlayerCall(player, (p) => {
+      if (q === "max") {
+        const levels =
+          (p as YT.Player & { getAvailableQualityLevels?: () => string[] }).getAvailableQualityLevels?.() ??
+          [];
+        const picked = pickBestAvailableQuality(levels, "max");
+        if (picked) p.setPlaybackQuality(picked);
+        return;
+      }
+
+      const mapped = qualityPreferenceToYoutubeQuality(
+        q as "1080p" | "720p" | "480p" | "144p" | "auto" | "max",
+      );
+      if (mapped) p.setPlaybackQuality(mapped);
+    });
+  }, []);
+
   const applyPlaybackToPlayer = useCallback(
     (force = false) => {
       const pb = playbackRef.current;
@@ -334,17 +359,7 @@ export function useYouTubePlayer({
         }
       });
 
-      const q = qualityRef.current;
-      if (q !== "auto") {
-        const qualityMap: Record<string, string> = {
-          "720p": "hd720",
-          "480p": "large",
-          "144p": "tiny",
-        };
-        safePlayerCall(player, (p) =>
-          p.setPlaybackQuality(qualityMap[q] ?? "default"),
-        );
-      }
+      applyQualityToPlayer(player);
 
       lastVersionRef.current = pb.version;
       refreshDuration();
@@ -352,7 +367,7 @@ export function useYouTubePlayer({
         isLocalActionRef.current = false;
       }, 500);
     },
-    [loadVideoAtPosition, crossfadeToVideo, refreshDuration, tryPlay],
+    [loadVideoAtPosition, crossfadeToVideo, refreshDuration, tryPlay, applyQualityToPlayer],
   );
 
   const applyPlaybackRef = useRef(applyPlaybackToPlayer);
@@ -391,6 +406,7 @@ export function useYouTubePlayer({
             setReady(true);
             applyVolume();
             applyPlaybackRef.current(true);
+            if (playerRef.current) applyQualityToPlayer(playerRef.current);
           },
           onStateChange: (event) => {
             if (!mounted) return;

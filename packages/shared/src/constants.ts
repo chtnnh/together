@@ -33,7 +33,7 @@ export const THEME_ACCENTS: Record<(typeof THEME_PRESETS)[number], string> = {
   "high-contrast": "#facc15",
 };
 
-export const QUALITY_OPTIONS = ["auto", "720p", "480p", "144p"] as const;
+export const QUALITY_OPTIONS = ["auto", "max", "1080p", "720p", "480p", "144p"] as const;
 
 export const PRIVACY_LEVELS = ["public", "unlisted", "private"] as const;
 

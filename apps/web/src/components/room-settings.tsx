@@ -15,9 +15,10 @@ import {
   getThemeVars,
 } from "@together/ui";
 import type { RoomSettings } from "@together/shared";
-import { QUALITY_OPTIONS, THEME_PRESETS } from "@together/shared";
+import { QUALITY_OPTIONS } from "@together/shared";
 import type { UserPreferences } from "@/hooks/use-user-preferences";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
+import { ThemeSelector } from "@/components/theme-selector";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { X } from "lucide-react";
 
@@ -40,9 +41,9 @@ interface SettingsDrawerProps {
   onClaim?: () => void;
 }
 
-function themeLabel(theme: (typeof THEME_PRESETS)[number]): string {
-  if (theme === "high-contrast") return "High contrast";
-  return theme.charAt(0).toUpperCase() + theme.slice(1);
+function qualityLabel(q: (typeof QUALITY_OPTIONS)[number]): string {
+  if (q === "max") return "Max";
+  return q;
 }
 
 function SettingRow({
@@ -152,23 +153,10 @@ export function SettingsDrawer({
 
             <div>
               <Label className="mb-2 block">Theme</Label>
-              <Select
+              <ThemeSelector
                 value={userPrefs.theme}
-                onValueChange={(theme) =>
-                  onUserPrefsUpdate({ theme: theme as UserPreferences["theme"] })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {THEME_PRESETS.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {themeLabel(t)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(theme) => onUserPrefsUpdate({ theme })}
+              />
             </div>
 
             <div>
@@ -185,7 +173,7 @@ export function SettingsDrawer({
                 <SelectContent>
                   {QUALITY_OPTIONS.map((q) => (
                     <SelectItem key={q} value={q}>
-                      {q}
+                      {qualityLabel(q)}
                     </SelectItem>
                   ))}
                 </SelectContent>
