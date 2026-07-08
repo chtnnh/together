@@ -6,9 +6,13 @@ import path from "node:path";
 
 let loaded = false;
 
+function shouldSkipRootEnvLoad(): boolean {
+  return process.env.TOGETHER_SKIP_ENV_FILE === "1" || process.env.TOGETHER_E2E === "1";
+}
+
 /** Ensure repo-root `.env` is loaded for server code (monorepo layout). */
 export function loadRootEnv(): void {
-  if (loaded) return;
+  if (loaded || shouldSkipRootEnvLoad()) return;
   loaded = true;
 
   const rootEnvFiles = [

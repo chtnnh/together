@@ -3,8 +3,10 @@ import { config as loadEnv } from "dotenv";
 import path from "node:path";
 
 // Load monorepo root .env so YOUTUBE_API_KEY etc. work without duplicating into apps/web
-loadEnv({ path: path.join(__dirname, "../../.env") });
-loadEnv({ path: path.join(__dirname, "../../.env.local") });
+if (process.env.TOGETHER_SKIP_ENV_FILE !== "1") {
+  loadEnv({ path: path.join(__dirname, "../../.env") });
+  loadEnv({ path: path.join(__dirname, "../../.env.local") });
+}
 
 function publicEnv(name: string): string | undefined {
   return process.env[name]?.trim() || undefined;

@@ -33,6 +33,8 @@ export default defineConfig({
         ...process.env,
         DATABASE_URL: "",
         YOUTUBE_API_KEY: "",
+        NEXT_PUBLIC_SUPABASE_URL: "",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
         TOGETHER_SKIP_ENV_FILE: "1",
         TOGETHER_E2E: "1",
         ROOM_TOKEN_SECRET: "test-secret",

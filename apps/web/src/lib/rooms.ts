@@ -26,7 +26,7 @@ const memoryRooms =
 ).__togetherMemoryRooms = memoryRooms;
 
 export function isMemoryStoreEnabled(): boolean {
-  return !process.env.DATABASE_URL;
+  return !process.env.DATABASE_URL?.trim();
 }
 
 function getDbErrorMessage(error: unknown, fallback: string): string {

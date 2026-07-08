@@ -5,31 +5,38 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-let client: ReturnType<typeof postgres> | null = null;
-let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+type PgClient = ReturnType<typeof postgres>;
+type Db = ReturnType<typeof drizzle<typeof schema>>;
+
+const globalForDb = globalThis as typeof globalThis & {
+  __togetherPgClient?: PgClient;
+  __togetherDb?: Db;
+};
 
 export function getDb(databaseUrl?: string) {
-  const url = databaseUrl ?? process.env.DATABASE_URL;
+  const url = databaseUrl ?? process.env.DATABASE_URL?.trim();
   if (!url) {
     throw new Error("DATABASE_URL is not set");
   }
 
-  if (!client) {
-    client = postgres(url, {
+  if (!globalForDb.__togetherPgClient) {
+    globalForDb.__togetherPgClient = postgres(url, {
       prepare: false,
+      max: 1,
+      idle_timeout: 20,
       ssl: url.includes("supabase.co") ? "require" : undefined,
     });
-    db = drizzle(client, { schema });
+    globalForDb.__togetherDb = drizzle(globalForDb.__togetherPgClient, { schema });
   }
 
-  return db!;
+  return globalForDb.__togetherDb!;
 }
 
 export function closeDb() {
-  if (client) {
-    void client.end();
-    client = null;
-    db = null;
+  if (globalForDb.__togetherPgClient) {
+    void globalForDb.__togetherPgClient.end();
+    globalForDb.__togetherPgClient = undefined;
+    globalForDb.__togetherDb = undefined;
   }
 }
 
