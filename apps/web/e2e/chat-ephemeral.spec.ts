@@ -15,11 +15,9 @@ test.describe("v0.3 — Ephemeral chat", () => {
 
     await page.getByRole("tab", { name: "Chat" }).click();
     await expect(
-      page.getByText(/Chat is live for this session only/i),
+      page.getByText(/Messages aren't saved/i),
     ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByText(/No messages yet. Say hi — chat clears when the room goes quiet./i),
-    ).toBeVisible();
+    await expect(page.getByText(/No messages yet. Say hi!/i)).not.toBeVisible();
   });
 
   test("dismisses join notice after sending a message", async ({ page }) => {
@@ -30,14 +28,13 @@ test.describe("v0.3 — Ephemeral chat", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     await page.getByRole("tab", { name: "Chat" }).click();
-    await expect(page.getByText(/Chat is live for this session only/i)).toBeVisible({
+    await expect(page.getByText(/Messages aren't saved/i)).toBeVisible({
       timeout: 10000,
     });
 
-    await page.getByPlaceholder("Type a message… (@ to mention)").fill("hello room");
+    await page.getByPlaceholder("Type a message").fill("hello");
     await page.getByRole("button", { name: "Send" }).click();
-
-    await expect(page.getByText("hello room")).toBeVisible();
-    await expect(page.getByText(/Chat is live for this session only/i)).not.toBeVisible();
+    await expect(page.getByText(/Messages aren't saved/i)).not.toBeVisible();
+    await expect(page.getByText("hello")).toBeVisible();
   });
 });

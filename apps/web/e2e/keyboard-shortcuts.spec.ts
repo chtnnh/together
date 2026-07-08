@@ -21,7 +21,7 @@ test.describe("Phase 4.2 — Keyboard shortcuts", () => {
     await expect(page.getByTestId("keyboard-shortcuts-help")).toBeHidden();
 
     await page.keyboard.press("/");
-    await expect(page.getByPlaceholder("YouTube URL or search...")).toBeFocused();
+    await expect(page.getByPlaceholder(/Paste a video\/playlist link/i)).toBeFocused();
   });
 
   test("shortcuts are ignored when typing in an input", async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe("Phase 4.2 — Keyboard shortcuts", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    const addInput = page.getByPlaceholder("YouTube URL or search...");
+    const addInput = page.getByPlaceholder(/Paste a video\/playlist link/i);
     await addInput.click();
     await addInput.press("?");
     await expect(page.getByTestId("keyboard-shortcuts-help")).toBeHidden();

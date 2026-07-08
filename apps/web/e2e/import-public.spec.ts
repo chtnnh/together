@@ -37,15 +37,13 @@ test.describe("v0.3 — Public playlist import", () => {
     expect(body.error).toMatch(/public Spotify playlist URL/i);
   });
 
-  test("Import playlist button opens dialog in room", async ({ page }) => {
+  test("Add bar accepts playlist URLs in room", async ({ page }) => {
     await page.goto("/");
     await page.locator("#create-name").fill("Importer");
     await page.getByRole("button", { name: "Create room" }).click();
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole("button", { name: "Import playlist" }).click();
-    await expect(page.getByRole("dialog", { name: "Import playlist" })).toBeVisible();
-    await expect(page.getByLabel("Playlist URL")).toBeVisible();
+    await expect(page.getByPlaceholder(/Paste a video\/playlist link/i)).toBeVisible();
   });
 });

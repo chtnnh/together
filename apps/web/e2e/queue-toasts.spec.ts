@@ -13,8 +13,8 @@ test.describe("Phase 3.1 — Queue add toasts", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     const videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    await page.getByPlaceholder("YouTube URL or search...").fill(videoUrl);
-    await page.getByPlaceholder("YouTube URL or search...").press("Enter");
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill(videoUrl);
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
 
     await expect(page.getByRole("status").filter({ hasText: /Added "/i })).toBeVisible({
       timeout: 10000,
@@ -28,8 +28,8 @@ test.describe("Phase 3.1 — Queue add toasts", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByPlaceholder("YouTube URL or search...").fill("lofi hip hop");
-    await page.getByPlaceholder("YouTube URL or search...").press("Enter");
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill("lofi hip hop");
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
 
     await expect(
       page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i }),

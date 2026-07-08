@@ -44,8 +44,8 @@ test.describe("Room creation flow", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     const videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    await page.getByPlaceholder("YouTube URL or search...").fill(videoUrl);
-    await page.getByPlaceholder("YouTube URL or search...").press("Enter");
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill(videoUrl);
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
 
     // Host adds go straight to the DJ queue (desktop sidebar)
     await page.getByRole("tab", { name: "Queue" }).click();
@@ -61,7 +61,7 @@ test.describe("Room creation flow", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByRole("button", { name: "Import playlist" })).toBeVisible();
+    await expect(page.getByPlaceholder(/Paste a video\/playlist link/i)).toBeVisible();
   });
 
   test("shows helpful error when searching without API key", async ({ page }) => {
@@ -71,8 +71,8 @@ test.describe("Room creation flow", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByPlaceholder("YouTube URL or search...").fill("lofi hip hop");
-    await page.getByPlaceholder("YouTube URL or search...").press("Enter");
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill("lofi hip hop");
+    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
 
     await expect(page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i })).toBeVisible({
       timeout: 5000,

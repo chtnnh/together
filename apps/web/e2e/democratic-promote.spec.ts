@@ -29,8 +29,8 @@ test.describe("Phase 5.1 — Democratic promote UI", () => {
     await expect(guestPage.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     const videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    await guestPage.getByPlaceholder("YouTube URL or search...").fill(videoUrl);
-    await guestPage.getByPlaceholder("YouTube URL or search...").press("Enter");
+    await guestPage.getByPlaceholder(/Paste a video\/playlist link/i).fill(videoUrl);
+    await guestPage.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
     await expect(guestPage.getByRole("status").filter({ hasText: /Added/i })).toBeVisible({
       timeout: 10000,
     });

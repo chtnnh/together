@@ -15,10 +15,10 @@ test.describe("Phase 5.2 — Touch queue reorder", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     for (let i = 0; i < 2; i += 1) {
-      await page.getByPlaceholder("YouTube URL or search...").fill(
+      await page.getByPlaceholder(/Paste a video\/playlist link/i).fill(
         `https://www.youtube.com/watch?v=dQw4w9WgXcQ&test=${i}`,
       );
-      await page.getByPlaceholder("YouTube URL or search...").press("Enter");
+      await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
       await expect(page.getByRole("status").filter({ hasText: /Added/i })).toBeVisible({
         timeout: 10000,
       });
