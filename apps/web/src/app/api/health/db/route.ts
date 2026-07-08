@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { isMemoryStoreEnabled } from "@/lib/rooms";
 
-export async function GET() {
+export const GET = withApiHandler("GET /api/health/db", async (_log) => {
   if (isMemoryStoreEnabled()) {
     return NextResponse.json({
       ok: true,
@@ -19,4 +20,4 @@ export async function GET() {
     const message = error instanceof Error ? error.message : "Database check failed";
     return NextResponse.json({ ok: false, mode: "postgres", error: message }, { status: 503 });
   }
-}
+});

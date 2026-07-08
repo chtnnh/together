@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { getYouTubeClient, importYouTubeUrl } from "@/lib/youtube";
 import { parseYouTubePlaylistId, parseYouTubeVideoId } from "@together/track-resolver";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -23,7 +24,7 @@ function isYouTubeUrl(input: string): boolean {
   );
 }
 
-export async function POST(request: Request) {
+export const POST = withApiHandler("POST /api/import/youtube", async (log, request) => {
   const limited = enforceRateLimit(request, importRateLimit);
   if (limited) return limited;
 
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "YouTube search failed";
-    console.error("YouTube search error:", message);
+    log.error("YouTube search error:", message);
     return NextResponse.json({ error: message }, { status: 502 });
   }
-}
+});

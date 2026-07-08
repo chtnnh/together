@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { getUserPreferences, saveUserPreferences } from "@/lib/rooms";
 import { formatPublicDbError } from "@/lib/db-errors";
 import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { userAccountPreferencesSchema } from "@together/shared";
 import { z } from "zod";
 
-export async function GET() {
+export const GET = withApiHandler("GET /api/user/preferences", async (log) => {
   try {
     const user = await getSupabaseServerUser();
 
@@ -16,15 +17,15 @@ export async function GET() {
     const preferences = await getUserPreferences(user.id);
     return NextResponse.json(preferences ?? {});
   } catch (err) {
-    console.error("GET /api/user/preferences failed:", err);
+    log.error("GET /api/user/preferences failed:", err);
     return NextResponse.json(
       { error: formatPublicDbError(err, "Failed to load preferences") },
       { status: 500 },
     );
   }
-}
+});
 
-export async function PATCH(request: Request) {
+export const PATCH = withApiHandler("PATCH /api/user/preferences", async (log, request) => {
   try {
     const user = await getSupabaseServerUser();
 
@@ -39,10 +40,10 @@ export async function PATCH(request: Request) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid preferences" }, { status: 400 });
     }
-    console.error("PATCH /api/user/preferences failed:", err);
+    log.error("PATCH /api/user/preferences failed:", err);
     return NextResponse.json(
       { error: formatPublicDbError(err, "Failed to save preferences") },
       { status: 500 },
     );
   }
-}
+});

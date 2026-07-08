@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { z } from "zod";
 import { cookies } from "next/headers";
 import {
@@ -26,7 +27,7 @@ const oauthSchema = z.object({
   save: z.boolean().optional(),
 });
 
-export async function GET(request: Request) {
+export const GET = withApiHandler("GET /api/import/spotify", async (_log, request) => {
   if (!isSpotifyOAuthEnabled()) {
     return NextResponse.json({ error: "Spotify OAuth is disabled" }, { status: 404 });
   }
@@ -43,9 +44,9 @@ export async function GET(request: Request) {
   const { getSpotifyPlaylists } = await import("@/lib/spotify");
   const playlists = await getSpotifyPlaylists(token);
   return NextResponse.json(playlists);
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiHandler("POST /api/import/spotify", async (_log, request) => {
   const limited = enforceRateLimit(request, importRateLimit);
   if (limited) return limited;
 
@@ -132,4 +133,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(resolved);
-}
+});

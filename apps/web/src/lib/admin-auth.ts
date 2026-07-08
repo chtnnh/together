@@ -1,6 +1,7 @@
 import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { getDb, users } from "@together/db";
 import { eq } from "drizzle-orm";
+import { runSpan } from "@/lib/api-log";
 
 function getSuperadminEmails(): Set<string> {
   const raw = process.env.SUPERADMIN_EMAILS ?? "";
@@ -13,7 +14,7 @@ function getSuperadminEmails(): Set<string> {
 }
 
 export async function getAuthedUser() {
-  return getSupabaseServerUser();
+  return runSpan("admin-auth", "getSupabaseServerUser", () => getSupabaseServerUser());
 }
 
 export async function isSuperadminUser(userId: string, email?: string | null): Promise<boolean> {
@@ -21,26 +22,30 @@ export async function isSuperadminUser(userId: string, email?: string | null): P
   if (email && allowlist.has(email.toLowerCase())) return true;
 
   if (process.env.DATABASE_URL?.trim()) {
-    const db = getDb();
-    const [row] = await db
-      .select({ appRole: users.appRole, bannedAt: users.bannedAt })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    if (row?.bannedAt) return false;
-    return row?.appRole === "superadmin";
+    return runSpan("admin-auth", "loadAppRole", async () => {
+      const db = getDb();
+      const [row] = await db
+        .select({ appRole: users.appRole, bannedAt: users.bannedAt })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (row?.bannedAt) return false;
+      return row?.appRole === "superadmin";
+    });
   }
 
   return false;
 }
 
 export async function requireSuperadmin() {
-  const user = await getAuthedUser();
+  const user = await runSpan("admin-auth", "getAuthedUser", () => getAuthedUser());
   if (!user) {
     return { error: Response.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  const allowed = await isSuperadminUser(user.id, user.email);
+  const allowed = await runSpan("admin-auth", "isSuperadminUser", () =>
+    isSuperadminUser(user.id, user.email),
+  );
   if (!allowed) {
     return { error: Response.json({ error: "Forbidden" }, { status: 403 }) };
   }

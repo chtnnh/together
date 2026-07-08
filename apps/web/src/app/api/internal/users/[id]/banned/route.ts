@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { isUserGloballyBanned } from "@/lib/admin-data";
 
 function authorizeInternalSync(request: Request): boolean {
@@ -8,15 +9,15 @@ function authorizeInternalSync(request: Request): boolean {
   return auth === `Bearer ${secret}`;
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  if (!authorizeInternalSync(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withApiHandler(
+  "GET /api/internal/users/[id]/banned",
+  async (_log, request, context) => {
+    if (!authorizeInternalSync(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const { id } = await params;
-  const banned = await isUserGloballyBanned(id);
-  return NextResponse.json({ banned });
-}
+    const { id } = await context!.params!;
+    const banned = await isUserGloballyBanned(id);
+    return NextResponse.json({ banned });
+  },
+);

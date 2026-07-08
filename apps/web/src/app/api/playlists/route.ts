@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import {
   getUserPlaylists,
   savePlaylist,
@@ -7,7 +8,7 @@ import { formatPublicDbError } from "@/lib/db-errors";
 import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { z } from "zod";
 
-export async function GET() {
+export const GET = withApiHandler("GET /api/playlists", async (log) => {
   try {
     const user = await getSupabaseServerUser();
 
@@ -18,13 +19,13 @@ export async function GET() {
     const playlists = await getUserPlaylists(user.id);
     return NextResponse.json(playlists);
   } catch (err) {
-    console.error("GET /api/playlists failed:", err);
+    log.error("GET /api/playlists failed:", err);
     return NextResponse.json(
       { error: formatPublicDbError(err, "Failed to load playlists") },
       { status: 500 },
     );
   }
-}
+});
 
 const saveSchema = z.object({
   name: z.string().trim().min(1).max(128),
@@ -44,7 +45,7 @@ const saveSchema = z.object({
   ),
 });
 
-export async function POST(request: Request) {
+export const POST = withApiHandler("POST /api/playlists", async (log, request) => {
   try {
     const user = await getSupabaseServerUser();
 
@@ -69,10 +70,10 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    console.error("POST /api/playlists failed:", err);
+    log.error("POST /api/playlists failed:", err);
     return NextResponse.json(
       { error: formatPublicDbError(err, "Failed to save playlist") },
       { status: 500 },
     );
   }
-}
+});

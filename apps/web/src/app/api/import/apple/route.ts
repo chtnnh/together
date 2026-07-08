@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { z } from "zod";
 import {
   getAppleMusicPlaylistTracks,
@@ -20,7 +21,7 @@ const importRateLimit = {
 
 const urlSchema = z.object({ url: z.string().min(1) });
 
-export async function POST(request: Request) {
+export const POST = withApiHandler("POST /api/import/apple", async (_log, request) => {
   const limited = enforceRateLimit(request, importRateLimit);
   if (limited) return limited;
 
@@ -100,4 +101,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(resolved);
-}
+});

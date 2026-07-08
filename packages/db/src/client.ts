@@ -25,6 +25,7 @@ export function getDb(databaseUrl?: string) {
       max: 1,
       idle_timeout: 20,
       connect_timeout: 10,
+      max_lifetime: 60 * 10,
       ssl: url.includes("supabase.co") ? "require" : undefined,
     });
     globalForDb.__togetherDb = drizzle(globalForDb.__togetherPgClient, { schema });

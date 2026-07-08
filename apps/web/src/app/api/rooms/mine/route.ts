@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { listOwnedRooms } from "@/lib/rooms";
 import { getSupabaseServerUser } from "@/lib/supabase-server";
 
-export async function GET() {
+export const GET = withApiHandler("GET /api/rooms/mine", async (_log) => {
   const user = await getSupabaseServerUser();
 
   if (!user) {
@@ -18,4 +19,4 @@ export async function GET() {
       createdAt: room.createdAt,
     })),
   );
-}
+});

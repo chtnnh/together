@@ -1,9 +1,10 @@
 // TODO(v0.3): Spotify OAuth — UI not linked until import flow is production-ready.
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { getSpotifyAuthUrl } from "@/lib/spotify";
 import { cookies } from "next/headers";
 
-export async function GET(request: Request) {
+export const GET = withApiHandler("GET /api/auth/spotify", async (_log, request) => {
   const url = new URL(request.url);
   const room = url.searchParams.get("room") ?? "";
   const state = crypto.randomUUID();
@@ -16,4 +17,4 @@ export async function GET(request: Request) {
   const authUrl = getSpotifyAuthUrl(redirectUri, state);
 
   return NextResponse.redirect(authUrl);
-}
+});

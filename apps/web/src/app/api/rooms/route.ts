@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { createRoom } from "@/lib/rooms";
 import { roomPasswordCookieName, cookieOptions } from "@/lib/room-access";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -19,7 +20,7 @@ const createRoomSchema = z.object({
   settings: z.record(z.unknown()).optional(),
 });
 
-export async function POST(request: Request) {
+export const POST = withApiHandler("POST /api/rooms", async (log, request) => {
   const limited = enforceRateLimit(request, createRoomRateLimit);
   if (limited) return limited;
 
@@ -52,13 +53,13 @@ export async function POST(request: Request) {
 
     return response;
   } catch (err) {
-    console.error("create room failed:", err);
+    log.error("create room failed:", err);
     const message =
       err instanceof Error ? err.message : "Failed to create room";
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});
 
-export async function GET() {
+export const GET = withApiHandler("GET /api/rooms", async (_log) => {
   return NextResponse.json({ service: "together-rooms" });
-}
+});

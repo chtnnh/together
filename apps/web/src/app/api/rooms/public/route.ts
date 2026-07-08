@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { listPublicRooms } from "@/lib/rooms";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { fetchRealtimeJson } from "@/lib/realtime-server";
@@ -11,7 +12,7 @@ async function fetchParticipantCount(roomId: string): Promise<number> {
   return result.data.participantCount ?? 0;
 }
 
-export async function GET(request: Request) {
+export const GET = withApiHandler("GET /api/rooms/public", async (_log, request) => {
   const limited = enforceRateLimit(request, {
     name: "public-rooms",
     limit: 60,
@@ -35,4 +36,4 @@ export async function GET(request: Request) {
   return NextResponse.json(
     withCounts.filter((r) => r.participantCount > 0),
   );
-}
+});

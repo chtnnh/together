@@ -1,5 +1,6 @@
 // SoundCloud import — public playlist/track URLs via client ID.
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { importSoundCloudUrl } from "@/lib/soundcloud";
 import { resolveImportTracks } from "@/lib/import-tracks";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -15,7 +16,7 @@ const schema = z.object({
   url: z.string().min(1),
 });
 
-export async function POST(request: Request) {
+export const POST = withApiHandler("POST /api/import/soundcloud", async (_log, request) => {
   const limited = enforceRateLimit(request, importRateLimit);
   if (limited) return limited;
 
@@ -34,4 +35,4 @@ export async function POST(request: Request) {
     const status = message.includes("not configured") ? 503 : 400;
     return NextResponse.json({ error: message }, { status });
   }
-}
+});

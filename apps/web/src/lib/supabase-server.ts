@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { runSpan } from "@/lib/api-log";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { loadRootEnv } from "@/lib/supabase/load-root-env";
 
@@ -33,10 +34,12 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient | nul
 }
 
 export async function getSupabaseServerUser(): Promise<User | null> {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) return null;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return runSpan("supabase", "getUser", async () => {
+    const supabase = await createSupabaseServerClient();
+    if (!supabase) return null;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  });
 }

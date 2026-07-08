@@ -9,6 +9,7 @@ import {
   users,
 } from "@together/db";
 import { count, desc, eq, gt, gte, isNotNull, or, sql } from "drizzle-orm";
+import { runSpan } from "@/lib/api-log";
 import { fetchRealtimeJson } from "@/lib/realtime-server";
 
 const RECENTLY_ACTIVE_MS = 30 * 60 * 1000;
@@ -28,27 +29,29 @@ export async function getAdminStats() {
   const db = getDb();
   const recentlyActiveSince = new Date(Date.now() - RECENTLY_ACTIVE_MS);
 
-  const [[userCount], [roomCount], [ownedCount], [playlistCount], [itemCount], [recentlyActive]] =
-    await Promise.all([
-      db.select({ value: count() }).from(users),
-      db.select({ value: count() }).from(rooms),
-      db.select({ value: count() }).from(rooms).where(isNotNull(rooms.ownerUserId)),
-      db.select({ value: count() }).from(playlists),
-      db.select({ value: count() }).from(playlistItems),
-      db
-        .select({ value: count() })
-        .from(rooms)
-        .where(gte(rooms.lastActiveAt, recentlyActiveSince)),
-    ]);
+  return runSpan("admin-data", "getAdminStats", async () => {
+    const [[userCount], [roomCount], [ownedCount], [playlistCount], [itemCount], [recentlyActive]] =
+      await Promise.all([
+        db.select({ value: count() }).from(users),
+        db.select({ value: count() }).from(rooms),
+        db.select({ value: count() }).from(rooms).where(isNotNull(rooms.ownerUserId)),
+        db.select({ value: count() }).from(playlists),
+        db.select({ value: count() }).from(playlistItems),
+        db
+          .select({ value: count() })
+          .from(rooms)
+          .where(gte(rooms.lastActiveAt, recentlyActiveSince)),
+      ]);
 
-  return {
-    users: userCount?.value ?? 0,
-    rooms: roomCount?.value ?? 0,
-    ownedRooms: ownedCount?.value ?? 0,
-    playlists: playlistCount?.value ?? 0,
-    playlistItems: itemCount?.value ?? 0,
-    recentlyActiveRooms: recentlyActive?.value ?? 0,
-  };
+    return {
+      users: userCount?.value ?? 0,
+      rooms: roomCount?.value ?? 0,
+      ownedRooms: ownedCount?.value ?? 0,
+      playlists: playlistCount?.value ?? 0,
+      playlistItems: itemCount?.value ?? 0,
+      recentlyActiveRooms: recentlyActive?.value ?? 0,
+    };
+  });
 }
 
 export async function listAdminRooms(limit = 100) {

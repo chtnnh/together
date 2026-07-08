@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-log";
 import { cookies } from "next/headers";
 import { generateAppleMusicToken } from "@/lib/apple-music";
 
-export async function GET(request: Request) {
+export const GET = withApiHandler("GET /api/auth/apple", async (_log, request) => {
   const url = new URL(request.url);
   const room = url.searchParams.get("room") ?? "";
 
@@ -15,4 +16,4 @@ export async function GET(request: Request) {
   } catch {
     return NextResponse.redirect("/?error=apple_not_configured");
   }
-}
+});
