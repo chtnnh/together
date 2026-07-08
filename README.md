@@ -270,6 +270,13 @@ Playwright specs live in `apps/web/e2e/`. Requires **Node.js 22+** (Wrangler dev
 
 ## Releases
 
+### v0.3.0
+
+- Unified playlist import via the room add bar (YouTube, Spotify, SoundCloud, Apple Music URLs)
+- Google OAuth sign-in (Supabase)
+- Live participant counts, ephemeral chat, DO lifecycle + room snapshots
+- In-room account/playlists modals, 1080p/Max quality, superadmin console
+
 ### v0.2.3
 
 - Auth, playlists, and room claim for signed-in users
@@ -287,4 +294,4 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ## Acknowledgments
 
-Built by [chtnnh](https://me.chtnnhfoundation.org). v0.2.3 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
+Built by [chtnnh](https://me.chtnnhfoundation.org). v0.3.0 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
