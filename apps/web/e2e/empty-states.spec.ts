@@ -13,10 +13,10 @@ test.describe("Phase 3.5 — Empty states", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText("Paste a YouTube link above to request a track.")).toBeVisible();
+    await expect(page.getByText("Paste a video or playlist link above to request a track.")).toBeVisible();
 
     await page.getByRole("tab", { name: "Queue" }).click();
-    await expect(page.getByText("Paste a YouTube link above to add tracks.")).toBeVisible();
+    await expect(page.getByText("Paste a video or playlist link above to add tracks.")).toBeVisible();
 
     await page.getByRole("tab", { name: "History" }).click();
     await expect(page.getByText("Tracks appear here after they play or get skipped.")).toBeVisible();

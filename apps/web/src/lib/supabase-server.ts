@@ -1,13 +1,19 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
+import { getSupabasePublishableKey, getSupabaseUrl, isSupabaseEnvConfigured } from "@/lib/supabase/env";
 import { loadRootEnv } from "@/lib/supabase/load-root-env";
 
 export async function createSupabaseServerClient() {
   loadRootEnv();
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
+  if (!url || !key) {
+    throw new Error("Supabase is not configured");
+  }
+
   const cookieStore = await cookies();
 
-  return createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
+  return createServerClient(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

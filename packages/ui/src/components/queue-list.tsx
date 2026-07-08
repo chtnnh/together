@@ -313,7 +313,7 @@ export function RequestList({
     return (
       <div className="py-8 text-center text-sm text-[var(--text-muted)]">
         <p>No requests yet</p>
-        <p className="mt-1 text-xs">Paste a YouTube link above to request a track.</p>
+        <p className="mt-1 text-xs">Paste a video or playlist link above to request a track.</p>
       </div>
     );
   }

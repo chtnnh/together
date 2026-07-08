@@ -54,7 +54,7 @@ test.describe("Room creation flow", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
-  test("shows unified import playlist button in room", async ({ page }) => {
+  test("shows add bar for video and playlist URLs in room", async ({ page }) => {
     await page.goto("/");
     await page.locator("#create-name").fill("DJ");
     await page.getByRole("button", { name: "Create room" }).click();

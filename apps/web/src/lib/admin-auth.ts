@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { isSupabaseEnvConfigured } from "@/lib/supabase/env";
 import { getDb, users } from "@together/db";
 import { eq } from "drizzle-orm";
 
@@ -13,6 +14,7 @@ function getSuperadminEmails(): Set<string> {
 }
 
 export async function getAuthedUser() {
+  if (!isSupabaseEnvConfigured()) return null;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -24,7 +26,7 @@ export async function isSuperadminUser(userId: string, email?: string | null): P
   const allowlist = getSuperadminEmails();
   if (email && allowlist.has(email.toLowerCase())) return true;
 
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL?.trim()) {
     const db = getDb();
     const [row] = await db
       .select({ appRole: users.appRole, bannedAt: users.bannedAt })
