@@ -6,7 +6,20 @@ import path from "node:path";
 loadEnv({ path: path.join(__dirname, "../../.env") });
 loadEnv({ path: path.join(__dirname, "../../.env.local") });
 
+function publicEnv(name: string): string | undefined {
+  return process.env[name]?.trim() || undefined;
+}
+
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: publicEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY:
+      publicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ??
+      publicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+    NEXT_PUBLIC_APP_URL: publicEnv("NEXT_PUBLIC_APP_URL"),
+    NEXT_PUBLIC_REALTIME_URL: publicEnv("NEXT_PUBLIC_REALTIME_URL"),
+    NEXT_PUBLIC_SPOTIFY_CLIENT_ID: publicEnv("NEXT_PUBLIC_SPOTIFY_CLIENT_ID"),
+  },
   transpilePackages: ["@together/ui", "@together/shared", "@together/db", "@together/track-resolver"],
   headers: async () => [
     {

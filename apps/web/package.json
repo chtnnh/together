@@ -1,11 +1,11 @@
 {
   "name": "@together/web",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
+    "dev": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next dev --turbopack",
+    "build": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next build",
+    "start": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next start",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",

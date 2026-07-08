@@ -1,6 +1,6 @@
+import { getSupabasePublishableKey, getSupabaseUrl, isSupabaseEnvConfigured } from "@/lib/supabase/env";
+
+/** Server-side check. Client components should use `useAuthConfig()`. */
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
-  );
+  return isSupabaseEnvConfigured();
 }

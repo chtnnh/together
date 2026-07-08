@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@together/ui";
 import { X } from "lucide-react";
+import { useAuthConfig } from "@/components/auth-config-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase-client";
-import { isSupabaseConfigured } from "@/lib/supabase-config";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 interface SignInModalProps {
@@ -15,6 +15,7 @@ interface SignInModalProps {
 }
 
 export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModalProps) {
+  const { configured, url, anonKey } = useAuthConfig();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -29,10 +30,34 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
 
   if (!open) return null;
 
+  const authRedirectTo = () => {
+    const origin = window.location.origin;
+    const next = returnTo ?? window.location.pathname + window.location.search;
+    return `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!configured) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const supabase = createSupabaseBrowserClient(url, anonKey);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: authRedirectTo() },
+      });
+      if (error) setMessage(error.message);
+    } catch {
+      setMessage("Could not start Google sign-in.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSupabaseConfigured()) {
-      setMessage("Sign-in is not configured on this server.");
+    if (!configured) {
+      setMessage("Sign-in isn't available on this server. You can still listen in rooms without an account.");
       return;
     }
 
@@ -40,14 +65,10 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
     setMessage(null);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const origin = window.location.origin;
-      const next = returnTo ?? window.location.pathname + window.location.search;
-      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-
+      const supabase = createSupabaseBrowserClient(url, anonKey);
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: redirectTo },
+        options: { emailRedirectTo: authRedirectTo() },
       });
 
       if (error) {
@@ -56,8 +77,8 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
         setMessage("Check your email for a sign-in link. You can close this dialog.");
         onSignedIn?.();
       }
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not send sign-in link");
+    } catch {
+      setMessage("Could not send sign-in link. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -84,33 +105,43 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
           </Button>
         </div>
 
-        {!isSupabaseConfigured() ? (
+        {!configured ? (
           <p className="text-sm text-[var(--text-muted)]">
-            Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and
-            NEXT_PUBLIC_SUPABASE_ANON_KEY to enable accounts.
+            Sign-in isn&apos;t available on this server. You can still listen in rooms without an account.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
             <p className="text-sm text-[var(--text-muted)]">
               Optional account to save playlists, claim rooms, and sync preferences across devices.
             </p>
-            <div>
-              <Label htmlFor="sign-in-email">Email</Label>
-              <Input
-                id="sign-in-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="mt-1"
-                autoFocus
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading || !email.trim()}>
-              {loading ? "Sending..." : "Send magic link"}
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={loading}
+              onClick={handleGoogleSignIn}
+            >
+              Continue with Google
             </Button>
-          </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="sign-in-email">Email</Label>
+                <Input
+                  id="sign-in-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="mt-1"
+                  autoFocus
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || !email.trim()}>
+                {loading ? "Sending..." : "Send magic link"}
+              </Button>
+            </form>
+          </div>
         )}
 
         {message && (
