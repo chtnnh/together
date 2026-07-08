@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@together/ui";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
 
 interface AdminUser {
   id: string;
@@ -14,6 +15,7 @@ interface AdminUser {
 }
 
 export default function AdminUsersPage() {
+  const { userId } = useSupabaseUser();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +35,7 @@ export default function AdminUsersPage() {
   }, []);
 
   const toggleBan = async (user: AdminUser) => {
+    if (user.id === userId) return;
     const banned = !user.bannedAt;
     const res = await fetch(`/api/admin/users/${user.id}/ban`, {
       method: "POST",
@@ -40,7 +43,8 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ banned }),
     });
     if (!res.ok) {
-      setError("Failed to update user");
+      const data = (await res.json()) as { error?: string };
+      setError(data.error ?? "Failed to update user");
       return;
     }
     load();
@@ -63,20 +67,27 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-t border-[var(--border)]">
-                <td className="px-4 py-3">{user.email ?? user.id}</td>
-                <td className="px-4 py-3">{user.appRole}</td>
-                <td className="px-4 py-3 tabular-nums">{user.ownedRoomCount}</td>
-                <td className="px-4 py-3 tabular-nums">{user.playlistCount}</td>
-                <td className="px-4 py-3">{user.bannedAt ? "Banned" : "Active"}</td>
-                <td className="px-4 py-3">
-                  <Button size="sm" variant="secondary" onClick={() => toggleBan(user)}>
-                    {user.bannedAt ? "Unban" : "Ban"}
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {users.map((user) => {
+              const isSelf = user.id === userId;
+              return (
+                <tr key={user.id} className="border-t border-[var(--border)]">
+                  <td className="px-4 py-3">{user.email ?? user.id}</td>
+                  <td className="px-4 py-3">{user.appRole}</td>
+                  <td className="px-4 py-3 tabular-nums">{user.ownedRoomCount}</td>
+                  <td className="px-4 py-3 tabular-nums">{user.playlistCount}</td>
+                  <td className="px-4 py-3">{user.bannedAt ? "Banned" : "Active"}</td>
+                  <td className="px-4 py-3">
+                    {isSelf ? (
+                      <span className="text-xs text-[var(--text-muted)]">You</span>
+                    ) : (
+                      <Button size="sm" variant="secondary" onClick={() => toggleBan(user)}>
+                        {user.bannedAt ? "Unban" : "Ban"}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

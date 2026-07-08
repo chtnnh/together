@@ -13,6 +13,10 @@ export async function POST(
   if (auth.error) return auth.error;
 
   const { id } = await params;
+  if (auth.user.id === id) {
+    return NextResponse.json({ error: "You cannot ban yourself" }, { status: 400 });
+  }
+
   const { banned } = schema.parse(await request.json());
   await setUserBanned(id, banned);
 
