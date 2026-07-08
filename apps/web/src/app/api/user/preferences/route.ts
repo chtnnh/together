@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 import { getUserPreferences, saveUserPreferences } from "@/lib/rooms";
 import { formatPublicDbError } from "@/lib/db-errors";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { userAccountPreferencesSchema } from "@together/shared";
 import { z } from "zod";
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getSupabaseServerUser();
 
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -29,10 +26,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getSupabaseServerUser();
 
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });

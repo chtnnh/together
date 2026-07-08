@@ -7,8 +7,7 @@ import {
 } from "@/lib/rooms";
 import { formatPublicDbError } from "@/lib/db-errors";
 import { roomSettingsSchema } from "@together/shared";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { isSupabaseEnvConfigured } from "@/lib/supabase/env";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { z } from "zod";
 
 export async function GET(
@@ -38,14 +37,11 @@ export async function PATCH(
     const body = roomSettingsSchema.partial().parse(await request.json());
 
     if (room.ownerUserId) {
-      if (!isSupabaseEnvConfigured()) {
+      const user = await getSupabaseServerUser();
+      if (!user) {
         return NextResponse.json({ error: "Authentication required" }, { status: 401 });
       }
-      const supabase = await createSupabaseServerClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user?.id !== room.ownerUserId) {
+      if (user.id !== room.ownerUserId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
@@ -76,13 +72,7 @@ export async function POST(
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    if (!isSupabaseEnvConfigured()) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
+    const user = await getSupabaseServerUser();
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }

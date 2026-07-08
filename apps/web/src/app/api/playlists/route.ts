@@ -4,13 +4,12 @@ import {
   savePlaylist,
 } from "@/lib/rooms";
 import { formatPublicDbError } from "@/lib/db-errors";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { z } from "zod";
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getSupabaseServerUser();
 
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -47,8 +46,7 @@ const saveSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getSupabaseServerUser();
 
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });

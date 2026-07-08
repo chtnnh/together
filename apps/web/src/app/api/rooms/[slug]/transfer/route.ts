@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRoomBySlug, transferRoomOwnership } from "@/lib/rooms";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -18,10 +18,7 @@ export async function POST(
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSupabaseServerUser();
 
   if (!user) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });

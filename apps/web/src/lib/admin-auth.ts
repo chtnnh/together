@@ -1,5 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { isSupabaseEnvConfigured } from "@/lib/supabase/env";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { getDb, users } from "@together/db";
 import { eq } from "drizzle-orm";
 
@@ -14,12 +13,7 @@ function getSuperadminEmails(): Set<string> {
 }
 
 export async function getAuthedUser() {
-  if (!isSupabaseEnvConfigured()) return null;
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return getSupabaseServerUser();
 }
 
 export async function isSuperadminUser(userId: string, email?: string | null): Promise<boolean> {

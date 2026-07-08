@@ -74,26 +74,28 @@ export async function POST(request: Request) {
 
   if (save) {
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await savePlaylist({
-        userId: user.id,
-        name: `Apple Music Import ${new Date().toLocaleDateString()}`,
-        source: "apple",
-        items: resolved.map((r) => ({
-          source: r.source,
-          title: r.title,
-          artist: r.artist,
-          durationMs: r.durationMs,
-          externalId: r.externalId,
-          isrc: r.isrc,
-          resolvedYoutubeId: r.videoId ?? undefined,
-          confidence: r.confidence,
-          alternates: r.alternates,
-        })),
-      });
+    if (supabase) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await savePlaylist({
+          userId: user.id,
+          name: `Apple Music Import ${new Date().toLocaleDateString()}`,
+          source: "apple",
+          items: resolved.map((r) => ({
+            source: r.source,
+            title: r.title,
+            artist: r.artist,
+            durationMs: r.durationMs,
+            externalId: r.externalId,
+            isrc: r.isrc,
+            resolvedYoutubeId: r.videoId ?? undefined,
+            confidence: r.confidence,
+            alternates: r.alternates,
+          })),
+        });
+      }
     }
   }
 

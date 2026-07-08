@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { getPlaylistWithItems } from "@/lib/rooms";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSupabaseServerUser();
 
   if (!user) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
