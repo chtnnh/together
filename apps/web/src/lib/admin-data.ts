@@ -8,7 +8,7 @@ import {
   rooms,
   users,
 } from "@together/db";
-import { count, desc, eq, gt, gte, isNotNull, or, sql } from "drizzle-orm";
+import { desc, eq, gt, gte, isNotNull, or, sql } from "drizzle-orm";
 import { runSpan } from "@/lib/api-log";
 import { fetchRealtimeJson } from "@/lib/realtime-server";
 
@@ -30,26 +30,36 @@ export async function getAdminStats() {
   const recentlyActiveSince = new Date(Date.now() - RECENTLY_ACTIVE_MS);
 
   return runSpan("admin-data", "getAdminStats", async () => {
-    const [[userCount], [roomCount], [ownedCount], [playlistCount], [itemCount], [recentlyActive]] =
-      await Promise.all([
-        db.select({ value: count() }).from(users),
-        db.select({ value: count() }).from(rooms),
-        db.select({ value: count() }).from(rooms).where(isNotNull(rooms.ownerUserId)),
-        db.select({ value: count() }).from(playlists),
-        db.select({ value: count() }).from(playlistItems),
-        db
-          .select({ value: count() })
-          .from(rooms)
-          .where(gte(rooms.lastActiveAt, recentlyActiveSince)),
-      ]);
+    // One round-trip — Supabase transaction pooler (port 6543) cannot run
+    // parallel queries on a single connection; Promise.all deadlocks there.
+    const rows = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM users) AS users,
+        (SELECT COUNT(*)::int FROM rooms) AS rooms,
+        (SELECT COUNT(*)::int FROM rooms WHERE owner_user_id IS NOT NULL) AS owned_rooms,
+        (SELECT COUNT(*)::int FROM playlists) AS playlists,
+        (SELECT COUNT(*)::int FROM playlist_items) AS playlist_items,
+        (SELECT COUNT(*)::int FROM rooms WHERE last_active_at >= ${recentlyActiveSince}) AS recently_active_rooms
+    `);
+
+    const row = rows[0] as
+      | {
+          users: number;
+          rooms: number;
+          owned_rooms: number;
+          playlists: number;
+          playlist_items: number;
+          recently_active_rooms: number;
+        }
+      | undefined;
 
     return {
-      users: userCount?.value ?? 0,
-      rooms: roomCount?.value ?? 0,
-      ownedRooms: ownedCount?.value ?? 0,
-      playlists: playlistCount?.value ?? 0,
-      playlistItems: itemCount?.value ?? 0,
-      recentlyActiveRooms: recentlyActive?.value ?? 0,
+      users: row?.users ?? 0,
+      rooms: row?.rooms ?? 0,
+      ownedRooms: row?.owned_rooms ?? 0,
+      playlists: row?.playlists ?? 0,
+      playlistItems: row?.playlist_items ?? 0,
+      recentlyActiveRooms: row?.recently_active_rooms ?? 0,
     };
   });
 }
@@ -174,42 +184,42 @@ export async function listAbuseSignals(limit = 50) {
   const db = getDb();
   const now = new Date();
 
-  const [recentRoomBans, suspiciousAttempts, bannedUsers] = await Promise.all([
-    db
-      .select({
-        id: roomBans.id,
-        roomSlug: rooms.slug,
-        roomTitle: rooms.title,
-        userId: roomBans.userId,
-        anonFingerprint: roomBans.anonFingerprint,
-        createdAt: roomBans.createdAt,
-      })
-      .from(roomBans)
-      .innerJoin(rooms, eq(roomBans.roomId, rooms.id))
-      .orderBy(desc(roomBans.createdAt))
-      .limit(limit),
-    db
-      .select()
-      .from(passwordAttempts)
-      .where(
-        or(
-          gte(passwordAttempts.attempts, 3),
-          gt(passwordAttempts.lockedUntil, now),
-        ),
-      )
-      .orderBy(desc(passwordAttempts.updatedAt))
-      .limit(limit),
-    db
-      .select({
-        id: users.id,
-        email: users.email,
-        bannedAt: users.bannedAt,
-      })
-      .from(users)
-      .where(isNotNull(users.bannedAt))
-      .orderBy(desc(users.bannedAt))
-      .limit(limit),
-  ]);
+  const recentRoomBans = await db
+    .select({
+      id: roomBans.id,
+      roomSlug: rooms.slug,
+      roomTitle: rooms.title,
+      userId: roomBans.userId,
+      anonFingerprint: roomBans.anonFingerprint,
+      createdAt: roomBans.createdAt,
+    })
+    .from(roomBans)
+    .innerJoin(rooms, eq(roomBans.roomId, rooms.id))
+    .orderBy(desc(roomBans.createdAt))
+    .limit(limit);
+
+  const suspiciousAttempts = await db
+    .select()
+    .from(passwordAttempts)
+    .where(
+      or(
+        gte(passwordAttempts.attempts, 3),
+        gt(passwordAttempts.lockedUntil, now),
+      ),
+    )
+    .orderBy(desc(passwordAttempts.updatedAt))
+    .limit(limit);
+
+  const bannedUsers = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      bannedAt: users.bannedAt,
+    })
+    .from(users)
+    .where(isNotNull(users.bannedAt))
+    .orderBy(desc(users.bannedAt))
+    .limit(limit);
 
   return { roomBans: recentRoomBans, passwordAttempts: suspiciousAttempts, bannedUsers };
 }

@@ -63,7 +63,7 @@ export function createApiLogger(route: string, method: string): ApiLogger {
       });
     },
     span(label, fn) {
-      return runSpan(`${method} ${route}`, label, fn, requestId);
+      return runSpan(route, label, fn, requestId);
     },
   };
 }
