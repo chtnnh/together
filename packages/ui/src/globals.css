@@ -106,3 +106,13 @@ html[data-reduced-motion="system"] .reaction-float-anim {
   animation: none !important;
   opacity: 0.85;
 }
+
+/* Radix select popper — width must match trigger; Tailwind arbitrary vars miss in monorepo builds */
+.together-select-content {
+  width: var(--radix-select-trigger-width);
+  min-width: var(--radix-select-trigger-width);
+}
+
+.together-select-viewport {
+  width: 100%;
+}

@@ -3,40 +3,60 @@
 import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@together/ui";
 import Link from "next/link";
+import { useAuthConfig } from "@/components/auth-config-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase-client";
-import { isSupabaseConfigured } from "@/lib/supabase-config";
 import { ThemeSelector } from "@/components/theme-selector";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
 
 export default function SettingsPage() {
+  const { configured, url, anonKey } = useAuthConfig();
   const { signedIn } = useSupabaseUser();
   const { prefs, setPrefs } = useUserPreferences(signedIn);
   const [email, setEmail] = useState("");
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const supabaseConfigured = isSupabaseConfigured();
 
   useEffect(() => {
-    if (!supabaseConfigured) return;
+    if (!configured) return;
     try {
-      const supabase = createSupabaseBrowserClient();
+      const supabase = createSupabaseBrowserClient(url, anonKey);
       supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
         setUser(data.user);
         if (data.user?.email) setEmail(data.user.email);
       });
     } catch {
-      // Handled by supabaseConfigured gate in UI.
+      // Handled by configured gate in UI.
     }
-  }, [supabaseConfigured]);
+  }, [configured, url, anonKey]);
+
+  const authRedirectTo = (next: string) =>
+    `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+
+  const handleGoogleSignIn = async () => {
+    if (!configured) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const supabase = createSupabaseBrowserClient(url, anonKey);
+      const next = new URLSearchParams(window.location.search).get("next") ?? "/settings";
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: authRedirectTo(next) },
+      });
+      if (error) setMessage(error.message);
+    } catch {
+      setMessage("Could not start Google sign-in.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabaseConfigured) {
-      setMessage(
-        "Sign-in is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.",
-      );
+    if (!configured) {
+      setMessage("Sign-in isn't available on this server.");
       return;
     }
 
@@ -44,32 +64,26 @@ export default function SettingsPage() {
     setMessage(null);
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      const supabase = createSupabaseBrowserClient(url, anonKey);
       const next = new URLSearchParams(window.location.search).get("next") ?? "/settings";
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: redirectTo,
+          emailRedirectTo: authRedirectTo(next),
         },
       });
 
       setMessage(error ? error.message : "Check your email for a sign-in link!");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not reach Supabase";
-      setMessage(
-        msg.includes("fetch") || msg.includes("NetworkError")
-          ? "Could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL and your network connection."
-          : msg,
-      );
+    } catch {
+      setMessage("Could not send sign-in link. Try again in a moment.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSignOut = async () => {
-    if (!supabaseConfigured) return;
-    const supabase = createSupabaseBrowserClient();
+    if (!configured) return;
+    const supabase = createSupabaseBrowserClient(url, anonKey);
     await supabase.auth.signOut();
     setUser(null);
     setMessage("Signed out");
@@ -85,60 +99,63 @@ export default function SettingsPage() {
       </div>
 
       {user ? (
-        <div className="space-y-4 rounded-xl border border-[var(--border)] p-6">
+        <div className="space-y-3 rounded-xl border border-[var(--border)] p-6">
           <p className="text-sm text-[var(--text-muted)]">
             Signed in as <span className="text-[var(--text)]">{user.email}</span>
           </p>
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3">
-            <div>
-              <Label className="text-sm font-medium">Theme</Label>
-              <p className="text-xs text-[var(--text-muted)]">Applies across the app</p>
-            </div>
-            <ThemeSelector value={prefs.theme} onChange={(theme) => setPrefs({ theme })} />
+          <div>
+            <Label className="mb-2 block text-sm font-medium">Theme</Label>
+            <p className="mb-2 text-xs text-[var(--text-muted)]">Applies across the app</p>
+            <ThemeSelector className="w-full" value={prefs.theme} onChange={(theme) => setPrefs({ theme })} />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             Your account lets you save playlists and persist room settings.
           </p>
-          <Link href="/playlists">
+          <Link href="/playlists" className="block">
             <Button variant="secondary" className="w-full">View playlists</Button>
           </Link>
           <Button variant="destructive" className="w-full" onClick={handleSignOut}>
             Sign out
           </Button>
         </div>
-      ) : !supabaseConfigured ? (
-        <div className="space-y-4 rounded-xl border border-[var(--border)] p-6">
+      ) : !configured ? (
+        <div className="rounded-xl border border-[var(--border)] p-6">
           <p className="text-sm text-[var(--text-muted)]">
-            Sign-in requires Supabase. Add{" "}
-            <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-            <code className="text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your root{" "}
-            <code className="text-xs">.env</code>, then restart the dev server.
-          </p>
-          <p className="text-xs text-[var(--text-muted)]">
-            Anonymous use works without an account. Magic links are optional for saving playlists.
+            Sign-in isn&apos;t available on this server. You can still listen in rooms without an account.
           </p>
         </div>
       ) : (
-        <form onSubmit={handleMagicLink} className="space-y-4 rounded-xl border border-[var(--border)] p-6">
+        <div className="space-y-3 rounded-xl border border-[var(--border)] p-6">
           <p className="text-sm text-[var(--text-muted)]">
-            Optional account to save playlists and room settings. Anonymous use works without signing in.
+            Optional account to save playlists and room settings.
           </p>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              className="mt-1"
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Sending..." : "Send magic link"}
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            disabled={loading}
+            onClick={handleGoogleSignIn}
+          >
+            Continue with Google
           </Button>
-        </form>
+          <form onSubmit={handleMagicLink} className="space-y-3">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="mt-1"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Sending..." : "Send magic link"}
+            </Button>
+          </form>
+        </div>
       )}
 
       {message && (

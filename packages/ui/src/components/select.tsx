@@ -1,4 +1,5 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
+import type { CSSProperties } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -29,18 +30,35 @@ export function SelectTrigger({
 export function SelectContent({
   className,
   children,
+  position = "popper",
+  style,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  const popperSizeStyle =
+    position === "popper"
+      ? ({
+          width: "var(--radix-select-trigger-width)",
+          minWidth: "var(--radix-select-trigger-width)",
+        } as CSSProperties)
+      : undefined;
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         className={cn(
-          "relative z-50 min-w-[8rem] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text)] shadow-md",
+          "together-select-content relative z-[130] max-h-[min(var(--radix-select-content-available-height),16rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text)] shadow-md",
           className,
         )}
+        position={position}
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        style={{ ...popperSizeStyle, ...style }}
         {...props}
       >
-        <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
+        <SelectPrimitive.Viewport className="together-select-viewport p-1">
+          {children}
+        </SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
   );

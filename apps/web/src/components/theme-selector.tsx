@@ -12,21 +12,24 @@ function themeLabel(theme: (typeof THEME_PRESETS)[number]): string {
 interface ThemeSelectorProps {
   value: UserPreferences["theme"];
   onChange: (theme: NonNullable<UserPreferences["theme"]>) => void;
+  className?: string;
 }
 
-export function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
+export function ThemeSelector({ value, onChange, className }: ThemeSelectorProps) {
   return (
-    <Select value={value ?? "midnight"} onValueChange={(v) => onChange(v as NonNullable<UserPreferences["theme"]>)}>
-      <SelectTrigger className="w-[140px]">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {THEME_PRESETS.map((theme) => (
-          <SelectItem key={theme} value={theme}>
-            {themeLabel(theme)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-full">
+      <Select value={value ?? "midnight"} onValueChange={(v) => onChange(v as NonNullable<UserPreferences["theme"]>)}>
+        <SelectTrigger className={className ?? "w-full"}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {THEME_PRESETS.map((theme) => (
+            <SelectItem key={theme} value={theme}>
+              {themeLabel(theme)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

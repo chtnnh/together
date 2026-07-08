@@ -45,23 +45,24 @@ export function ParticipantsPanel({
       {participants.map((p) => (
         <div
           key={p.id}
-          className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-[var(--bg-secondary)]"
+          className="flex items-start justify-between gap-3 rounded-lg px-3 py-2 hover:bg-[var(--bg-secondary)]"
         >
-          <div className="min-w-0">
-            <span className="text-sm font-medium">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
               {p.displayName}
               {p.id === currentId && " (you)"}
-            </span>
-            <span className="ml-2 text-xs text-[var(--text-muted)]">{p.role}</span>
+            </p>
+            <p className="text-xs capitalize text-[var(--text-muted)]">{p.role.replace("-", " ")}</p>
           </div>
           {isHost && p.id !== currentId && p.role !== "host" && (
-            <div className="flex shrink-0 gap-1">
+            <div className="flex shrink-0 items-center gap-0.5">
               {isRoomOwner && p.userId && onTransferOwnership && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8"
                       aria-label={`Transfer ownership to ${p.displayName}`}
                       onClick={() => onTransferOwnership(p.id, p.userId!)}
                     >
@@ -74,7 +75,12 @@ export function ParticipantsPanel({
               {p.role === "guest" && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => onPromote(p.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onPromote(p.id)}
+                    >
                       <Shield className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -84,7 +90,12 @@ export function ParticipantsPanel({
               {p.role === "co-host" && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => onDemote(p.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onDemote(p.id)}
+                    >
                       <ShieldOff className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -93,7 +104,12 @@ export function ParticipantsPanel({
               )}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => onKick(p.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onKick(p.id)}
+                  >
                     <UserX className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
@@ -101,7 +117,12 @@ export function ParticipantsPanel({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => onBan(p.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onBan(p.id)}
+                  >
                     <UserX className="h-4 w-4 text-red-400" />
                   </Button>
                 </TooltipTrigger>

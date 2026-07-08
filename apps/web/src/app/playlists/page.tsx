@@ -89,6 +89,7 @@ export default function PlaylistsPage() {
             authLoading={authLoading}
             onSignIn={() => setSignInOpen(true)}
             compact
+            hidePlaylists
           />
         </div>
       </div>

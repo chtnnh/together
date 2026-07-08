@@ -10,6 +10,7 @@ interface AccountNavProps {
   onPlaylistsClick?: () => void;
   onAccountClick?: () => void;
   compact?: boolean;
+  hidePlaylists?: boolean;
 }
 
 export function AccountNav({
@@ -19,6 +20,7 @@ export function AccountNav({
   onPlaylistsClick,
   onAccountClick,
   compact = false,
+  hidePlaylists = false,
 }: AccountNavProps) {
   if (authLoading) {
     return <span className="text-sm text-[var(--text-muted)]">…</span>;
@@ -41,17 +43,18 @@ export function AccountNav({
 
   return (
     <nav className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
-      {onPlaylistsClick ? (
-        <Button variant="ghost" size={compact ? "sm" : "default"} onClick={onPlaylistsClick}>
-          Playlists
-        </Button>
-      ) : (
-        <Link href="/playlists">
-          <Button variant="ghost" size={compact ? "sm" : "default"}>
+      {!hidePlaylists &&
+        (onPlaylistsClick ? (
+          <Button variant="ghost" size={compact ? "sm" : "default"} onClick={onPlaylistsClick}>
             Playlists
           </Button>
-        </Link>
-      )}
+        ) : (
+          <Link href="/playlists">
+            <Button variant="ghost" size={compact ? "sm" : "default"}>
+              Playlists
+            </Button>
+          </Link>
+        ))}
       {onAccountClick ? (
         <Button variant="ghost" size={compact ? "sm" : "default"} onClick={onAccountClick}>
           Account

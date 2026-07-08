@@ -106,9 +106,9 @@ export function ChatMessages({
           {joinNotice}
         </p>
       ) : null}
-      {messages.length === 0 ? (
+      {messages.length === 0 && !joinNotice ? (
         <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-          No messages yet. Say hi — chat clears when the room goes quiet.
+          No messages yet. Say hi!
         </p>
       ) : null}
       {messages.map((msg) => {

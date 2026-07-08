@@ -14,6 +14,7 @@ interface QueueListProps {
   canPlay?: boolean;
   onRemove?: (id: string) => void;
   onClearAll?: () => void;
+  hideClearAll?: boolean;
   onPlay?: (id: string) => void;
   onReorder?: (itemId: string, newIndex: number) => void;
   onPromote?: never;
@@ -162,6 +163,7 @@ export function QueueList({
   onClearAll,
   onPlay,
   onReorder,
+  hideClearAll = false,
 }: QueueListProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -222,7 +224,7 @@ export function QueueList({
     return (
       <div className="py-8 text-center text-sm text-[var(--text-muted)]">
         <p>Queue is empty</p>
-        <p className="mt-1 text-xs">Paste a YouTube link above to add tracks.</p>
+        <p className="mt-1 text-xs">Paste a video or playlist link above to add tracks.</p>
       </div>
     );
   }
@@ -247,7 +249,7 @@ export function QueueList({
 
   return (
     <div className="space-y-1">
-      {canManage && onClearAll && clearableCount > 0 && (
+      {canManage && onClearAll && !hideClearAll && clearableCount > 0 && (
         <div className="flex justify-end px-1 pb-1">
           <Button variant="ghost" size="sm" onClick={onClearAll} className="text-xs text-[var(--text-muted)]">
             Clear all

@@ -154,6 +154,7 @@ export function SettingsDrawer({
             <div>
               <Label className="mb-2 block">Theme</Label>
               <ThemeSelector
+                className="w-full"
                 value={userPrefs.theme}
                 onChange={(theme) => onUserPrefsUpdate({ theme })}
               />
