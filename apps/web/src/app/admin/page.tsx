@@ -9,7 +9,7 @@ interface AdminStats {
   ownedRooms: number;
   playlists: number;
   playlistItems: number;
-  liveRooms: number;
+  recentlyActiveRooms: number;
 }
 
 export default function AdminDashboardPage() {
@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
             ["Saved rooms", stats.ownedRooms],
             ["Playlists", stats.playlists],
             ["Playlist items", stats.playlistItems],
-            ["Live now", stats.liveRooms],
+            ["Recently active (30m)", stats.recentlyActiveRooms],
           ].map(([label, value]) => (
             <div
               key={label}

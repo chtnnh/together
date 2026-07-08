@@ -11,13 +11,7 @@ import {
 import { count, desc, eq, gt, gte, isNotNull, or, sql } from "drizzle-orm";
 import { fetchRealtimeJson } from "@/lib/realtime-server";
 
-export async function fetchRoomParticipantCount(roomId: string): Promise<number> {
-  const result = await fetchRealtimeJson<{ participantCount?: number }>(
-    `/room/${roomId}/stats`,
-  );
-  if (!result.ok) return 0;
-  return result.data.participantCount ?? 0;
-}
+const RECENTLY_ACTIVE_MS = 30 * 60 * 1000;
 
 export async function getAdminStats() {
   if (!process.env.DATABASE_URL) {
@@ -27,30 +21,25 @@ export async function getAdminStats() {
       ownedRooms: 0,
       playlists: 0,
       playlistItems: 0,
-      liveRooms: 0,
+      recentlyActiveRooms: 0,
     };
   }
 
   const db = getDb();
-  const [[userCount], [roomCount], [ownedCount], [playlistCount], [itemCount]] =
+  const recentlyActiveSince = new Date(Date.now() - RECENTLY_ACTIVE_MS);
+
+  const [[userCount], [roomCount], [ownedCount], [playlistCount], [itemCount], [recentlyActive]] =
     await Promise.all([
       db.select({ value: count() }).from(users),
       db.select({ value: count() }).from(rooms),
       db.select({ value: count() }).from(rooms).where(isNotNull(rooms.ownerUserId)),
       db.select({ value: count() }).from(playlists),
       db.select({ value: count() }).from(playlistItems),
+      db
+        .select({ value: count() })
+        .from(rooms)
+        .where(gte(rooms.lastActiveAt, recentlyActiveSince)),
     ]);
-
-  const recentRooms = await db
-    .select({ id: rooms.id })
-    .from(rooms)
-    .orderBy(desc(rooms.lastActiveAt))
-    .limit(50);
-
-  const liveCounts = await Promise.all(
-    recentRooms.map((room) => fetchRoomParticipantCount(room.id)),
-  );
-  const liveRooms = liveCounts.filter((value) => value > 0).length;
 
   return {
     users: userCount?.value ?? 0,
@@ -58,7 +47,7 @@ export async function getAdminStats() {
     ownedRooms: ownedCount?.value ?? 0,
     playlists: playlistCount?.value ?? 0,
     playlistItems: itemCount?.value ?? 0,
-    liveRooms,
+    recentlyActiveRooms: recentlyActive?.value ?? 0,
   };
 }
 
@@ -71,18 +60,15 @@ export async function listAdminRooms(limit = 100) {
     .orderBy(desc(rooms.lastActiveAt), desc(rooms.createdAt))
     .limit(limit);
 
-  return Promise.all(
-    rows.map(async (room) => ({
-      id: room.id,
-      slug: room.slug,
-      title: room.title,
-      privacy: room.privacy,
-      ownerUserId: room.ownerUserId,
-      createdAt: room.createdAt,
-      lastActiveAt: room.lastActiveAt,
-      participantCount: await fetchRoomParticipantCount(room.id),
-    })),
-  );
+  return rows.map((room) => ({
+    id: room.id,
+    slug: room.slug,
+    title: room.title,
+    privacy: room.privacy,
+    ownerUserId: room.ownerUserId,
+    createdAt: room.createdAt,
+    lastActiveAt: room.lastActiveAt,
+  }));
 }
 
 export async function listAdminUsers(limit = 100) {

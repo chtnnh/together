@@ -11,7 +11,6 @@ interface AdminRoom {
   ownerUserId: string | null;
   createdAt: string;
   lastActiveAt: string | null;
-  participantCount: number;
 }
 
 export default function AdminRoomsPage() {
@@ -63,7 +62,6 @@ export default function AdminRoomsPage() {
             <tr>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Live</th>
               <th className="px-4 py-3">Saved</th>
               <th className="px-4 py-3">Last active</th>
               <th className="px-4 py-3">Actions</th>
@@ -74,7 +72,6 @@ export default function AdminRoomsPage() {
               <tr key={room.id} className="border-t border-[var(--border)]">
                 <td className="px-4 py-3 font-mono">{room.slug}</td>
                 <td className="px-4 py-3">{room.title ?? "—"}</td>
-                <td className="px-4 py-3 tabular-nums">{room.participantCount}</td>
                 <td className="px-4 py-3">{room.ownerUserId ? "Yes" : "No"}</td>
                 <td className="px-4 py-3">
                   {room.lastActiveAt

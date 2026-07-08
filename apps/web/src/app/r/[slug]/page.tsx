@@ -5,6 +5,7 @@ import { hasPasswordCookie, verifyRoomAccess } from "@/lib/room-access";
 import { RoomClient } from "@/components/room-client";
 import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { isUserGloballyBanned } from "@/lib/admin-data";
+import { postRealtimeJson } from "@/lib/realtime-server";
 
 interface RoomPageProps {
   params: Promise<{ slug: string }>;
@@ -87,22 +88,12 @@ async function initRealtimeRoom(
   title: string,
   snapshot: import("@together/shared").RoomLiveSnapshot | null | undefined,
 ) {
-  const base = process.env.NEXT_PUBLIC_REALTIME_URL?.replace(/^ws/, "http") ?? "http://localhost:8787";
-
-  try {
-    await fetch(`${base}/room/${roomId}/init`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        roomId,
-        slug,
-        settings,
-        passwordRequired,
-        title,
-        snapshot: snapshot ?? undefined,
-      }),
-    });
-  } catch {
-    // Realtime worker may not be running in dev
-  }
+  await postRealtimeJson(`/room/${roomId}/init`, {
+    roomId,
+    slug,
+    settings,
+    passwordRequired,
+    title,
+    snapshot: snapshot ?? undefined,
+  });
 }
