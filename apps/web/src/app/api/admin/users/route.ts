@@ -6,6 +6,11 @@ export async function GET() {
   const auth = await requireSuperadmin();
   if (auth.error) return auth.error;
 
-  const users = await listAdminUsers();
-  return NextResponse.json({ users });
+  try {
+    const users = await listAdminUsers();
+    return NextResponse.json({ users });
+  } catch (err) {
+    console.error("GET /api/admin/users failed:", err);
+    return NextResponse.json({ error: "Failed to load users" }, { status: 500 });
+  }
 }

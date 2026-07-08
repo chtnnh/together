@@ -6,6 +6,11 @@ export async function GET() {
   const auth = await requireSuperadmin();
   if (auth.error) return auth.error;
 
-  const entries = await listAdminAuditLog();
-  return NextResponse.json({ entries });
+  try {
+    const entries = await listAdminAuditLog();
+    return NextResponse.json({ entries });
+  } catch (err) {
+    console.error("GET /api/admin/audit failed:", err);
+    return NextResponse.json({ error: "Failed to load audit log" }, { status: 500 });
+  }
 }

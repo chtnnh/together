@@ -6,6 +6,11 @@ export async function GET() {
   const auth = await requireSuperadmin();
   if (auth.error) return auth.error;
 
-  const stats = await getAdminStats();
-  return NextResponse.json(stats);
+  try {
+    const stats = await getAdminStats();
+    return NextResponse.json(stats);
+  } catch (err) {
+    console.error("GET /api/admin/stats failed:", err);
+    return NextResponse.json({ error: "Failed to load admin stats" }, { status: 500 });
+  }
 }

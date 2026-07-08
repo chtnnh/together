@@ -6,6 +6,11 @@ export async function GET() {
   const auth = await requireSuperadmin();
   if (auth.error) return auth.error;
 
-  const signals = await listAbuseSignals();
-  return NextResponse.json(signals);
+  try {
+    const signals = await listAbuseSignals();
+    return NextResponse.json(signals);
+  } catch (err) {
+    console.error("GET /api/admin/abuse failed:", err);
+    return NextResponse.json({ error: "Failed to load abuse signals" }, { status: 500 });
+  }
 }

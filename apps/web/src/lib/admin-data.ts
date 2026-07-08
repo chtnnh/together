@@ -9,18 +9,14 @@ import {
   users,
 } from "@together/db";
 import { count, desc, eq, gt, gte, isNotNull, or, sql } from "drizzle-orm";
+import { fetchRealtimeJson } from "@/lib/realtime-server";
 
 export async function fetchRoomParticipantCount(roomId: string): Promise<number> {
-  const base =
-    process.env.NEXT_PUBLIC_REALTIME_URL?.replace(/^ws/, "http") ?? "http://127.0.0.1:8787";
-  try {
-    const res = await fetch(`${base}/room/${roomId}/stats`, { cache: "no-store" });
-    if (!res.ok) return 0;
-    const data = (await res.json()) as { participantCount?: number };
-    return data.participantCount ?? 0;
-  } catch {
-    return 0;
-  }
+  const result = await fetchRealtimeJson<{ participantCount?: number }>(
+    `/room/${roomId}/stats`,
+  );
+  if (!result.ok) return 0;
+  return result.data.participantCount ?? 0;
 }
 
 export async function getAdminStats() {
@@ -126,20 +122,14 @@ export async function isUserGloballyBanned(userId: string): Promise<boolean> {
 }
 
 export async function purgeRoomDurableObject(roomId: string): Promise<boolean> {
-  const base =
-    process.env.NEXT_PUBLIC_REALTIME_URL?.replace(/^ws/, "http") ?? "http://127.0.0.1:8787";
   const secret = process.env.ROOM_TOKEN_SECRET;
   if (!secret) return false;
 
-  try {
-    const res = await fetch(`${base}/room/${roomId}/purge`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${secret}` },
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const result = await fetchRealtimeJson<{ ok?: boolean }>(`/room/${roomId}/purge`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}` },
+  });
+  return result.ok;
 }
 
 export async function deleteRoomBySlug(slug: string) {
