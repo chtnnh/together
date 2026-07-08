@@ -20,7 +20,9 @@ import { generateId } from "./utils";
 
 const EMPTY_ROOM_GRACE_MS = 5 * 60 * 1000;
 const CHAT_NOTICE =
-  "Chat is live for this session only — messages aren't saved and may clear when the room goes quiet.";
+  "Messages aren't saved. Chat clears when the room has been empty for 5 minutes or more.";
+
+type RememberedRole = "host" | "co-host";
 
 interface Session {
   participantId: string;
@@ -35,6 +37,7 @@ export class RoomDurableObject implements DurableObject {
   private lastPlaybackEndedAt = 0;
   private reactionTimestamps = new Map<string, number[]>();
   private bansHydrated = false;
+  private memberRoles = new Map<string, RememberedRole>();
 
   constructor(
     private ctx: DurableObjectState,
@@ -56,7 +59,49 @@ export class RoomDurableObject implements DurableObject {
       if (storedBans) {
         this.bans = new Set(storedBans);
       }
+      const storedRoles = await this.ctx.storage.get<Record<string, RememberedRole>>("memberRoles");
+      if (storedRoles) {
+        this.memberRoles = new Map(Object.entries(storedRoles));
+      }
     });
+  }
+
+  private memberRoleKey(userId: string | null, anonId: string): string {
+    return userId ? `user:${userId}` : `anon:${anonId}`;
+  }
+
+  private getRememberedRole(userId: string | null, anonId: string): RememberedRole | null {
+    return this.memberRoles.get(this.memberRoleKey(userId, anonId)) ?? null;
+  }
+
+  private setRememberedRole(
+    userId: string | null,
+    anonId: string,
+    role: RememberedRole | null,
+  ) {
+    const key = this.memberRoleKey(userId, anonId);
+    if (role) this.memberRoles.set(key, role);
+    else this.memberRoles.delete(key);
+  }
+
+  private async persistMemberRoles() {
+    await this.ctx.storage.put("memberRoles", Object.fromEntries(this.memberRoles));
+  }
+
+  private hasLiveHost(): boolean {
+    return this.state.participants.some((p) => p.role === "host");
+  }
+
+  private hasRememberedHost(): boolean {
+    return [...this.memberRoles.values()].includes("host");
+  }
+
+  private resolveJoinRole(userId: string | null, anonId: string): Participant["role"] {
+    const remembered = this.getRememberedRole(userId, anonId);
+    if (remembered === "host" && !this.hasLiveHost()) return "host";
+    if (remembered === "co-host") return "co-host";
+    if (!this.hasLiveHost() && !this.hasRememberedHost()) return "host";
+    return "guest";
   }
 
   private createInitialState(roomId: string): RoomState {
@@ -165,6 +210,7 @@ export class RoomDurableObject implements DurableObject {
       this.state.passwordRequired = passwordRequired;
       this.bans.clear();
       this.bansHydrated = false;
+      this.memberRoles.clear();
       await this.cancelEmptyRoomAlarm();
       await this.ctx.storage.deleteAll();
 
@@ -250,17 +296,21 @@ export class RoomDurableObject implements DurableObject {
                 !(parsed.userId && p.userId === parsed.userId),
             );
 
-            const hasHost = this.state.participants.some((p) => p.role === "host");
             participantId = generateId();
+            const role = this.resolveJoinRole(parsed.userId ?? null, parsed.anonId);
             participant = {
               id: participantId,
               displayName: parsed.displayName,
               anonId: parsed.anonId,
               userId: parsed.userId ?? null,
-              role: !hasHost ? "host" : "guest",
+              role,
               latencyMs: 0,
               lastChatAt: 0,
             };
+            if (role === "host" || role === "co-host") {
+              this.setRememberedRole(parsed.userId ?? null, parsed.anonId, role);
+              void this.persistMemberRoles();
+            }
             this.state.participants = [...this.state.participants, participant];
           }
 
@@ -318,6 +368,7 @@ export class RoomDurableObject implements DurableObject {
       this.sessions.delete(ws);
       this.removeParticipant(session.participantId);
       if (this.sessions.size === 0) {
+        void this.pausePlaybackForEmptyRoom();
         void this.scheduleEmptyRoomAlarm();
       }
     });
@@ -946,6 +997,9 @@ export class RoomDurableObject implements DurableObject {
     const target = this.state.participants.find((p) => p.id === targetId);
     if (!target) return;
 
+    this.setRememberedRole(target.userId ?? null, target.anonId, null);
+    void this.persistMemberRoles();
+
     this.broadcast({
       type: "activity",
       activity: {
@@ -967,6 +1021,9 @@ export class RoomDurableObject implements DurableObject {
     if (target.userId) this.bans.add(target.userId);
     await this.ctx.storage.put("bans", [...this.bans]);
     void this.syncBanToDatabase(target.anonId, target.userId ?? null, actor.userId ?? null);
+
+    this.setRememberedRole(target.userId ?? null, target.anonId, null);
+    void this.persistMemberRoles();
 
     this.broadcast({
       type: "activity",
@@ -994,6 +1051,12 @@ export class RoomDurableObject implements DurableObject {
     this.state.participants = this.state.participants.map((p) =>
       p.id === targetId ? { ...p, role } : p,
     );
+    if (role === "co-host") {
+      this.setRememberedRole(target.userId ?? null, target.anonId, "co-host");
+    } else {
+      this.setRememberedRole(target.userId ?? null, target.anonId, null);
+    }
+    void this.persistMemberRoles();
     this.broadcast({ type: "participants", participants: this.state.participants });
     this.broadcast({
       type: "activity",
@@ -1011,6 +1074,9 @@ export class RoomDurableObject implements DurableObject {
       if (p.id === actor.id) return { ...p, role: "co-host" as const };
       return p;
     });
+    this.setRememberedRole(target.userId ?? null, target.anonId, "host");
+    this.setRememberedRole(actor.userId ?? null, actor.anonId, "co-host");
+    void this.persistMemberRoles();
     await this.persist();
     this.broadcast({ type: "participants", participants: this.state.participants });
     this.broadcast({
@@ -1117,6 +1183,21 @@ export class RoomDurableObject implements DurableObject {
     await this.ctx.storage.setAlarm(Date.now() + EMPTY_ROOM_GRACE_MS);
   }
 
+  /** Pause at current position when the last listener leaves; snapshot for rejoin. */
+  private async pausePlaybackForEmptyRoom() {
+    const playback = this.getAdjustedPlayback();
+    if (!playback.videoId) return;
+
+    this.state.playback = {
+      ...playback,
+      playing: false,
+      updatedAt: Date.now(),
+      version: playback.version + 1,
+    };
+    await this.persist();
+    void this.syncSnapshotToDatabase();
+  }
+
   private async cancelEmptyRoomAlarm() {
     const alarm = await this.ctx.storage.getAlarm();
     if (alarm !== null) {
@@ -1139,6 +1220,7 @@ export class RoomDurableObject implements DurableObject {
 
     this.bans.clear();
     this.bansHydrated = false;
+    this.memberRoles.clear();
     await this.ctx.storage.deleteAll();
   }
 
