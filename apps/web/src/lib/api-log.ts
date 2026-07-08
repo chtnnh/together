@@ -12,9 +12,27 @@ export interface ApiLogger {
 
 function serializeError(err: unknown): Record<string, unknown> {
   if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
+    const payload: Record<string, unknown> = {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    };
+    if ("cause" in err && err.cause !== undefined) {
+      payload.cause =
+        err.cause instanceof Error
+          ? { name: err.cause.name, message: err.cause.message, ...(pgCode(err.cause) ?? {}) }
+          : err.cause;
+    }
+    return payload;
   }
   return { message: String(err) };
+}
+
+function pgCode(err: unknown): { code?: string } | undefined {
+  if (err && typeof err === "object" && "code" in err && typeof (err as { code: unknown }).code === "string") {
+    return { code: (err as { code: string }).code };
+  }
+  return undefined;
 }
 
 function writeLog(

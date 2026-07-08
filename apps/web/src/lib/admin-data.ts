@@ -30,16 +30,15 @@ export async function getAdminStats() {
   const recentlyActiveSince = new Date(Date.now() - RECENTLY_ACTIVE_MS);
 
   return runSpan("admin-data", "getAdminStats", async () => {
-    // One round-trip — Supabase transaction pooler (port 6543) cannot run
-    // parallel queries on a single connection; Promise.all deadlocks there.
+    // One round-trip for base counts. Keep last_active_at separate so a missing
+    // v0.3 migration column does not fail the entire dashboard.
     const rows = await db.execute(sql`
       SELECT
         (SELECT COUNT(*)::int FROM users) AS users,
         (SELECT COUNT(*)::int FROM rooms) AS rooms,
         (SELECT COUNT(*)::int FROM rooms WHERE owner_user_id IS NOT NULL) AS owned_rooms,
         (SELECT COUNT(*)::int FROM playlists) AS playlists,
-        (SELECT COUNT(*)::int FROM playlist_items) AS playlist_items,
-        (SELECT COUNT(*)::int FROM rooms WHERE last_active_at >= ${recentlyActiveSince}) AS recently_active_rooms
+        (SELECT COUNT(*)::int FROM playlist_items) AS playlist_items
     `);
 
     const row = rows[0] as
@@ -49,9 +48,21 @@ export async function getAdminStats() {
           owned_rooms: number;
           playlists: number;
           playlist_items: number;
-          recently_active_rooms: number;
         }
       | undefined;
+
+    let recentlyActiveRooms = 0;
+    try {
+      const recentRows = await db.execute(sql`
+        SELECT COUNT(*)::int AS recently_active_rooms
+        FROM rooms
+        WHERE last_active_at >= ${recentlyActiveSince.toISOString()}::timestamptz
+      `);
+      recentlyActiveRooms =
+        (recentRows[0] as { recently_active_rooms: number } | undefined)?.recently_active_rooms ?? 0;
+    } catch {
+      recentlyActiveRooms = 0;
+    }
 
     return {
       users: row?.users ?? 0,
@@ -59,7 +70,7 @@ export async function getAdminStats() {
       ownedRooms: row?.owned_rooms ?? 0,
       playlists: row?.playlists ?? 0,
       playlistItems: row?.playlist_items ?? 0,
-      recentlyActiveRooms: row?.recently_active_rooms ?? 0,
+      recentlyActiveRooms,
     };
   });
 }
