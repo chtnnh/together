@@ -35,8 +35,9 @@ export async function POST(request: Request) {
   }
 
   if (isYouTubeUrl(input)) {
-    const items = await importYouTubeUrl(input);
-    if (items.length === 0) {
+    const result = await importYouTubeUrl(input);
+    const empty = !result || (Array.isArray(result) && result.length === 0);
+    if (empty) {
       return NextResponse.json(
         {
           error: parseYouTubeVideoId(input)
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     }
-    return NextResponse.json(items);
+    return NextResponse.json(result);
   }
 
   const client = getYouTubeClient();

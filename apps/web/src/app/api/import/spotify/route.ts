@@ -3,6 +3,7 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import {
   getPublicSpotifyPlaylistTracks,
+  getPublicSpotifyPlaylistDetails,
   getSpotifyPlaylistTracks,
   isSpotifyConfigured,
   isSpotifyOAuthEnabled,
@@ -70,8 +71,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "No tracks found in that playlist" }, { status: 404 });
       }
 
+      const details = await getPublicSpotifyPlaylistDetails(playlistId);
       const resolved = await resolveImportTracks(tracks, "spotify");
-      return NextResponse.json(resolved);
+      return NextResponse.json({
+        kind: "playlist",
+        title: details?.title ?? "Spotify Playlist",
+        artist: details?.artist,
+        thumbnailUrl: details?.thumbnailUrl,
+        videoCount: resolved.length,
+        tracks: resolved,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Spotify import failed";
       return NextResponse.json({ error: message }, { status: 400 });

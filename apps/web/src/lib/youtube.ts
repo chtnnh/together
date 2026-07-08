@@ -103,6 +103,40 @@ export class YouTubeApiClient implements YouTubeSearchClient {
     };
   }
 
+  async getPlaylistDetails(playlistId: string) {
+    const params = new URLSearchParams({
+      part: "snippet,contentDetails",
+      id: playlistId,
+      key: this.apiKey,
+    });
+
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?${params}`,
+    );
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      items?: Array<{
+        snippet: {
+          title: string;
+          channelTitle: string;
+          thumbnails?: { medium?: { url: string } };
+        };
+        contentDetails: { itemCount: number };
+      }>;
+    };
+
+    const item = data.items?.[0];
+    if (!item) return null;
+
+    return {
+      title: item.snippet.title,
+      channelTitle: item.snippet.channelTitle,
+      thumbnailUrl: item.snippet.thumbnails?.medium?.url,
+      itemCount: item.contentDetails.itemCount,
+    };
+  }
+
   async getPlaylistItems(playlistId: string) {
     const items: YoutubeCandidate[] = [];
     let pageToken: string | undefined;
@@ -299,19 +333,31 @@ export async function importYouTubeUrl(url: string) {
   const playlistId = parseYouTubePlaylistId(url);
   if (playlistId) {
     const client = getYouTubeClient();
-    if (!client) return [];
-    const items = await client.getPlaylistItems(playlistId);
+    if (!client) return null;
+    const [details, items] = await Promise.all([
+      client.getPlaylistDetails(playlistId),
+      client.getPlaylistItems(playlistId),
+    ]);
     const filtered = await client.filterAvailableCandidates(items);
-    return filtered.map((item) => ({
-      source: "youtube" as const,
-      videoId: item.videoId,
-      title: item.title,
-      artist: item.channelTitle,
-      durationMs: item.durationMs,
-      thumbnailUrl: item.thumbnailUrl,
-      confidence: 100,
-    }));
+    if (filtered.length === 0) return null;
+
+    return {
+      kind: "playlist" as const,
+      title: details?.title ?? "YouTube Playlist",
+      artist: details?.channelTitle,
+      thumbnailUrl: details?.thumbnailUrl ?? filtered[0]?.thumbnailUrl,
+      videoCount: filtered.length,
+      tracks: filtered.map((item) => ({
+        source: "youtube" as const,
+        videoId: item.videoId,
+        title: item.title,
+        artist: item.channelTitle,
+        durationMs: item.durationMs,
+        thumbnailUrl: item.thumbnailUrl,
+        confidence: 100,
+      })),
+    };
   }
 
-  return [];
+  return null;
 }

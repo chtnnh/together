@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, Input, Label } from "@together/ui";
+import { importRequestForQuery } from "@/lib/import-url";
+import { isImportPlaylist, normalizeImportResponse } from "@/lib/import-results";
 
 export type ImportService = "youtube" | "spotify" | "soundcloud" | "apple";
 
@@ -15,70 +17,18 @@ export interface ImportedTrack {
   alternates?: unknown;
 }
 
-interface ImportServices {
-  spotify: boolean;
-  soundcloud: boolean;
-  apple: boolean;
-}
-
 interface ImportPlaylistDialogProps {
   open: boolean;
   onClose: () => void;
   onImport: (items: ImportedTrack[]) => void;
 }
 
-const TAB_LABELS: Record<ImportService, string> = {
-  youtube: "YouTube",
-  spotify: "Spotify",
-  soundcloud: "SoundCloud",
-  apple: "Apple Music",
-};
-
-const PLACEHOLDERS: Record<ImportService, string> = {
-  youtube: "YouTube playlist or video URL",
-  spotify: "https://open.spotify.com/playlist/…",
-  soundcloud: "https://soundcloud.com/…/sets/…",
-  apple: "https://music.apple.com/…/playlist/…",
-};
-
-const ENDPOINTS: Record<Exclude<ImportService, "youtube">, string> = {
-  spotify: "/api/import/spotify",
-  soundcloud: "/api/import/soundcloud",
-  apple: "/api/import/apple",
-};
-
 export function ImportPlaylistDialog({ open, onClose, onImport }: ImportPlaylistDialogProps) {
-  const [service, setService] = useState<ImportService>("youtube");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [services, setServices] = useState<ImportServices>({
-    spotify: false,
-    soundcloud: false,
-    apple: false,
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    setError(null);
-    fetch("/api/import/services")
-      .then((res) => res.json())
-      .then((data: ImportServices) => setServices(data))
-      .catch(() => {
-        // Fall back to showing all tabs; errors surface on import.
-      });
-  }, [open]);
 
   if (!open) return null;
-
-  const visibleTabs: ImportService[] = [
-    "youtube",
-    ...(services.spotify ? (["spotify"] as const) : []),
-    ...(services.soundcloud ? (["soundcloud"] as const) : []),
-    ...(services.apple ? (["apple"] as const) : []),
-  ];
-
-  const activeService = visibleTabs.includes(service) ? service : visibleTabs[0]!;
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,17 +39,7 @@ export function ImportPlaylistDialog({ open, onClose, onImport }: ImportPlaylist
     setError(null);
 
     try {
-      let endpoint: string;
-      let body: Record<string, string>;
-
-      if (activeService === "youtube") {
-        endpoint = "/api/import/youtube";
-        body = { query: trimmed };
-      } else {
-        endpoint = ENDPOINTS[activeService];
-        body = { url: trimmed };
-      }
-
+      const { endpoint, body } = importRequestForQuery(trimmed);
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,11 +52,15 @@ export function ImportPlaylistDialog({ open, onClose, onImport }: ImportPlaylist
         return;
       }
 
-      const items = (Array.isArray(data) ? data : [data]) as ImportedTrack[];
-      if (items.length === 0) {
+      const results = normalizeImportResponse(data);
+      if (results.length === 0) {
         setError("No tracks found");
         return;
       }
+
+      const items = results.flatMap((result) =>
+        isImportPlaylist(result) ? result.tracks : [result],
+      ) as ImportedTrack[];
 
       onImport(items);
       setUrl("");
@@ -145,28 +89,8 @@ export function ImportPlaylistDialog({ open, onClose, onImport }: ImportPlaylist
           Import playlist
         </h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Paste a public playlist URL. Tracks resolve to YouTube where possible.
+          Paste a public playlist URL from YouTube, Spotify, SoundCloud, or Apple Music.
         </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {visibleTabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setService(tab);
-                setError(null);
-              }}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
-                activeService === tab
-                  ? "bg-[var(--accent)] text-white"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              {TAB_LABELS[tab]}
-            </button>
-          ))}
-        </div>
 
         <div className="mt-4">
           <Label htmlFor="import-url">Playlist URL</Label>
@@ -174,7 +98,7 @@ export function ImportPlaylistDialog({ open, onClose, onImport }: ImportPlaylist
             id="import-url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder={PLACEHOLDERS[activeService]}
+            placeholder="https://open.spotify.com/playlist/…"
             className="mt-1"
             autoFocus
           />

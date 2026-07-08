@@ -48,8 +48,15 @@ import { ShareInviteButton } from "@/components/share-invite-button";
 import { DiscordStatusButton } from "@/components/discord-status-button";
 import { SavePlaylistDialog } from "@/components/save-playlist-dialog";
 import { PlaylistsModal } from "@/components/playlists-modal";
-import { ImportPlaylistDialog } from "@/components/import-playlist-dialog";
 import { AccountSettingsModal } from "@/components/account-settings-modal";
+import { importRequestForQuery, isLikelyUrl } from "@/lib/import-url";
+import {
+  isImportPlaylist,
+  normalizeImportResponse,
+  shouldShowImportPicker,
+  type ImportResult,
+  type ImportTrackResult,
+} from "@/lib/import-results";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 import { useToast } from "@/components/toast";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
@@ -60,18 +67,36 @@ import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@toge
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
 
-type ImportTrack = {
-  source: "youtube";
-  videoId?: string | null;
-  title: string;
-  artist?: string;
-  durationMs?: number;
-  thumbnailUrl?: string;
-  confidence?: number;
-};
+function ImportResultRow({
+  item,
+  onPick,
+}: {
+  item: ImportResult;
+  onPick: (item: ImportResult) => void;
+}) {
+  const title = item.title;
+  const subtitle = isImportPlaylist(item)
+    ? [item.artist, `${item.videoCount} videos`].filter(Boolean).join(" · ")
+    : item.artist;
+  const thumbnailUrl = item.thumbnailUrl;
 
-function isYouTubeUrl(input: string): boolean {
-  return /youtube\.com|youtu\.be/.test(input);
+  return (
+    <li>
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-secondary)]"
+        onClick={() => onPick(item)}
+      >
+        {thumbnailUrl && (
+          <img src={thumbnailUrl} alt="" className="h-8 w-12 shrink-0 rounded object-cover" />
+        )}
+        <span className="min-w-0 flex-1 truncate">
+          {title}
+          {subtitle ? <span className="text-[var(--text-muted)]"> · {subtitle}</span> : null}
+        </span>
+      </button>
+    </li>
+  );
 }
 
 function activityMessage(activity: RoomActivity): string {
@@ -137,7 +162,7 @@ export function RoomClient({
   const [pickRequest, setPickRequest] = useState<RequestItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<ImportTrack[] | null>(null);
+  const [searchResults, setSearchResults] = useState<ImportResult[] | null>(null);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState("requests");
   const [lastReadChatCount, setLastReadChatCount] = useState(0);
@@ -146,7 +171,6 @@ export function RoomClient({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [savePlaylistOpen, setSavePlaylistOpen] = useState(false);
   const [playlistsModalOpen, setPlaylistsModalOpen] = useState(false);
-  const [importPlaylistOpen, setImportPlaylistOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [incomingReactions, setIncomingReactions] = useState<RoomReaction[]>([]);
   const [promoteVotedIds, setPromoteVotedIds] = useState<Set<string>>(() => new Set());
@@ -362,11 +386,18 @@ export function RoomClient({
   };
 
   const queueTrack = useCallback(
-    (item: ImportTrack) => {
+    (item: ImportTrackResult, options?: { silent?: boolean }) => {
+      const source =
+        item.source === "youtube" ||
+        item.source === "spotify" ||
+        item.source === "apple" ||
+        item.source === "manual"
+          ? item.source
+          : "manual";
       send({
         type: "queue:add-request",
         item: {
-          source: item.source,
+          source,
           videoId: item.videoId,
           title: item.title,
           artist: item.artist,
@@ -375,7 +406,9 @@ export function RoomClient({
           confidence: item.confidence,
         },
       });
-      toast(`Added "${item.title}"`, "success");
+      if (!options?.silent) {
+        toast(`Added "${item.title}"`, "success");
+      }
     },
     [send, toast],
   );
@@ -485,10 +518,11 @@ export function RoomClient({
     setSearchResults(null);
     try {
       const query = addUrl.trim();
-      const res = await fetch("/api/import/youtube", {
+      const { endpoint, body } = importRequestForQuery(query);
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
 
@@ -499,24 +533,36 @@ export function RoomClient({
         return;
       }
 
-      const items = (Array.isArray(data) ? data : [data]) as ImportTrack[];
+      const items = normalizeImportResponse(data);
+      if (items.length === 0) {
+        const message = data.error ?? "Failed to add track";
+        setAddError(message);
+        toast(message, "error");
+        return;
+      }
 
-      if (items.length > 1 && !isYouTubeUrl(query)) {
+      const queryIsUrl = isLikelyUrl(query);
+      if (shouldShowImportPicker(items, query, queryIsUrl)) {
         setSearchResults(items);
         return;
       }
 
-      for (const item of items) {
-        queueTrack(item);
-      }
+      queueTrack(items[0] as ImportTrackResult);
       setAddUrl("");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePickSearchResult = (item: ImportTrack) => {
-    queueTrack(item);
+  const handlePickSearchResult = (item: ImportResult) => {
+    if (isImportPlaylist(item)) {
+      for (const track of item.tracks) {
+        queueTrack(track, { silent: true });
+      }
+      toast(`Added ${item.tracks.length} tracks from "${item.title}"`, "success");
+    } else {
+      queueTrack(item);
+    }
     setSearchResults(null);
     setAddUrl("");
     setAddError(null);
@@ -716,7 +762,7 @@ export function RoomClient({
             setAddUrl(e.target.value);
             if (searchResults) setSearchResults(null);
           }}
-          placeholder="YouTube URL or search..."
+          placeholder="Paste a video/playlist link or search…"
           onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
           className="min-w-0 flex-1"
         />
@@ -728,23 +774,7 @@ export function RoomClient({
       {searchResults && searchResults.length > 0 && (
         <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1">
           {searchResults.map((item) => (
-            <li key={item.videoId ?? item.title}>
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-secondary)]"
-                onClick={() => handlePickSearchResult(item)}
-              >
-                {item.thumbnailUrl && (
-                  <img src={item.thumbnailUrl} alt="" className="h-8 w-12 shrink-0 rounded object-cover" />
-                )}
-                <span className="min-w-0 flex-1 truncate">
-                  {item.title}
-                  {item.artist ? (
-                    <span className="text-[var(--text-muted)]"> · {item.artist}</span>
-                  ) : null}
-                </span>
-              </button>
-            </li>
+            <ImportResultRow key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)} item={item} onPick={handlePickSearchResult} />
           ))}
         </ul>
       )}
@@ -762,7 +792,7 @@ export function RoomClient({
               setAddUrl(e.target.value);
               if (searchResults) setSearchResults(null);
             }}
-            placeholder="YouTube URL or search..."
+            placeholder="Paste a video/playlist link or search…"
             onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
             className="min-w-0 flex-1"
           />
@@ -781,39 +811,15 @@ export function RoomClient({
         {searchResults && searchResults.length > 0 && (
           <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1">
             {searchResults.map((item) => (
-              <li key={item.videoId ?? item.title}>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-secondary)]"
-                  onClick={() => handlePickSearchResult(item)}
-                >
-                  {item.thumbnailUrl && (
-                    <img
-                      src={item.thumbnailUrl}
-                      alt=""
-                      className="h-8 w-12 shrink-0 rounded object-cover"
-                    />
-                  )}
-                  <span className="min-w-0 flex-1 truncate">
-                    {item.title}
-                    {item.artist ? (
-                      <span className="text-[var(--text-muted)]"> · {item.artist}</span>
-                    ) : null}
-                  </span>
-                </button>
-              </li>
+              <ImportResultRow
+                key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)}
+                item={item}
+                onPick={handlePickSearchResult}
+              />
             ))}
           </ul>
         )}
         <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={() => setImportPlaylistOpen(true)}
-          >
-            Import playlist
-          </Button>
           {isHost && (
             <Button
               variant="secondary"
@@ -824,7 +830,7 @@ export function RoomClient({
               }
             >
               <FolderOpen className="mr-1.5 size-4" />
-              Load playlist
+              Load Saved Playlists
             </Button>
           )}
         </div>
@@ -845,8 +851,18 @@ export function RoomClient({
         </TabsContent>
 
         <TabsContent value="queue" className="flex flex-1 flex-col overflow-hidden px-2">
-          {isHost && (roomState?.queue.length ?? 0) > 0 && (
-            <div className="mb-2 flex justify-end">
+          {(roomState?.queue.length ?? 0) > 0 && (
+            <div className="mb-2 flex items-center justify-end gap-2">
+              {isHost && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-[var(--text-muted)]"
+                  onClick={() => send({ type: "queue:clear", lane: "queue" })}
+                >
+                  Clear all
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -866,7 +882,7 @@ export function RoomClient({
             canManage={isHost}
             canPlay={canControlPlayback}
             onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
-            onClearAll={() => send({ type: "queue:clear", lane: "queue" })}
+            hideClearAll
             onPlay={(id) => send({ type: "queue:play", itemId: id })}
             onReorder={(itemId, newIndex) =>
               send({ type: "queue:reorder", itemId, newIndex })
@@ -1050,18 +1066,44 @@ export function RoomClient({
                   <RequestList {...requestListProps} />
                 )}
                 {mobileTab === "queue" && (
-                  <QueueList
-                    items={roomState?.queue ?? []}
-                    currentItemId={playback?.queueItemId}
-                    canManage={isHost}
-                    canPlay={canControlPlayback}
-                    onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
-                    onClearAll={() => send({ type: "queue:clear", lane: "queue" })}
-                    onPlay={(id) => send({ type: "queue:play", itemId: id })}
-                    onReorder={(itemId, newIndex) =>
-                      send({ type: "queue:reorder", itemId, newIndex })
-                    }
-                  />
+                  <>
+                    {(roomState?.queue.length ?? 0) > 0 && (
+                      <div className="mb-2 flex items-center justify-end gap-2">
+                        {isHost && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-[var(--text-muted)]"
+                            onClick={() => send({ type: "queue:clear", lane: "queue" })}
+                          >
+                            Clear all
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            signedIn ? setSavePlaylistOpen(true) : openSignIn()
+                          }
+                        >
+                          <Save className="mr-1.5 size-4" />
+                          Save queue
+                        </Button>
+                      </div>
+                    )}
+                    <QueueList
+                      items={roomState?.queue ?? []}
+                      currentItemId={playback?.queueItemId}
+                      canManage={isHost}
+                      canPlay={canControlPlayback}
+                      onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
+                      hideClearAll
+                      onPlay={(id) => send({ type: "queue:play", itemId: id })}
+                      onReorder={(itemId, newIndex) =>
+                        send({ type: "queue:reorder", itemId, newIndex })
+                      }
+                    />
+                  </>
                 )}
                 {mobileTab === "history" && (
                   <HistoryList items={roomState?.history ?? []} onReAdd={reAddFromHistory} />
@@ -1179,12 +1221,6 @@ export function RoomClient({
         onClose={() => setPlaylistsModalOpen(false)}
         onLoad={importPlaylistItems}
         onSignIn={openSignIn}
-      />
-
-      <ImportPlaylistDialog
-        open={importPlaylistOpen}
-        onClose={() => setImportPlaylistOpen(false)}
-        onImport={importPlaylistItems}
       />
 
       <AccountSettingsModal

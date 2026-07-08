@@ -181,3 +181,25 @@ export async function getPublicSpotifyPlaylistTracks(playlistId: string) {
   const token = await getClientCredentialsToken();
   return fetchPlaylistTracksWithToken(token, playlistId);
 }
+
+export async function getPublicSpotifyPlaylistDetails(playlistId: string) {
+  const token = await getClientCredentialsToken();
+  const res = await fetch(`${SPOTIFY_API}/playlists/${playlistId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as {
+    name: string;
+    owner?: { display_name?: string };
+    images?: Array<{ url: string }>;
+    tracks?: { total?: number };
+  };
+
+  return {
+    title: data.name,
+    artist: data.owner?.display_name,
+    thumbnailUrl: data.images?.[0]?.url,
+    trackCount: data.tracks?.total ?? 0,
+  };
+}
