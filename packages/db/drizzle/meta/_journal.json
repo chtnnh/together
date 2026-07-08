@@ -22,6 +22,13 @@
       "when": 1782161615848,
       "tag": "0002_curious_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783505821098,
+      "tag": "0003_v030_features",
+      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,7 @@ Env is loaded from repo root `.env` (see `.env.example`). Do not commit secrets.
 - Client ↔ realtime events: `packages/shared/src/events.ts` + handler in `services/realtime/src/room-do.ts`
 - Match existing naming and patterns; minimal diffs
 - Mobile queue reorder: **touch drag-and-drop only** (no overflow move up/down menus)
+- **DB schema changes:** edit `packages/db/src/schema.ts`, run `pnpm db:generate`, commit the new SQL **and** `packages/db/drizzle/meta/` (journal + snapshot). Never commit orphan `.sql` files — `pnpm db:migrate` only runs migrations listed in the journal.
 
 ---
 
