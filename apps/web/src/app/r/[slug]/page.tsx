@@ -6,6 +6,7 @@ import { RoomClient } from "@/components/room-client";
 import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { isUserGloballyBanned } from "@/lib/admin-data";
 import { postRealtimeJson } from "@/lib/realtime-server";
+import { absoluteUrl } from "@/lib/seo";
 
 interface RoomPageProps {
   params: Promise<{ slug: string }>;
@@ -24,9 +25,14 @@ export async function generateMetadata({ params }: RoomPageProps): Promise<Metad
   return {
     title: `${title} · Together`,
     description,
+    alternates: {
+      canonical: `/r/${slug}`,
+    },
+    robots: room.privacy === "public" ? undefined : { index: false, follow: false },
     openGraph: {
       title: `${title} · Together`,
       description,
+      url: absoluteUrl(`/r/${slug}`),
       type: "website",
       siteName: "Together",
       images: [{ url: `/r/${slug}/opengraph-image`, width: 1200, height: 630, alt: title }],
@@ -69,14 +75,36 @@ export default async function RoomPage({ params }: RoomPageProps) {
     "liveSnapshot" in room ? room.liveSnapshot : null,
   );
 
+  const title = ("title" in room ? room.title : null) || slug;
+  const roomJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${title} · Together`,
+    url: absoluteUrl(`/r/${slug}`),
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Together",
+      url: absoluteUrl("/"),
+    },
+  };
+
   return (
-    <RoomClient
-      roomId={room.id}
-      slug={slug}
-      initialTitle={("title" in room ? room.title : null) ?? ""}
-      hasOwner={!!room.ownerUserId}
-      privacy={room.privacy}
-    />
+    <>
+      {room.privacy === "public" && (
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(roomJsonLd) }}
+        />
+      )}
+      <RoomClient
+        roomId={room.id}
+        slug={slug}
+        initialTitle={("title" in room ? room.title : null) ?? ""}
+        hasOwner={!!room.ownerUserId}
+        privacy={room.privacy}
+      />
+    </>
   );
 }
 
