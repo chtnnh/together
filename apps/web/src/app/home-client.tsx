@@ -30,6 +30,7 @@ import { getDisplayName, setDisplayName } from "@/lib/utils";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
 import { AccountNav } from "@/components/account-nav";
 import { SignInModal } from "@/components/sign-in-modal";
+import { githubUrl, personalSiteUrl } from "@/lib/seo";
 
 const FEATURES = [
   {
@@ -589,6 +590,12 @@ export default function HomePageClient() {
             <span>Together v0.3.0</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <a href={personalSiteUrl} className="hover:text-[var(--text)]">
+              Me
+            </a>
+            <a href={githubUrl} className="hover:text-[var(--text)]">
+              GitHub
+            </a>
             <Link href="/privacy" className="hover:text-[var(--text)]">
               Privacy
             </Link>

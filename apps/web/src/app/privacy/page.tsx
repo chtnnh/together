@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal-page";
+import { absoluteUrl } from "@/lib/seo";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://together.chtnnhfoundation.org";
 const appHost = appUrl.replace(/^https?:\/\//, "");
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Together",
+  title: "Privacy Policy",
   description: "How Together collects, uses, and protects your information.",
+  alternates: {
+    canonical: "/privacy",
+  },
+  openGraph: {
+    title: "Privacy Policy | Together",
+    description: "How Together collects, uses, and protects your information.",
+    url: absoluteUrl("/privacy"),
+    type: "article",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Privacy Policy | Together",
+    description: "How Together collects, uses, and protects your information.",
+  },
 };
 
 export default function PrivacyPage() {

@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal-page";
+import { absoluteUrl } from "@/lib/seo";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://together.chtnnhfoundation.org";
 const appHost = appUrl.replace(/^https?:\/\//, "");
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Together",
+  title: "Terms of Service",
   description: "Terms and conditions for using Together.",
+  alternates: {
+    canonical: "/tos",
+  },
+  openGraph: {
+    title: "Terms of Service | Together",
+    description: "Terms and conditions for using Together.",
+    url: absoluteUrl("/tos"),
+    type: "article",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Terms of Service | Together",
+    description: "Terms and conditions for using Together.",
+  },
 };
 
 export default function TermsPage() {
