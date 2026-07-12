@@ -8,8 +8,11 @@
     "start": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next start",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "playwright test",
-    "test:install": "playwright install --with-deps chromium"
+    "test": "playwright test --project=chromium --project=mobile-chrome",
+    "test:visual": "playwright test visual-regression.spec.ts",
+    "test:visual:update": "playwright test visual-regression.spec.ts --update-snapshots",
+    "test:mobile": "playwright test mobile-room.spec.ts",
+    "test:install": "playwright install --with-deps chromium firefox webkit"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

@@ -906,8 +906,8 @@ export function RoomClient({
     <TooltipProvider>
     <div className="flex h-dvh flex-col md:flex-row">
       <div className="flex min-h-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3">
-          <div className="min-w-0">
+        <header className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] px-4 py-3">
+          <div className="min-w-0 flex-1 overflow-hidden">
             <h1 className="truncate font-semibold">{roomTitle}</h1>
             <ConnectionStatus
               offline={offline}
@@ -915,9 +915,10 @@ export function RoomClient({
               synced={synced}
               participantCount={roomState?.participants.length ?? 0}
               slug={slug}
+              showSlug={false}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

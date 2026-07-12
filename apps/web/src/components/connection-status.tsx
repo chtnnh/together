@@ -8,6 +8,8 @@ interface ConnectionStatusProps {
   synced: boolean;
   participantCount: number;
   slug: string;
+  /** Omit slug in tight headers (room page already shows the room name). */
+  showSlug?: boolean;
 }
 
 export function connectionStatusLabel({
@@ -16,9 +18,13 @@ export function connectionStatusLabel({
   synced,
   participantCount,
   slug,
+  showSlug = true,
 }: ConnectionStatusProps): string {
   if (offline) return "Offline — start realtime server";
-  if (connected) return `Connected · ${participantCount} listening · ${slug}`;
+  if (connected) {
+    const base = `Connected · ${participantCount} listening`;
+    return showSlug ? `${base} · ${slug}` : base;
+  }
   if (synced) return "Reconnecting…";
   return "Connecting…";
 }
@@ -37,7 +43,7 @@ export function ConnectionStatus(props: ConnectionStatusProps) {
         className={`size-3.5 shrink-0 ${props.connected ? "text-emerald-400" : ""} ${!props.connected && !props.offline ? "animate-spin" : ""}`}
         aria-hidden
       />
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
     </p>
   );
 }

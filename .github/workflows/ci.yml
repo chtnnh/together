@@ -40,3 +40,27 @@ jobs:
           ROOM_TOKEN_SECRET: test-secret
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           NEXT_PUBLIC_REALTIME_URL: ws://localhost:8787
+
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @together/web test:install
+      - run: pnpm --filter @together/web test:mobile
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/together
+          ROOM_TOKEN_SECRET: test-secret
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_REALTIME_URL: ws://localhost:8787
+      - run: pnpm --filter @together/web test:visual
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/together
+          ROOM_TOKEN_SECRET: test-secret
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_REALTIME_URL: ws://localhost:8787
