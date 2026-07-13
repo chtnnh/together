@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
+import { addUrlInput } from "./helpers/room";
 
 test.describe("v0.3 — Public playlist import", () => {
   test.beforeEach(() => {
@@ -44,6 +45,6 @@ test.describe("v0.3 — Public playlist import", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByPlaceholder(/Paste a video\/playlist link/i)).toBeVisible();
+    await expect(addUrlInput(page)).toBeVisible();
   });
 });

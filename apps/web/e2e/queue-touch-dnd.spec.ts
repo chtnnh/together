@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
+import { addUrlInput, roomSidebar } from "./helpers/room";
 
 test.describe("Phase 5.2 — Touch queue reorder", () => {
   test.beforeEach(() => {
@@ -15,18 +16,17 @@ test.describe("Phase 5.2 — Touch queue reorder", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     for (let i = 0; i < 2; i += 1) {
-      await page.getByPlaceholder(/Paste a video\/playlist link/i).fill(
-        `https://www.youtube.com/watch?v=dQw4w9WgXcQ&test=${i}`,
-      );
-      await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
+      await addUrlInput(page).fill(`https://www.youtube.com/watch?v=dQw4w9WgXcQ&test=${i}`);
+      await addUrlInput(page).press("Enter");
       await expect(page.getByRole("status").filter({ hasText: /Added/i })).toBeVisible({
         timeout: 10000,
       });
     }
 
-    await page.getByRole("tab", { name: "Queue" }).click();
-    await expect(page.locator("[data-queue-item-id]").first()).toBeVisible({ timeout: 5000 });
-    const grip = page.locator("[data-queue-item-id] .touch-none").first();
+    await roomSidebar(page).getByRole("tab", { name: "Queue" }).click();
+    const queueItem = roomSidebar(page).locator("[data-queue-item-id]").first();
+    await expect(queueItem).toBeVisible({ timeout: 5000 });
+    const grip = roomSidebar(page).locator("[data-queue-item-id] .touch-none").first();
     await expect(grip).toBeVisible();
   });
 });

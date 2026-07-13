@@ -1,6 +1,16 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+/** Desktop sidebar (hidden on mobile viewports). */
+export function roomSidebar(page: Page) {
+  return page.locator(".hidden.w-96.min-h-0.flex-col.border-l.md\\:flex");
+}
+
+/** Add URL input visible in the current viewport (sidebar on desktop, footer on mobile). */
+export function addUrlInput(page: Page) {
+  return page.getByPlaceholder(/Paste a video\/playlist link/i).filter({ visible: true });
+}
+
 /** Visible connection status (single instance in room header). */
 export function connectionStatusLocator(page: Page) {
   return page.getByTestId("connection-status");

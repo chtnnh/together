@@ -12,7 +12,7 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 
 | | |
 |---|---|
-| **Mobile-first** | Video on top, queue and chat in thumb-friendly tabs below. Install as a PWA for a full-screen session on your phone. |
+| **Mobile-first** | Four-tab room nav (Queue default), full-height chat, bottom add URL bar, and a unified header. Install as a PWA for a full-screen session on your phone. |
 | **Audio-only mode** | Hide the player and keep listening — perfect for music sessions, background listening, or saving bandwidth. Toggle per browser; doesn’t affect anyone else. |
 | **Personal themes** | Pick your own accent theme (midnight, ocean, sunset, forest, lavender). Saved locally — your room, your colors. |
 
@@ -22,7 +22,7 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 
 ### Playback & sync
 - Synchronized YouTube playback with drift correction
-- **Now-playing bar** — pinned strip with seek, play/pause, skip, volume, and reactions
+- **Now-playing bar** — pinned strip with seek, play/pause, skip, volume, reactions, and skip votes (stacked on mobile, inline on desktop)
 - **Keyboard shortcuts** — Space, arrows, M, N, `/`, `?` (desktop)
 - Seek bar — scrub to any point when you have playback control
 - Play any track from the queue on demand (not just “next”)
@@ -30,7 +30,8 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 - Header **Sync playback** button and explicit connection status
 - Host/co-host play, pause, and skip
 - **Open controls mode** — unlock playback so every member can control play/skip/seek and add directly to the queue
-- Loop modes: off, repeat current track, repeat queue
+- Loop modes: off, repeat current track, repeat queue — **queue loop toggle** on the Queue tab (mobile and desktop)
+- Playback stability when the queue ends or the browser tab loses focus
 - Crossfade between tracks; volume normalization on track change
 - Background playback on mobile (tab hidden without pausing the room)
 - Unavailable or deleted YouTube videos blocked at import with inline error banner
@@ -38,6 +39,7 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 ### Queue & discovery
 - Two-lane queue: member **requests** → host **DJ queue**
 - Drag-and-drop queue reordering (host/co-host), including touch drag on mobile
+- **Mobile room layout** — Requests, Queue, History, and Chat tabs; add URL/search pinned to the bottom on Queue and Requests
 - Democratic promote votes on requests (optional)
 - Clear all requests or queue in one click
 - Queue history with one-click re-add
@@ -67,6 +69,9 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 ### PWA
 - Installable app with **Create room** and **Join room** manifest shortcuts
 - Service worker caches the app shell; offline fallback page
+
+### Quality
+- Playwright E2E and **visual regression** tests (Linux Docker baselines in CI)
 
 ### Optional (requires Supabase auth)
 - Sign in to save room settings, **save/load playlists**, and **sync preferences** across devices

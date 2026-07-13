@@ -13,6 +13,7 @@ function publicEnv(name: string): string | undefined {
 }
 
 const nextConfig: NextConfig = {
+  ...(process.env.TOGETHER_E2E === "1" ? { devIndicators: false as const } : {}),
   env: {
     NEXT_PUBLIC_SUPABASE_URL: publicEnv("NEXT_PUBLIC_SUPABASE_URL"),
     NEXT_PUBLIC_SUPABASE_ANON_KEY:

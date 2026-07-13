@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 import { expectLeftBeforeRight, expectNoOverlap } from "./helpers/layout";
-import { createConnectedRoom, connectionStatusLocator } from "./helpers/room";
+import { createConnectedRoom, connectionStatusLocator, addUrlInput } from "./helpers/room";
 
 const MOBILE_VIEWPORTS = [
   { name: "iphone-13", width: 390, height: 844 },
@@ -47,7 +47,7 @@ test.describe("Mobile room UI", () => {
 
       const bottomNav = page.locator("nav").filter({ has: page.getByText("Queue", { exact: true }) });
       await bottomNav.getByRole("button", { name: "Requests" }).click();
-      await expect(page.getByPlaceholder(/Paste a video\/playlist link/i).first()).toBeVisible();
+      await expect(addUrlInput(page)).toBeVisible();
 
       await bottomNav.getByRole("button", { name: "Chat" }).click();
       await expect(page.getByPlaceholder(/Type a message/i)).toBeVisible();

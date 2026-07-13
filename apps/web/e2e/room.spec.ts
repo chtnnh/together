@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
+import { addUrlInput, roomSidebar } from "./helpers/room";
 
 test.describe("Room creation flow", () => {
   test.beforeEach(() => {
@@ -44,11 +45,11 @@ test.describe("Room creation flow", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     const videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill(videoUrl);
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
+    await addUrlInput(page).fill(videoUrl);
+    await addUrlInput(page).press("Enter");
 
     // Host adds go straight to the DJ queue (desktop sidebar)
-    await page.getByRole("tab", { name: "Queue" }).click();
+    await roomSidebar(page).getByRole("tab", { name: "Queue" }).click();
     await expect(
       page.locator(".hidden.md\\:flex").getByText(/Never Gonna Give You Up|YouTube Video/i),
     ).toBeVisible({ timeout: 15000 });
@@ -61,7 +62,7 @@ test.describe("Room creation flow", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByPlaceholder(/Paste a video\/playlist link/i)).toBeVisible();
+    await expect(addUrlInput(page)).toBeVisible();
   });
 
   test("shows helpful error when searching without API key", async ({ page }) => {
@@ -71,8 +72,8 @@ test.describe("Room creation flow", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill("lofi hip hop");
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
+    await addUrlInput(page).fill("lofi hip hop");
+    await addUrlInput(page).press("Enter");
 
     await expect(page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i })).toBeVisible({
       timeout: 5000,

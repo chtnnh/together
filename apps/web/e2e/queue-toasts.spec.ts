@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
+import { addUrlInput } from "./helpers/room";
 
 test.describe("Phase 3.1 — Queue add toasts", () => {
   test.beforeEach(() => {
@@ -13,8 +14,8 @@ test.describe("Phase 3.1 — Queue add toasts", () => {
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
     const videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill(videoUrl);
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
+    await addUrlInput(page).fill(videoUrl);
+    await addUrlInput(page).press("Enter");
 
     await expect(page.getByRole("status").filter({ hasText: /Added "/i })).toBeVisible({
       timeout: 10000,
@@ -28,8 +29,8 @@ test.describe("Phase 3.1 — Queue add toasts", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).fill("lofi hip hop");
-    await page.getByPlaceholder(/Paste a video\/playlist link/i).press("Enter");
+    await addUrlInput(page).fill("lofi hip hop");
+    await addUrlInput(page).press("Enter");
 
     await expect(
       page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i }),
