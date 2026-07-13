@@ -912,6 +912,17 @@ export class RoomDurableObject implements DurableObject {
     if (!this.state.playback.playing || !this.state.playback.queueItemId) return;
 
     this.lastPlaybackEndedAt = now;
+
+    const loopMode = this.state.settings.loopMode ?? "off";
+    const currentId = this.state.playback.queueItemId;
+    const currentIndex = this.state.queue.findIndex((i) => i.id === currentId);
+    const onLastItem =
+      currentIndex >= 0 && currentIndex >= this.state.queue.length - 1;
+
+    if (loopMode === "off" && onLastItem) {
+      await this.handlePlaybackUpdate({ playing: false });
+    }
+
     await this.advancePlayback("played");
   }
 
