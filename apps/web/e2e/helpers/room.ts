@@ -1,6 +1,11 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+/** Visible connection status (mobile + desktop headers both render one). */
+export function connectionStatusLocator(page: Page) {
+  return page.locator('[data-testid="connection-status"]:visible');
+}
+
 /** Create a room from the landing page and wait for realtime connection. */
 export async function createConnectedRoom(page: Page, displayName = "E2E") {
   await page.goto("/");
@@ -13,7 +18,18 @@ export async function createConnectedRoom(page: Page, displayName = "E2E") {
   await expect(createButton).toBeEnabled({ timeout: 15000 });
   await createButton.click();
   await page.waitForURL(/\/r\//);
-  await expect(page.getByTestId("connection-status")).toContainText(/Connected/i, {
+  await expect(connectionStatusLocator(page)).toContainText(/Connected/i, {
     timeout: 15000,
   });
+}
+
+/** Wait for ephemeral host toast to clear before visual snapshots. */
+export async function waitForRoomUiStable(page: Page) {
+  const hostToast = page.getByText("You are the host");
+  try {
+    await hostToast.waitFor({ state: "visible", timeout: 3000 });
+    await hostToast.waitFor({ state: "hidden", timeout: 8000 });
+  } catch {
+    // Toast may not appear on every join — continue when absent or already dismissed.
+  }
 }

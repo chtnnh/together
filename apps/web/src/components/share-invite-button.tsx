@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Check, Link2, Share2 } from "lucide-react";
 
-export function ShareInviteButton({
+export function useShareInvite({
   slug,
   title,
   privacy,
@@ -47,6 +47,23 @@ export function ShareInviteButton({
     await copyInvite();
   }, [copyInvite, getInviteUrl, title]);
 
+  const actionLabel =
+    privacy === "private" ? "Share invite link" : canShare ? "Share room" : "Copy room link";
+
+  return { shareInvite, copied, canShare, actionLabel };
+}
+
+export function ShareInviteButton({
+  slug,
+  title,
+  privacy,
+}: {
+  slug: string;
+  title?: string;
+  privacy?: string;
+}) {
+  const { shareInvite, copied, canShare, actionLabel } = useShareInvite({ slug, title, privacy });
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -65,9 +82,7 @@ export function ShareInviteButton({
           )}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>
-        {copied ? "Copied!" : canShare ? "Share room" : "Copy room link"}
-      </TooltipContent>
+      <TooltipContent>{copied ? "Copied!" : actionLabel}</TooltipContent>
     </Tooltip>
   );
 }

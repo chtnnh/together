@@ -48,7 +48,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: "list",
-  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{projectName}/{arg}{ext}",
+  // Baselines are platform-specific (darwin vs linux font rendering differ).
+  snapshotPathTemplate:
+    "{testDir}/{testFilePath}-snapshots/{projectName}-{platform}/{arg}{ext}",
   use: {
     baseURL: "http://127.0.0.1:3002",
     trace: "on-first-retry",

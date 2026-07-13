@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 import { expectLeftBeforeRight, expectNoOverlap } from "./helpers/layout";
-import { createConnectedRoom } from "./helpers/room";
+import { createConnectedRoom, connectionStatusLocator } from "./helpers/room";
 
 const MOBILE_VIEWPORTS = [
   { name: "iphone-13", width: 390, height: 844 },
@@ -15,17 +15,21 @@ test.describe("Mobile room UI", () => {
   });
 
   for (const viewport of MOBILE_VIEWPORTS) {
-    test(`header does not overlap actions (${viewport.name})`, async ({ page }) => {
+    test(`header gives room title space (${viewport.name})`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await createConnectedRoom(page, `Mobile ${viewport.name}`);
 
-      const connectionStatus = page.getByTestId("connection-status");
-      const syncButton = page.getByRole("button", { name: "Sync playback" });
+      const title = page.locator("header h1:visible");
+      await expect(title).toBeVisible();
+      const titleBox = await title.boundingBox();
+      expect(titleBox?.width ?? 0).toBeGreaterThan(viewport.width * 0.45);
 
+      const connectionStatus = connectionStatusLocator(page);
+      const participants = page.getByRole("button", { name: "View participants" });
       await expect(connectionStatus).toBeVisible();
-      await expect(syncButton).toBeVisible();
-      await expectLeftBeforeRight(connectionStatus, syncButton);
-      await expectNoOverlap(connectionStatus, syncButton);
+      await expect(participants).toBeVisible();
+      await expectLeftBeforeRight(connectionStatus, participants);
+      await expectNoOverlap(connectionStatus, participants);
     });
 
     test(`shows bottom nav and now-playing bar (${viewport.name})`, async ({ page }) => {

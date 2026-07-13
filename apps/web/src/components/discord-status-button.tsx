@@ -10,7 +10,7 @@ interface DiscordStatusButtonProps {
   slug: string;
 }
 
-export function DiscordStatusButton({ title, artist, slug }: DiscordStatusButtonProps) {
+export function useDiscordStatus({ title, artist, slug }: DiscordStatusButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const copyStatus = useCallback(async () => {
@@ -21,6 +21,12 @@ export function DiscordStatusButton({ title, artist, slug }: DiscordStatusButton
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [artist, slug, title]);
+
+  return { copyStatus, copied };
+}
+
+export function DiscordStatusButton({ title, artist, slug }: DiscordStatusButtonProps) {
+  const { copyStatus, copied } = useDiscordStatus({ title, artist, slug });
 
   return (
     <Tooltip>

@@ -24,11 +24,13 @@ import {
   Plus,
   Music2,
   ListMusic,
+  LogIn,
   MessageSquare,
   History,
   RefreshCw,
   Save,
   FolderOpen,
+  User,
 } from "lucide-react";
 import { PlaybackEmbedErrorBanner } from "@/components/playback-embed-error-banner";
 import { ConnectionStatus } from "@/components/connection-status";
@@ -44,8 +46,8 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { AlternatePicker } from "@/components/alternate-picker";
 import { ParticipantsPanel } from "@/components/participants-panel";
 import { getDisplayName, setDisplayName } from "@/lib/utils";
-import { ShareInviteButton } from "@/components/share-invite-button";
-import { DiscordStatusButton } from "@/components/discord-status-button";
+import { ShareInviteButton, useShareInvite } from "@/components/share-invite-button";
+import { DiscordStatusButton, useDiscordStatus } from "@/components/discord-status-button";
 import { SavePlaylistDialog } from "@/components/save-playlist-dialog";
 import { PlaylistsModal } from "@/components/playlists-modal";
 import { AccountSettingsModal } from "@/components/account-settings-modal";
@@ -63,6 +65,7 @@ import { useSupabaseUser } from "@/hooks/use-supabase-user";
 import { recordRecentRoom } from "@/lib/recent-rooms";
 import { SignInModal } from "@/components/sign-in-modal";
 import { AccountNav } from "@/components/account-nav";
+import { RoomMobileHeader } from "@/components/room-mobile-header";
 import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
 import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
@@ -590,6 +593,17 @@ export function RoomClient({
   const currentTrack = roomState?.queue.find((q) => q.id === playback?.queueItemId);
   const trackDurationMs = Math.max(currentTrack?.durationMs ?? 0, playerDurationMs);
 
+  const { shareInvite, actionLabel: shareActionLabel } = useShareInvite({
+    slug,
+    title: roomTitle,
+    privacy,
+  });
+  const { copyStatus: copyDiscordStatus, copied: discordCopied } = useDiscordStatus({
+    title: currentTrack?.title ?? playback?.title,
+    artist: currentTrack?.artist,
+    slug,
+  });
+
   useKeyboardShortcuts({
     enabled: joined && connected,
     onPlayPause: () => {
@@ -902,96 +916,165 @@ export function RoomClient({
     </>
   );
 
+  const participantsPanel = (
+    <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-xl">
+      <ParticipantsPanel
+        participants={roomState?.participants ?? []}
+        currentId={participant?.id}
+        isHost={isHost}
+        isRoomOwner={isRoomHost}
+        onKick={(id) => send({ type: "moderation:kick", participantId: id })}
+        onBan={(id) => send({ type: "moderation:ban", participantId: id })}
+        onPromote={(id) =>
+          send({ type: "moderation:promote", participantId: id, role: "co-host" })
+        }
+        onDemote={(id) =>
+          send({ type: "moderation:promote", participantId: id, role: "guest" })
+        }
+        onTransferOwnership={handleTransferOwnership}
+      />
+    </div>
+  );
+
+  const mobileMenuExtras = (close: () => void) => (
+    <>
+      {isHost && (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-[var(--bg-secondary)]"
+          onClick={() => {
+            close();
+            signedIn ? setPlaylistsModalOpen(true) : openSignIn();
+          }}
+        >
+          <FolderOpen className="size-4 shrink-0" />
+          Load playlists
+        </button>
+      )}
+      {signedIn ? (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-[var(--bg-secondary)]"
+          onClick={() => {
+            close();
+            setAccountModalOpen(true);
+          }}
+        >
+          <User className="size-4 shrink-0" />
+          Account
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-[var(--bg-secondary)]"
+          onClick={() => {
+            close();
+            openSignIn();
+          }}
+        >
+          <LogIn className="size-4 shrink-0" />
+          Sign in
+        </button>
+      )}
+    </>
+  );
+
+  const nowPlayingThumbnail =
+    currentTrack?.thumbnailUrl ??
+    (playback?.videoId ? `https://i.ytimg.com/vi/${playback.videoId}/default.jpg` : undefined);
+
   return (
     <TooltipProvider>
     <div className="flex h-dvh flex-col md:flex-row">
       <div className="flex min-h-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <h1 className="truncate font-semibold">{roomTitle}</h1>
-            <ConnectionStatus
-              offline={offline}
-              connected={connected}
-              synced={synced}
-              participantCount={roomState?.participants.length ?? 0}
-              slug={slug}
-              showSlug={false}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Sync playback"
-                  onClick={handleSyncPlayback}
-                >
-                  <RefreshCw className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Sync playback</TooltipContent>
-            </Tooltip>
-            <div className="relative" ref={participantsRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 px-2"
-                onClick={() => setParticipantsOpen((open) => !open)}
-                title="View participants"
-              >
-                <Users className="h-4 w-4 shrink-0" />
-                <span className="text-sm tabular-nums">{roomState?.participants.length ?? 0}</span>
-              </Button>
-              {participantsOpen && (
-                <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-xl">
-                  <ParticipantsPanel
-                    participants={roomState?.participants ?? []}
-                    currentId={participant?.id}
-                    isHost={isHost}
-                    isRoomOwner={isRoomHost}
-                    onKick={(id) => send({ type: "moderation:kick", participantId: id })}
-                    onBan={(id) => send({ type: "moderation:ban", participantId: id })}
-                    onPromote={(id) =>
-                      send({ type: "moderation:promote", participantId: id, role: "co-host" })
-                    }
-                    onDemote={(id) =>
-                      send({ type: "moderation:promote", participantId: id, role: "guest" })
-                    }
-                    onTransferOwnership={handleTransferOwnership}
-                  />
-                </div>
-              )}
+        <header className="shrink-0 border-b border-[var(--border)]">
+          <RoomMobileHeader
+            roomTitle={roomTitle}
+            slug={slug}
+            offline={offline}
+            connected={connected}
+            synced={synced}
+            participantCount={roomState?.participants.length ?? 0}
+            onSyncPlayback={handleSyncPlayback}
+            onParticipantsToggle={() => setParticipantsOpen((open) => !open)}
+            participantsOpen={participantsOpen}
+            participantsPanel={participantsPanel}
+            onShare={shareInvite}
+            shareLabel={shareActionLabel}
+            onDiscordStatus={copyDiscordStatus}
+            discordLabel={discordCopied ? "Copied!" : "Copy Discord status"}
+            onSettings={() => setSettingsOpen(true)}
+            menuExtras={mobileMenuExtras}
+          />
+
+          <div className="hidden items-center gap-2 px-4 py-3 md:flex">
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <h1 className="truncate font-semibold">{roomTitle}</h1>
+              <ConnectionStatus
+                offline={offline}
+                connected={connected}
+                synced={synced}
+                participantCount={roomState?.participants.length ?? 0}
+                slug={slug}
+                showSlug={false}
+              />
             </div>
-            <DiscordStatusButton
-              title={currentTrack?.title ?? playback?.title}
-              artist={currentTrack?.artist}
-              slug={slug}
-            />
-            <ShareInviteButton slug={slug} title={roomTitle} privacy={privacy} />
-            <AccountNav
-              signedIn={signedIn}
-              authLoading={authLoading}
-              onSignIn={openSignIn}
-              onPlaylistsClick={() =>
-                signedIn ? setPlaylistsModalOpen(true) : openSignIn()
-              }
-              onAccountClick={() => setAccountModalOpen(true)}
-              compact
-            />
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <div className="flex shrink-0 items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Sync playback"
+                    onClick={handleSyncPlayback}
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Sync playback</TooltipContent>
+              </Tooltip>
+              <div className="relative" ref={participantsRef}>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  aria-label="Settings"
-                  onClick={() => setSettingsOpen(true)}
+                  size="sm"
+                  className="h-8 gap-1.5 px-2"
+                  onClick={() => setParticipantsOpen((open) => !open)}
+                  title="View participants"
                 >
-                  <Settings className="h-5 w-5" />
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span className="text-sm tabular-nums">{roomState?.participants.length ?? 0}</span>
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Settings</TooltipContent>
-            </Tooltip>
+                {participantsOpen && participantsPanel}
+              </div>
+              <DiscordStatusButton
+                title={currentTrack?.title ?? playback?.title}
+                artist={currentTrack?.artist}
+                slug={slug}
+              />
+              <ShareInviteButton slug={slug} title={roomTitle} privacy={privacy} />
+              <AccountNav
+                signedIn={signedIn}
+                authLoading={authLoading}
+                onSignIn={openSignIn}
+                onPlaylistsClick={() =>
+                  signedIn ? setPlaylistsModalOpen(true) : openSignIn()
+                }
+                onAccountClick={() => setAccountModalOpen(true)}
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Settings"
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Settings</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </header>
 
@@ -1047,11 +1130,31 @@ export function RoomClient({
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:hidden">
           {mobileTab === "now-playing" ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4">
-              {userPrefs.audioOnly ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4">
+              {userPrefs.audioOnly || !playback?.videoId ? (
                 <>
-                  <Music2 className="h-12 w-12 text-[var(--accent)]" />
-                  <p className="text-center text-lg font-medium">{playback?.title ?? "Nothing playing"}</p>
+                  {nowPlayingThumbnail ? (
+                    <img
+                      src={nowPlayingThumbnail}
+                      alt=""
+                      className="size-32 rounded-lg object-cover shadow-md"
+                    />
+                  ) : (
+                    <Music2 className="h-12 w-12 text-[var(--accent)]" />
+                  )}
+                  <div className="max-w-sm space-y-1 text-center">
+                    <p className="text-lg font-medium leading-snug">
+                      {playback?.title ?? currentTrack?.title ?? "Nothing playing"}
+                    </p>
+                    {currentTrack?.artist && (
+                      <p className="text-sm text-[var(--text-muted)]">{currentTrack.artist}</p>
+                    )}
+                  </div>
+                  {!playback?.videoId && (
+                    <p className="text-center text-sm text-[var(--text-muted)]">
+                      Add a track from Queue or Requests to start listening together.
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-center text-sm text-[var(--text-muted)]">
@@ -1117,7 +1220,7 @@ export function RoomClient({
           )}
         </div>
 
-        <div className="shrink-0 border-t border-[var(--border)] p-4">
+        <div className="shrink-0 border-t border-[var(--border)] p-3 md:p-4">
           {playbackControls}
         </div>
 
