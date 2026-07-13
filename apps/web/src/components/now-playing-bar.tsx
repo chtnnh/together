@@ -1,11 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { PlaybackState, ReactionEmoji, RoomReaction } from "@together/shared";
 import { SkipVoteBar, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Pause, Play, SkipForward } from "lucide-react";
 import { PlaybackSeekBar } from "@/components/playback-seek-bar";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
 import { NowPlayingReactions } from "@/components/now-playing-reactions";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface NowPlayingBarProps {
   playback: PlaybackState | null;
@@ -35,6 +37,49 @@ interface NowPlayingBarProps {
   reducedMotion?: boolean;
 }
 
+function MobileSkipVotes({
+  voteCount,
+  required,
+  hasVoted,
+  onVote,
+  reactions,
+}: {
+  voteCount: number;
+  required: number;
+  hasVoted: boolean;
+  onVote: () => void;
+  reactions?: ReactNode;
+}) {
+  const pct = required > 0 ? Math.min(100, (voteCount / required) * 100) : 0;
+
+  return (
+    <div
+      className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 pt-1"
+      data-testid="skip-vote-bar"
+    >
+      <span className="col-start-1 row-start-1 text-xs tabular-nums">
+        Skip {voteCount}/{required}
+      </span>
+      <div className="col-start-1 row-start-2 h-1 overflow-hidden rounded-full bg-[var(--border)]">
+        <div className="h-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <button
+        type="button"
+        onClick={onVote}
+        disabled={hasVoted}
+        className="col-start-1 row-start-3 justify-self-start rounded-md bg-red-600/20 px-2 py-0.5 text-xs text-red-400 hover:bg-red-600/30 disabled:opacity-50"
+      >
+        {hasVoted ? "Voted" : "Vote to skip"}
+      </button>
+      {reactions ? (
+        <div className="col-start-2 row-start-1 row-span-3 flex items-center self-center">
+          {reactions}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function NowPlayingBar({
   playback,
   title,
@@ -57,8 +102,18 @@ export function NowPlayingBar({
   incomingReactions = [],
   reducedMotion = false,
 }: NowPlayingBarProps) {
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const displayTitle = title ?? playback?.title ?? "Nothing playing";
   const showTransport = canControlPlayback && playback?.videoId;
+
+  const reactions = onReactionSend ? (
+    <NowPlayingReactions
+      onSend={onReactionSend}
+      incoming={incomingReactions}
+      inline
+      reducedMotion={reducedMotion}
+    />
+  ) : null;
 
   return (
     <div
@@ -146,31 +201,29 @@ export function NowPlayingBar({
         </div>
       )}
 
-      {(skipVotes || onReactionSend) && (
-        <div className="flex items-end justify-between gap-3 pt-1">
-          {skipVotes ? (
-            <div className="w-1/2 min-w-0">
+      {(skipVotes || onReactionSend) &&
+        (isMobile && skipVotes ? (
+          <MobileSkipVotes
+            voteCount={skipVotes.voteCount}
+            required={skipVotes.required}
+            hasVoted={skipVotes.hasVoted}
+            onVote={skipVotes.onVote}
+            reactions={reactions}
+          />
+        ) : (
+          <div className="flex items-end justify-between gap-3 pt-1">
+            {skipVotes ? (
               <SkipVoteBar
                 voteCount={skipVotes.voteCount}
                 required={skipVotes.required}
                 hasVoted={skipVotes.hasVoted}
                 onVote={skipVotes.onVote}
-                compact
+                compact={false}
               />
-            </div>
-          ) : (
-            <div className="w-1/2" />
-          )}
-          {onReactionSend ? (
-            <NowPlayingReactions
-              onSend={onReactionSend}
-              incoming={incomingReactions}
-              inline
-              reducedMotion={reducedMotion}
-            />
-          ) : null}
-        </div>
-      )}
+            ) : null}
+            {reactions ? <div className="shrink-0">{reactions}</div> : null}
+          </div>
+        ))}
     </div>
   );
 }

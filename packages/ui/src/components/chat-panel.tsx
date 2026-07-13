@@ -75,14 +75,32 @@ export function SkipVoteBar({
   hasVoted,
   onVote,
   compact = false,
+  stacked = false,
 }: {
   voteCount: number;
   required: number;
   hasVoted: boolean;
   onVote: () => void;
   compact?: boolean;
+  stacked?: boolean;
 }) {
   const pct = required > 0 ? Math.min(100, (voteCount / required) * 100) : 0;
+  const voteLabel = compact ? `Skip ${voteCount}/${required}` : `Skip votes: ${voteCount} / ${required}`;
+  const progressBar = (
+    <div className={`overflow-hidden rounded-full bg-[var(--border)] ${compact ? "h-1" : "h-1.5"}`}>
+      <div className="h-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
+    </div>
+  );
+  const voteButton = (
+    <button
+      type="button"
+      onClick={onVote}
+      disabled={hasVoted}
+      className="shrink-0 rounded-md bg-red-600/20 px-2 py-0.5 text-xs text-red-400 hover:bg-red-600/30 disabled:opacity-50"
+    >
+      {hasVoted ? "Voted" : "Vote to skip"}
+    </button>
+  );
 
   return (
     <div
@@ -93,22 +111,27 @@ export function SkipVoteBar({
       }
       data-testid="skip-vote-bar"
     >
-      <div
-        className={`flex items-center justify-between gap-2 ${compact ? "mb-1 text-xs" : "mb-2 text-sm"}`}
-      >
-        <span className="truncate">Skip votes: {voteCount} / {required}</span>
-        <button
-          type="button"
-          onClick={onVote}
-          disabled={hasVoted}
-          className="shrink-0 rounded-md bg-red-600/20 px-2 py-0.5 text-xs text-red-400 hover:bg-red-600/30 disabled:opacity-50"
-        >
-          {hasVoted ? "Voted" : "Vote to skip"}
-        </button>
-      </div>
-      <div className={`overflow-hidden rounded-full bg-[var(--border)] ${compact ? "h-1" : "h-1.5"}`}>
-        <div className="h-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
-      </div>
+      {compact && stacked ? (
+        <div className="space-y-1.5 text-xs">
+          <div className="space-y-1">
+            <span className="block whitespace-nowrap tabular-nums">{voteLabel}</span>
+            {progressBar}
+          </div>
+          {voteButton}
+        </div>
+      ) : (
+        <>
+          <div
+            className={`flex items-center gap-2 ${compact ? "mb-1 text-xs" : "mb-2 text-sm"}`}
+          >
+            <span className={compact ? "whitespace-nowrap tabular-nums" : "truncate"}>
+              {voteLabel}
+            </span>
+            {voteButton}
+          </div>
+          {progressBar}
+        </>
+      )}
     </div>
   );
 }
