@@ -10,6 +10,7 @@ interface ConnectionStatusProps {
   slug: string;
   /** Omit slug in tight headers (room page already shows the room name). */
   showSlug?: boolean;
+  className?: string;
 }
 
 export function connectionStatusLabel({
@@ -35,7 +36,7 @@ export function ConnectionStatus(props: ConnectionStatusProps) {
 
   return (
     <p
-      className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]"
+      className={`flex items-center gap-1.5 text-xs text-[var(--text-muted)] ${props.className ?? ""}`}
       data-testid="connection-status"
       aria-live="polite"
     >

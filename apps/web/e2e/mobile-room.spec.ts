@@ -19,7 +19,7 @@ test.describe("Mobile room UI", () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await createConnectedRoom(page, `Mobile ${viewport.name}`);
 
-      const title = page.locator("header h1:visible");
+      const title = page.locator("header h1");
       await expect(title).toBeVisible();
       const titleBox = await title.boundingBox();
       expect(titleBox?.width ?? 0).toBeGreaterThan(viewport.width * 0.45);

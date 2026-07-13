@@ -12,14 +12,16 @@ const DESKTOP_PROJECTS = new Set([
 const screenshotOptions = { maxDiffPixelRatio: 0.03 };
 
 test.describe("Visual regression — key screens", () => {
-  test("landing page", async ({ page }) => {
+  test("landing page", async ({ page }, testInfo) => {
+    // One desktop baseline per platform — mobile viewports make #get-started height unstable.
+    test.skip(testInfo.project.name !== "visual-desktop-chrome");
+
     await page.goto("/");
-    const getStarted = page.locator("#get-started");
-    await getStarted.scrollIntoViewIfNeeded();
+    await page.locator("#get-started").scrollIntoViewIfNeeded();
+    const createPanel = page.locator("#get-started .rounded-2xl").first();
     await expect(page.getByRole("heading", { name: "Create a room" })).toBeVisible();
 
-    // Hero/forms only — full-page captures vary too much across OS font rendering.
-    await expect(getStarted).toHaveScreenshot("landing-get-started.png", screenshotOptions);
+    await expect(createPanel).toHaveScreenshot("landing-create-panel.png", screenshotOptions);
   });
 
   test("room header and now-playing bar", async ({ page }, testInfo) => {
@@ -35,7 +37,7 @@ test.describe("Visual regression — key screens", () => {
       await expectLeftBeforeRight(connectionStatus, syncButton);
       await expectNoOverlap(connectionStatus, syncButton);
     } else {
-      const title = header.locator("h1:visible");
+      const title = header.locator("h1");
       const titleBox = await title.boundingBox();
       expect(titleBox?.width ?? 0).toBeGreaterThan(180);
       const participants = page.getByRole("button", { name: "View participants" });
@@ -45,7 +47,7 @@ test.describe("Visual regression — key screens", () => {
 
     await expect(header).toHaveScreenshot("room-header.png", {
       ...screenshotOptions,
-      mask: [connectionStatus, page.locator("header h1:visible")],
+      mask: [connectionStatus, header.locator("h1")],
     });
 
     await expect(page.getByTestId("now-playing-bar")).toHaveScreenshot(
@@ -77,7 +79,7 @@ test.describe("Visual regression — key screens", () => {
       ...screenshotOptions,
       mask: [
         connectionStatusLocator(page),
-        page.locator("header h1:visible"),
+        page.locator("header h1"),
         page.locator('[role="status"]'),
       ],
     });

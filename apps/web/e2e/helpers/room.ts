@@ -1,9 +1,9 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-/** Visible connection status (mobile + desktop headers both render one). */
+/** Visible connection status (single instance in room header). */
 export function connectionStatusLocator(page: Page) {
-  return page.locator('[data-testid="connection-status"]:visible');
+  return page.getByTestId("connection-status");
 }
 
 /** Create a room from the landing page and wait for realtime connection. */

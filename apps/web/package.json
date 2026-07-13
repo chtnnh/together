@@ -9,9 +9,8 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "playwright test --project=chromium --project=mobile-chrome",
-    "test:visual": "PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test visual-regression.spec.ts",
-    "test:visual:update": "PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test visual-regression.spec.ts --update-snapshots",
-    "test:visual:update:linux": "bash scripts/update-visual-snapshots-linux.sh",
+    "test:visual": "bash scripts/visual-regression-linux.sh test",
+    "test:visual:update": "bash scripts/visual-regression-linux.sh update",
     "test:mobile": "playwright test mobile-room.spec.ts",
     "test:install": "playwright install --with-deps chromium firefox webkit"
   },
