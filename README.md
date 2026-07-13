@@ -270,6 +270,14 @@ Playwright specs live in `apps/web/e2e/`. Requires **Node.js 22+** (Wrangler dev
 
 ## Releases
 
+### v0.3.1
+
+- Mobile room layout: unified header, four-tab nav (Queue default), full-height chat, bottom add URL bar
+- Skip vote UI beside reactions on mobile; full copy and tight layout on desktop
+- Queue loop toggle (go through queue → loop queue → loop video) on the Queue tab
+- Playback fixes: no replay stutter when queue ends; tab blur no longer stops sync
+- Visual regression CI runs in Linux Docker with a single canonical snapshot set
+
 ### v0.3.0
 
 - Unified playlist import via the room add bar (YouTube, Spotify, SoundCloud, Apple Music URLs)
@@ -294,4 +302,4 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ## Acknowledgments
 
-Built by [chtnnh](https://me.chtnnhfoundation.org). v0.3.0 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
+Built by [chtnnh](https://me.chtnnhfoundation.org). v0.3.1 — [together.chtnnhfoundation.org](https://together.chtnnhfoundation.org) · [Source on GitHub](https://github.com/chtnnh/together)
