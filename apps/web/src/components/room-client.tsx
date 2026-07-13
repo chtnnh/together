@@ -39,10 +39,12 @@ import { useRoomSocket } from "@/hooks/use-room-socket";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { ChatInput, ChatMessages } from "@/components/emoji-chat";
 import { NowPlayingBar } from "@/components/now-playing-bar";
+import { QueueLoopButton } from "@/components/queue-loop-button";
 import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SettingsDrawer } from "@/components/room-settings";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useVisualViewportHeight } from "@/hooks/use-visual-viewport-height";
 import { AlternatePicker } from "@/components/alternate-picker";
 import { ParticipantsPanel } from "@/components/participants-panel";
 import { getDisplayName, setDisplayName } from "@/lib/utils";
@@ -67,7 +69,7 @@ import { SignInModal } from "@/components/sign-in-modal";
 import { AccountNav } from "@/components/account-nav";
 import { RoomMobileMoreMenu } from "@/components/room-mobile-header";
 import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
-import { getEffectivePlaybackPosition, roomSettingsSchema } from "@together/shared";
+import { getEffectivePlaybackPosition, roomSettingsSchema, type RoomSettings } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
 
 function ImportResultRow({
@@ -161,7 +163,7 @@ export function RoomClient({
   }, [initialDisplayName]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addUrl, setAddUrl] = useState("");
-  const [mobileTab, setMobileTab] = useState("now-playing");
+  const [mobileTab, setMobileTab] = useState("queue");
   const [pickRequest, setPickRequest] = useState<RequestItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -199,6 +201,7 @@ export function RoomClient({
   }, []);
 
   const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences(signedIn);
+  const viewportHeight = useVisualViewportHeight();
 
   const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline, clockOffsetMs, chatNotice, dismissChatNotice } = useRoomSocket({
     roomId,
@@ -681,6 +684,53 @@ export function RoomClient({
   );
   const hasVotedSkip = roomState?.skipVotes?.votes.includes(participant?.id ?? "") ?? false;
   const promoteRequired = skipRequired;
+  const canEditLoop = isHost || !settings?.controlsLocked;
+
+  const handleLoopModeChange = (loopMode: RoomSettings["loopMode"]) => {
+    send({ type: "settings:update", settings: { loopMode } });
+    if (isHost) {
+      void fetch(`/api/rooms/${slug}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loopMode }),
+      });
+    }
+  };
+
+  const queueTabToolbar = (
+    <div className="mb-2 flex items-center justify-between gap-2">
+      {canEditLoop ? (
+        <QueueLoopButton
+          loopMode={settings?.loopMode ?? "off"}
+          onChange={handleLoopModeChange}
+        />
+      ) : (
+        <span />
+      )}
+      {(roomState?.queue.length ?? 0) > 0 ? (
+        <div className="flex items-center gap-2">
+          {isHost && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-[var(--text-muted)]"
+              onClick={() => send({ type: "queue:clear", lane: "queue" })}
+            >
+              Clear all
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => (signedIn ? setSavePlaylistOpen(true) : openSignIn())}
+          >
+            <Save className="mr-1.5 size-4" />
+            Save queue
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
 
   const requestListProps = {
     items: roomState?.requests ?? [],
@@ -766,32 +816,44 @@ export function RoomClient({
 
   const playbackControls = nowPlayingBar;
 
-  const addTrackHeader = (
-    <div className="shrink-0 border-b border-[var(--border)] p-3">
-      <div className="flex items-center gap-2">
-        <Input
-          ref={addUrlInputRef}
-          value={addUrl}
-          onChange={(e) => {
-            setAddUrl(e.target.value);
-            if (searchResults) setSearchResults(null);
-          }}
-          placeholder="Paste a video/playlist link or search…"
-          onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
-          className="min-w-0 flex-1"
-        />
-        <Button size="icon" onClick={handleAddUrl} disabled={loading} title="Add to queue">
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      {addError && <p className="mt-2 text-xs text-red-400">{addError}</p>}
-      {searchResults && searchResults.length > 0 && (
-        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1">
-          {searchResults.map((item) => (
-            <ImportResultRow key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)} item={item} onPick={handlePickSearchResult} />
-          ))}
-        </ul>
-      )}
+  const addTrackInputRow = (
+    <div className="flex items-center gap-2">
+      <Input
+        ref={addUrlInputRef}
+        value={addUrl}
+        onChange={(e) => {
+          setAddUrl(e.target.value);
+          if (searchResults) setSearchResults(null);
+        }}
+        placeholder="Paste a video/playlist link or search…"
+        onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
+        onFocus={() => {
+          requestAnimationFrame(() => {
+            addUrlInputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          });
+        }}
+        className="min-w-0 flex-1"
+      />
+      <Button size="icon" onClick={handleAddUrl} disabled={loading} title="Add to queue">
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const addTrackSearchResults =
+    searchResults && searchResults.length > 0 ? (
+      <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1">
+        {searchResults.map((item) => (
+          <ImportResultRow key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)} item={item} onPick={handlePickSearchResult} />
+        ))}
+      </ul>
+    ) : null;
+
+  const addTrackFooter = (
+    <div className="flex shrink-0 flex-col-reverse border-t border-[var(--border)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+      {addTrackInputRow}
+      {addError && <p className="mb-2 text-xs text-red-400">{addError}</p>}
+      {addTrackSearchResults && <div className="mb-2">{addTrackSearchResults}</div>}
     </div>
   );
 
@@ -865,30 +927,7 @@ export function RoomClient({
         </TabsContent>
 
         <TabsContent value="queue" className="flex flex-1 flex-col overflow-hidden px-2">
-          {(roomState?.queue.length ?? 0) > 0 && (
-            <div className="mb-2 flex items-center justify-end gap-2">
-              {isHost && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-[var(--text-muted)]"
-                  onClick={() => send({ type: "queue:clear", lane: "queue" })}
-                >
-                  Clear all
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  signedIn ? setSavePlaylistOpen(true) : openSignIn()
-                }
-              >
-                <Save className="mr-1.5 size-4" />
-                Save queue
-              </Button>
-            </div>
-          )}
+          {queueTabToolbar}
           <div className="flex-1 overflow-y-auto">
           <QueueList
             items={roomState?.queue ?? []}
@@ -979,13 +1018,16 @@ export function RoomClient({
     </>
   );
 
-  const nowPlayingThumbnail =
-    currentTrack?.thumbnailUrl ??
-    (playback?.videoId ? `https://i.ytimg.com/vi/${playback.videoId}/default.jpg` : undefined);
-
   return (
     <TooltipProvider>
-    <div className="flex h-dvh flex-col md:flex-row">
+    <div
+      className="flex h-dvh flex-col md:flex-row"
+      style={
+        viewportHeight != null
+          ? { height: viewportHeight, maxHeight: viewportHeight }
+          : undefined
+      }
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-[var(--border)] px-4 py-2.5 md:py-3">
           <div className="flex items-start gap-2 md:items-center">
@@ -1127,72 +1169,17 @@ export function RoomClient({
         )}
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:hidden">
-          {mobileTab === "now-playing" ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4">
-              {userPrefs.audioOnly || !playback?.videoId ? (
-                <>
-                  {nowPlayingThumbnail ? (
-                    <img
-                      src={nowPlayingThumbnail}
-                      alt=""
-                      className="size-32 rounded-lg object-cover shadow-md"
-                    />
-                  ) : (
-                    <Music2 className="h-12 w-12 text-[var(--accent)]" />
-                  )}
-                  <div className="max-w-sm space-y-1 text-center">
-                    <p className="text-lg font-medium leading-snug">
-                      {playback?.title ?? currentTrack?.title ?? "Nothing playing"}
-                    </p>
-                    {currentTrack?.artist && (
-                      <p className="text-sm text-[var(--text-muted)]">{currentTrack.artist}</p>
-                    )}
-                  </div>
-                  {!playback?.videoId && (
-                    <p className="text-center text-sm text-[var(--text-muted)]">
-                      Add a track from Queue or Requests to get started.
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="text-center text-sm text-[var(--text-muted)]">
-                  Watch the player above — controls are pinned below.
-                </p>
-              )}
-            </div>
+          {mobileTab === "chat" ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{chatPanel}</div>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {(mobileTab === "requests" || mobileTab === "queue") && addTrackHeader}
+            <>
               <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2">
                 {mobileTab === "requests" && (
                   <RequestList {...requestListProps} />
                 )}
                 {mobileTab === "queue" && (
                   <>
-                    {(roomState?.queue.length ?? 0) > 0 && (
-                      <div className="mb-2 flex items-center justify-end gap-2">
-                        {isHost && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-[var(--text-muted)]"
-                            onClick={() => send({ type: "queue:clear", lane: "queue" })}
-                          >
-                            Clear all
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            signedIn ? setSavePlaylistOpen(true) : openSignIn()
-                          }
-                        >
-                          <Save className="mr-1.5 size-4" />
-                          Save queue
-                        </Button>
-                      </div>
-                    )}
+                    {queueTabToolbar}
                     <QueueList
                       items={roomState?.queue ?? []}
                       currentItemId={playback?.queueItemId}
@@ -1211,10 +1198,8 @@ export function RoomClient({
                   <HistoryList items={roomState?.history ?? []} onReAdd={reAddFromHistory} />
                 )}
               </div>
-              {mobileTab === "chat" && (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{chatPanel}</div>
-              )}
-            </div>
+              {(mobileTab === "requests" || mobileTab === "queue") && addTrackFooter}
+            </>
           )}
         </div>
 
@@ -1222,9 +1207,8 @@ export function RoomClient({
           {playbackControls}
         </div>
 
-        <nav className="flex shrink-0 border-t border-[var(--border)] md:hidden">
+        <nav className="flex shrink-0 border-t border-[var(--border)] pb-[env(safe-area-inset-bottom,0px)] md:hidden">
           {[
-            { id: "now-playing", icon: Music2, label: "Now" },
             { id: "requests", icon: ListMusic, label: "Requests" },
             { id: "queue", icon: ListMusic, label: "Queue" },
             { id: "history", icon: History, label: "History" },

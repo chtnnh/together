@@ -102,12 +102,15 @@ export function ChatMessages({
       className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
     >
       {joinNotice ? (
-        <p role="status" className="text-xs text-[var(--text-muted)]">
+        <p
+          role="status"
+          className="mx-auto max-w-sm px-4 py-8 text-center text-sm leading-relaxed text-[var(--text-muted)]"
+        >
           {joinNotice}
         </p>
       ) : null}
       {messages.length === 0 && !joinNotice ? (
-        <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+        <p className="mx-auto max-w-sm px-4 py-8 text-center text-sm text-[var(--text-muted)]">
           No messages yet. Say hi!
         </p>
       ) : null}
@@ -323,7 +326,7 @@ export function ChatInput({
   const mentionOpen = mentionQuery !== null && mentionMatches.length > 0;
 
   return (
-    <form onSubmit={handleSubmit} className="relative flex shrink-0 items-center gap-2 border-t border-[var(--border)] p-3">
+    <form onSubmit={handleSubmit} className="relative flex shrink-0 items-center gap-2 border-t border-[var(--border)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
       <EmojiPickerButton onSelect={appendEmoji} />
       <input
         ref={inputRef}
@@ -360,6 +363,11 @@ export function ChatInput({
         }
         disabled={slowModeActive}
         maxLength={2000}
+        onFocus={() => {
+          requestAnimationFrame(() => {
+            inputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          });
+        }}
         className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50"
         aria-autocomplete={mentionOpen ? "list" : undefined}
         aria-controls={mentionOpen ? "mention-listbox" : undefined}

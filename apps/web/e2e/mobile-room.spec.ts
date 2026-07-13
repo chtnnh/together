@@ -36,7 +36,7 @@ test.describe("Mobile room UI", () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await createConnectedRoom(page, `Mobile ${viewport.name}`);
 
-      const mobileNav = page.locator("nav").filter({ has: page.getByText("Now", { exact: true }) });
+      const mobileNav = page.locator("nav").filter({ has: page.getByText("Queue", { exact: true }) });
       await expect(mobileNav).toBeVisible();
       await expect(page.getByTestId("now-playing-bar")).toBeVisible();
     });
@@ -45,8 +45,8 @@ test.describe("Mobile room UI", () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await createConnectedRoom(page, `Mobile ${viewport.name}`);
 
-      const bottomNav = page.locator("nav").filter({ has: page.getByText("Now", { exact: true }) });
-      await bottomNav.getByRole("button", { name: "Queue" }).click();
+      const bottomNav = page.locator("nav").filter({ has: page.getByText("Queue", { exact: true }) });
+      await bottomNav.getByRole("button", { name: "Requests" }).click();
       await expect(page.getByPlaceholder(/Paste a video\/playlist link/i).first()).toBeVisible();
 
       await bottomNav.getByRole("button", { name: "Chat" }).click();

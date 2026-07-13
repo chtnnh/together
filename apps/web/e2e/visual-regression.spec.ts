@@ -62,7 +62,7 @@ test.describe("Visual regression — key screens", () => {
     await createConnectedRoom(page, "Mobile UI");
     await waitForRoomUiStable(page);
 
-    const mobileNav = page.locator("nav").filter({ has: page.getByText("Now", { exact: true }) });
+    const mobileNav = page.locator("nav").filter({ has: page.getByText("Queue", { exact: true }) });
     await expect(mobileNav).toBeVisible();
 
     await expect(mobileNav).toHaveScreenshot("room-mobile-nav.png", screenshotOptions);
