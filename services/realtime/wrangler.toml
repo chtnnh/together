@@ -25,6 +25,11 @@ bindings = [
   { name = "ROOM", class_name = "RoomDurableObject" }
 ]
 
+# Workers Analytics Engine — dataset is created on first write (see Cloudflare dashboard → Analytics).
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "together_realtime"
+
 [vars]
 ENVIRONMENT = "development"
 APP_URL = "http://127.0.0.1:3002"

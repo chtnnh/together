@@ -1,7 +1,7 @@
 import "@together/ui/globals.css";
 import type { Metadata, Viewport } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { AuthConfigProvider } from "@/components/auth-config-provider";
+import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 import { ToastProvider } from "@/components/toast";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ThemeBootstrap } from "@/components/theme-bootstrap";
@@ -71,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ServiceWorkerRegister />
             <div id="main-content">{children}</div>
           </ToastProvider>
-          <Analytics />
+          <CloudflareWebAnalytics />
         </AuthConfigProvider>
       </body>
     </html>

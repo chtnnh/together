@@ -113,8 +113,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Service analytics</strong> — aggregated, privacy-oriented usage analytics
-            via Vercel Analytics on the web app. We do not use third-party advertising
-            trackers.
+            via Cloudflare Web Analytics (page views on the web app) and Cloudflare Workers
+            Analytics Engine (aggregated realtime events such as joins and skips). We do not
+            use third-party advertising trackers.
           </li>
           <li>
             <strong>Realtime session data</strong> — while a room is active, playback position,
@@ -210,15 +211,15 @@ export default function PrivacyPage() {
             .
           </li>
           <li>
-            <strong>Cloudflare</strong> — realtime WebSocket infrastructure and Durable Object
-            storage. See{" "}
+            <strong>Cloudflare</strong> — realtime WebSocket infrastructure, Durable Object
+            storage, web analytics, and aggregated usage metrics. See{" "}
             <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener noreferrer">
               Cloudflare&apos;s Privacy Policy
             </a>
             .
           </li>
           <li>
-            <strong>Vercel</strong> — web hosting and analytics. See{" "}
+            <strong>Vercel</strong> — web hosting. See{" "}
             <a href="https://vercel.com/legal/privacy-policy" rel="noopener noreferrer">
               Vercel&apos;s Privacy Policy
             </a>

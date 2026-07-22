@@ -16,6 +16,7 @@ import {
   type ReactionEmoji,
 } from "@together/shared";
 import { parseClientEvent } from "@together/shared/events";
+import { trackRealtimeEvent } from "./analytics";
 import { generateId } from "./utils";
 
 const EMPTY_ROOM_GRACE_MS = 5 * 60 * 1000;
@@ -336,6 +337,10 @@ export class RoomDurableObject implements DurableObject {
             });
           }
           if (!existing) {
+            trackRealtimeEvent(this.env.ANALYTICS, "room.joined", {
+              roomSlug: this.state.slug,
+              value: this.state.participants.length,
+            });
             this.broadcast(
               {
                 type: "activity",
@@ -343,6 +348,9 @@ export class RoomDurableObject implements DurableObject {
               },
               ws,
             );
+          }
+          if (becameHost) {
+            trackRealtimeEvent(this.env.ANALYTICS, "room.host_joined", { roomSlug: this.state.slug });
           }
           return;
         }
@@ -696,6 +704,10 @@ export class RoomDurableObject implements DurableObject {
     this.state.requests = [...this.state.requests, item];
     await this.persist();
     this.broadcastQueue();
+    trackRealtimeEvent(this.env.ANALYTICS, "track.added", {
+      roomSlug: this.state.slug,
+      label: "request",
+    });
 
     if (
       this.state.settings.autoPromoteRequests &&
@@ -734,6 +746,10 @@ export class RoomDurableObject implements DurableObject {
       this.state.requests = [...this.state.requests, requestItem];
       await this.persist();
       this.broadcastQueue();
+      trackRealtimeEvent(this.env.ANALYTICS, "track.added", {
+        roomSlug: this.state.slug,
+        label: "request",
+      });
       return;
     }
 
@@ -756,6 +772,10 @@ export class RoomDurableObject implements DurableObject {
     this.state.queue = [...this.state.queue, queueItem];
     await this.persist();
     this.broadcastQueue();
+    trackRealtimeEvent(this.env.ANALYTICS, "track.added", {
+      roomSlug: this.state.slug,
+      label: "queue",
+    });
 
     if (!this.state.playback.videoId) {
       await this.playQueueItem(queueItem);
@@ -927,6 +947,10 @@ export class RoomDurableObject implements DurableObject {
   }
 
   private async advancePlayback(reason: "skipped" | "played") {
+    if (reason === "skipped") {
+      trackRealtimeEvent(this.env.ANALYTICS, "track.skipped", { roomSlug: this.state.slug });
+    }
+
     const loopMode = this.state.settings.loopMode ?? "off";
     const currentId = this.state.playback.queueItemId;
     const currentIndex = this.state.queue.findIndex((i) => i.id === currentId);
@@ -1350,6 +1374,7 @@ export class RoomDurableObject implements DurableObject {
 
 export interface Env {
   ROOM: DurableObjectNamespace;
+  ANALYTICS?: AnalyticsEngineDataset;
   ENVIRONMENT: string;
   APP_URL?: string;
   ROOM_TOKEN_SECRET?: string;

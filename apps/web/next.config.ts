@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
       publicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
     NEXT_PUBLIC_APP_URL: publicEnv("NEXT_PUBLIC_APP_URL"),
     NEXT_PUBLIC_REALTIME_URL: publicEnv("NEXT_PUBLIC_REALTIME_URL"),
+    NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN: publicEnv("NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN"),
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: publicEnv("NEXT_PUBLIC_SPOTIFY_CLIENT_ID"),
   },
   transpilePackages: ["@together/ui", "@together/shared", "@together/db", "@together/track-resolver"],
