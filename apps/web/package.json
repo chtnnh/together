@@ -25,7 +25,7 @@
     "@together/ui": "workspace:*",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.44.2",
+    "drizzle-orm": "^0.45.2",
     "emoji-mart": "^5.6.0",
     "jose": "^6.0.11",
     "lucide-react": "^0.525.0",
