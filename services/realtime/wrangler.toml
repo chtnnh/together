@@ -50,6 +50,10 @@ bindings = [
 ENVIRONMENT = "production"
 APP_URL = "https://together.chtnnhfoundation.org"
 
+[[env.production.analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "together_realtime"
+
 [observability]
 enabled = true
 head_sampling_rate = 1
