@@ -48,7 +48,7 @@ function renderMessageBody(body: string, currentParticipantId?: string, particip
           }
         >
           @{matched.displayName}
-        </span>,
+        </span>
       );
       i += 1 + matched.displayName.length;
     } else {
@@ -99,7 +99,8 @@ export function ChatMessages({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
+      dir="ltr"
+      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2 text-left [direction:ltr]"
     >
       {joinNotice ? (
         <p
@@ -120,17 +121,22 @@ export function ChatMessages({
           participants.some(
             (p) =>
               p.id === currentParticipantId &&
-              msg.body.toLowerCase().includes(`@${p.displayName.toLowerCase()}`),
+              msg.body.toLowerCase().includes(`@${p.displayName.toLowerCase()}`)
           );
 
         return (
           <div
             key={msg.id}
-            className={`text-sm ${mentionedYou ? "rounded-md bg-[var(--accent)]/10 px-2 py-1" : ""}`}
+            dir="ltr"
+            className={`text-sm text-left [direction:ltr] [transform:none] ${
+              mentionedYou ? "rounded-md bg-[var(--accent)]/10 px-2 py-1" : ""
+            }`}
           >
             <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
             <span className="mx-1 text-[var(--text-muted)]">·</span>
-            <span>{renderMessageBody(msg.body, currentParticipantId, participants)}</span>
+            <span dir="ltr" className="inline-block [direction:ltr] [transform:none]">
+              {renderMessageBody(msg.body, currentParticipantId, participants)}
+            </span>
           </div>
         );
       })}
@@ -223,7 +229,7 @@ export function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
               theme="dark"
             />
           </div>,
-          document.body,
+          document.body
         )}
     </>
   );
@@ -268,7 +274,7 @@ export function ChatInput({
           .filter((p) =>
             mentionQuery === ""
               ? true
-              : p.displayName.toLowerCase().includes(mentionQuery.toLowerCase()),
+              : p.displayName.toLowerCase().includes(mentionQuery.toLowerCase())
           )
           .slice(0, 8);
 
@@ -326,7 +332,10 @@ export function ChatInput({
   const mentionOpen = mentionQuery !== null && mentionMatches.length > 0;
 
   return (
-    <form onSubmit={handleSubmit} className="relative flex shrink-0 items-center gap-2 border-t border-[var(--border)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+    <form
+      onSubmit={handleSubmit}
+      className="relative flex shrink-0 items-center gap-2 border-t border-[var(--border)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+    >
       <EmojiPickerButton onSelect={appendEmoji} />
       <input
         ref={inputRef}
