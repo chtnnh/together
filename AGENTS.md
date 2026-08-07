@@ -28,7 +28,7 @@ pnpm typecheck
 pnpm test:unit         # Vitest (all packages)
 pnpm ci:local          # Full merge gate (same as CI)
 pnpm ci:pre-commit     # Hook: incremental checks
-pnpm ci:pre-push       # Hook: smoke + affected E2E
+pnpm ci:pre-push       # Hook: quality + affected unit/build (no E2E/visual)
 pnpm --filter @together/web test:install   # first time / CI
 pnpm --filter @together/web test
 pnpm --filter @together/realtime dev       # requires Node 22+

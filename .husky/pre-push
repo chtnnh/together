@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 [ "$SKIP_HOOKS" = "1" ] && exit 0
 pnpm ci:pre-push
-# Optional machine-local extensions (gitignored) — e.g. know-code quiz gate
+# Optional machine-local extensions (gitignored) - e.g. know-code quiz gate
 if [ -f "$(dirname -- "$0")/pre-push.local" ]; then
   . "$(dirname -- "$0")/pre-push.local"
 fi

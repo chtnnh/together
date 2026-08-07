@@ -29,11 +29,11 @@ Hooks catch most issues early without running the full ~15-minute suite on every
 | Hook | Command | Typical duration |
 |------|---------|------------------|
 | **pre-commit** | `pnpm ci:pre-commit` | ~30–90s |
-| **pre-push** | `pnpm ci:pre-push` | ~3–8 min |
+| **pre-push** | `pnpm ci:pre-push` | ~1-5 min |
 
 **pre-commit:** `lint-staged` (Biome auto-fix), Biome on changed files, affected typecheck, Vitest `--changed`, DB guard if `schema.ts` changed.
 
-**pre-push:** full Biome, affected typecheck/unit, conditional build, `@smoke` Playwright + path-mapped affected specs, visual regression if UI changed. Large diffs (>30 files) or CI infra changes run full `ci:local`.
+**pre-push:** full Biome, affected typecheck/unit, conditional build, DB guard if schema changed. Large diffs (>30 files) or CI infra changes run full quality + build + unit + db (no E2E/visual; CI covers those).
 
 Skip hooks when necessary (you are responsible for CI):
 

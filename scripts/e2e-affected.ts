@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Maps changed file globs to Playwright spec files (space-separated stdout).
- * Used by ci-pre-push.sh alongside @smoke tests.
+ * Used by contributors manually; pre-push hook no longer runs Playwright.
  */
 import { execSync } from "node:child_process";
 

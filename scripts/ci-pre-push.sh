@@ -7,9 +7,13 @@ cd "$ROOT"
 # shellcheck source=scripts/affected.sh
 source "$ROOT/scripts/affected.sh"
 
+# E2E and visual run in CI only (pnpm ci:local / GitHub Actions).
 if [ "${CHANGED_FILE_COUNT:-0}" -gt 30 ] || [ "$AFFECTED_INFRA" = "1" ]; then
-  echo "Large or infra change — running full ci:local"
-  SKIP_INSTALL=1 pnpm ci:local
+  echo "Large or infra change - running full quality, build, unit, and db checks (no E2E/visual)"
+  SKIP_INSTALL=1 pnpm ci:quality
+  pnpm ci:build
+  pnpm ci:unit
+  pnpm ci:db
   exit 0
 fi
 
@@ -29,27 +33,4 @@ fi
 
 if [ "$AFFECTED_DB" = "1" ]; then
   FORCE_DB_GUARD=1 pnpm ci:db
-fi
-
-SPECS="$(pnpm exec tsx scripts/e2e-affected.ts)"
-export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/together}"
-export ROOM_TOKEN_SECRET="${ROOM_TOKEN_SECRET:-test-secret}"
-export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
-export NEXT_PUBLIC_REALTIME_URL="${NEXT_PUBLIC_REALTIME_URL:-ws://localhost:8787}"
-
-pnpm --filter @together/web test:install
-
-if [ -n "$SPECS" ]; then
-  echo "Running @smoke E2E"
-  pnpm --filter @together/web exec playwright test --project=chromium --grep @smoke
-  echo "Running affected E2E: $SPECS"
-  # shellcheck disable=SC2086
-  pnpm --filter @together/web exec playwright test --project=chromium $SPECS
-else
-  echo "Running @smoke E2E only"
-  pnpm --filter @together/web exec playwright test --project=chromium --grep @smoke
-fi
-
-if [ "$AFFECTED_VISUAL" = "1" ]; then
-  pnpm ci:visual
 fi
