@@ -85,11 +85,12 @@ export function ChatMessages({
     pinnedToBottomRef.current = distanceFromBottom < 48;
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages or join notice change layout
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !pinnedToBottomRef.current) return;
     el.scrollTop = el.scrollHeight;
-  }, []);
+  }, [messages.length, joinNotice]);
 
   return (
     <div
@@ -259,9 +260,10 @@ export function ChatInput({
 
   const mentionMatches = filterMentionMatches(participants, mentionQuery);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset keyboard selection when @ filter changes
   useEffect(() => {
     setMentionIndex(0);
-  }, []);
+  }, [mentionQuery, mentionMatches.length]);
 
   const updateMentionQuery = (value: string, cursor: number) => {
     const query = parseMentionQuery(value, cursor);

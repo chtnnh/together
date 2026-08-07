@@ -23,6 +23,7 @@ const MOBILE_ONLY_SPECS = [
 
 const MOBILE_E2E_SPECS = [
   ...MOBILE_ONLY_SPECS,
+  "**/mobile-room.spec.ts",
   "**/join-private.spec.ts",
   "**/playback-two-clients.spec.ts",
   "**/skip-vote.spec.ts",
