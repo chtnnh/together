@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoomSettings } from "@together/shared";
 import { THEME_ACCENTS, THEME_PRESETS } from "@together/shared";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { applyUserTheme } from "@/components/room-settings";
 
 export type UserPreferences = {

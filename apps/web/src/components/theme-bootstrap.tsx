@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import { getThemeVars } from "@together/ui";
 import { THEME_PRESETS } from "@together/shared";
+import { getThemeVars } from "@together/ui";
+import { useEffect } from "react";
 
 const STORAGE_KEY = "together_user_prefs";
 

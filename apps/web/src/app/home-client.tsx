@@ -1,10 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, Label } from "@together/ui";
-import Link from "next/link";
-import { getRecentRooms, type RecentRoom } from "@/lib/recent-rooms";
 import {
   ArrowRight,
   Clock,
@@ -26,11 +22,15 @@ import {
   Youtube,
   Zap,
 } from "lucide-react";
-import { getDisplayName, setDisplayName } from "@/lib/utils";
-import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AccountNav } from "@/components/account-nav";
 import { SignInModal } from "@/components/sign-in-modal";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { getRecentRooms, type RecentRoom } from "@/lib/recent-rooms";
 import { githubUrl, personalSiteUrl } from "@/lib/seo";
+import { getDisplayName, setDisplayName } from "@/lib/utils";
 
 const FEATURES = [
   {
@@ -116,12 +116,14 @@ const STEPS = [
   {
     step: "2",
     title: "Build the queue",
-    description: "Paste a YouTube link, search, or import a playlist. Requests flow into the DJ queue.",
+    description:
+      "Paste a YouTube link, search, or import a playlist. Requests flow into the DJ queue.",
   },
   {
     step: "3",
     title: "Listen together",
-    description: "Playback stays in sync. Chat, vote to skip, and tweak your own theme while you hang out.",
+    description:
+      "Playback stays in sync. Chat, vote to skip, and tweak your own theme while you hang out.",
   },
 ] as const;
 
@@ -282,10 +284,7 @@ export default function HomePageClient() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0"
-          aria-hidden
-        >
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
           <div className="absolute -left-32 top-0 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl" />
           <div className="absolute -right-32 top-24 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl" />
           <div className="absolute bottom-0 left-1/2 h-64 w-[40rem] -translate-x-1/2 rounded-full bg-indigo-500/5 blur-3xl" />
@@ -321,9 +320,7 @@ export default function HomePageClient() {
                 Start a room
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <p className="text-sm text-[var(--text-muted)]">
-                Free · Works on desktop and mobile
-              </p>
+              <p className="text-sm text-[var(--text-muted)]">Free · Works on desktop and mobile</p>
             </div>
           </div>
 
@@ -455,11 +452,16 @@ export default function HomePageClient() {
       )}
 
       {/* Get started */}
-      <section id="get-started" className="border-t border-[var(--border)] bg-[var(--bg-secondary)]/30 py-16 md:py-24">
+      <section
+        id="get-started"
+        className="border-t border-[var(--border)] bg-[var(--bg-secondary)]/30 py-16 md:py-24"
+      >
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-10 text-center">
             <h2 className="mb-3 text-2xl font-bold md:text-3xl">Get started</h2>
-            <p className="text-[var(--text-muted)]">Create a new room or join one you were invited to</p>
+            <p className="text-[var(--text-muted)]">
+              Create a new room or join one you were invited to
+            </p>
           </div>
 
           <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-2">
@@ -533,7 +535,9 @@ export default function HomePageClient() {
               <h3 className="mb-1 text-xl font-semibold">Join a room</h3>
               <p className="mb-5 text-sm text-[var(--text-muted)]">
                 Enter the code from your invite link — e.g.{" "}
-                <code className="rounded bg-[var(--bg-secondary)] px-1.5 py-0.5 text-xs">/r/abc12345</code>
+                <code className="rounded bg-[var(--bg-secondary)] px-1.5 py-0.5 text-xs">
+                  /r/abc12345
+                </code>
               </p>
               <div className="space-y-4">
                 <div>

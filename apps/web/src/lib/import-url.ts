@@ -26,9 +26,10 @@ export function detectImportServiceFromUrl(input: string): ImportServiceKey | nu
   return null;
 }
 
-export function importRequestForQuery(
-  query: string,
-): { endpoint: string; body: Record<string, string> } {
+export function importRequestForQuery(query: string): {
+  endpoint: string;
+  body: Record<string, string>;
+} {
   const service = detectImportServiceFromUrl(query);
   if (service === "spotify" || service === "soundcloud" || service === "apple") {
     return { endpoint: ENDPOINTS[service], body: { url: query.trim() } };

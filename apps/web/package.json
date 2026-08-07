@@ -6,9 +6,10 @@
     "dev": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next dev --turbopack",
     "build": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next build",
     "start": "NODE_OPTIONS='--require ./scripts/load-root-env.cjs' next start",
-    "lint": "tsc --noEmit",
+    "lint": "biome check --error-on-warnings .",
     "typecheck": "tsc --noEmit",
-    "test": "playwright test --project=chromium --project=mobile-chrome",
+    "test:unit": "vitest run --passWithNoTests",
+    "test": "playwright test --project=mobile-chrome --project=chromium",
     "test:visual": "bash scripts/visual-regression-linux.sh test",
     "test:visual:update": "bash scripts/visual-regression-linux.sh update",
     "test:mobile": "playwright test mobile-room.spec.ts",
@@ -41,8 +42,6 @@
     "@types/node": "^24.0.4",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "eslint": "^9.29.0",
-    "eslint-config-next": "^15.3.4",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3"
   }

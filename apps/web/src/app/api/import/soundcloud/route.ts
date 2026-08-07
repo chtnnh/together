@@ -1,10 +1,10 @@
 // SoundCloud import — public playlist/track URLs via client ID.
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { withApiHandler } from "@/lib/api-log";
-import { importSoundCloudUrl } from "@/lib/soundcloud";
 import { resolveImportTracks } from "@/lib/import-tracks";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { z } from "zod";
+import { importSoundCloudUrl } from "@/lib/soundcloud";
 
 const importRateLimit = {
   name: "import:soundcloud",
@@ -26,7 +26,10 @@ export const POST = withApiHandler("POST /api/import/soundcloud", async (_log, r
     const resolved = await resolveImportTracks(tracks, "manual");
 
     if (resolved.length === 0) {
-      return NextResponse.json({ error: "No tracks found at that SoundCloud URL" }, { status: 404 });
+      return NextResponse.json(
+        { error: "No tracks found at that SoundCloud URL" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(resolved);

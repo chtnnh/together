@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { type CookieOptions, createServerClient } from "@supabase/ssr";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { runSpan } from "@/lib/api-log";
@@ -22,9 +22,7 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient | nul
       },
       setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
           // Server Component — session refresh is handled by middleware.
         }

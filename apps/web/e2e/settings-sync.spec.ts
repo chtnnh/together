@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 
 test.describe("Phase 1.3 — DO ↔ Postgres settings sync", () => {

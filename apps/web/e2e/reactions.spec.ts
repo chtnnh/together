@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { REACTION_EMOJIS } from "@together/shared";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 

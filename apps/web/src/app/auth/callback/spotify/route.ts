@@ -1,6 +1,7 @@
 // TODO(v0.3): Spotify OAuth callback — UI not linked until import flow is production-ready.
-import { redirect } from "next/navigation";
+
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { exchangeSpotifyCode } from "@/lib/spotify";
 
 export async function GET(request: Request) {

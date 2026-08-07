@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@together/ui";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuthConfig } from "@/components/auth-config-provider";
-import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 import { ThemeSelector } from "@/components/theme-selector";
 import type { UserPreferences } from "@/hooks/use-user-preferences";
+import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 
 interface AccountSettingsModalProps {
   open: boolean;
@@ -138,7 +138,8 @@ export function AccountSettingsModal({
             </>
           ) : !configured ? (
             <p className="text-sm text-[var(--text-muted)]">
-              Sign-in isn&apos;t available on this server. You can still listen in rooms without an account.
+              Sign-in isn&apos;t available on this server. You can still listen in rooms without an
+              account.
             </p>
           ) : (
             <>

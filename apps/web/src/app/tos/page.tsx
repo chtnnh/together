@@ -44,9 +44,8 @@ export default function TermsPage() {
         <h2>1. The service</h2>
         <p>
           Together lets users create and join rooms to synchronize YouTube playback, manage
-          collaborative queues, chat, vote to skip, and use related moderation and
-          personalization features. Some features require an optional account; core room
-          functionality does not.
+          collaborative queues, chat, vote to skip, and use related moderation and personalization
+          features. Some features require an optional account; core room functionality does not.
         </p>
         <p>
           We may modify, suspend, or discontinue any part of the service at any time, with or
@@ -58,13 +57,13 @@ export default function TermsPage() {
       <section>
         <h2>2. Eligibility</h2>
         <p>
-          You must be at least 13 years old to use Together. If you are under the age of majority
-          in your jurisdiction, you may use the service only with permission from a parent or
-          legal guardian who accepts these Terms on your behalf.
+          You must be at least 13 years old to use Together. If you are under the age of majority in
+          your jurisdiction, you may use the service only with permission from a parent or legal
+          guardian who accepts these Terms on your behalf.
         </p>
         <p>
-          You are responsible for ensuring that your use of Together complies with applicable
-          laws, including copyright and platform terms for content you play or share.
+          You are responsible for ensuring that your use of Together complies with applicable laws,
+          including copyright and platform terms for content you play or share.
         </p>
       </section>
 
@@ -76,8 +75,8 @@ export default function TermsPage() {
           account.
         </p>
         <p>
-          You must provide accurate information and notify us if you suspect unauthorized access
-          to your account. We may suspend or terminate accounts that violate these Terms.
+          You must provide accurate information and notify us if you suspect unauthorized access to
+          your account. We may suspend or terminate accounts that violate these Terms.
         </p>
       </section>
 
@@ -86,16 +85,15 @@ export default function TermsPage() {
         <ul>
           <li>
             Room creators and hosts control room settings, including privacy, passwords, playback
-            controls, queue rules, and moderation actions such as kick, ban, and co-host
-            promotion.
+            controls, queue rules, and moderation actions such as kick, ban, and co-host promotion.
           </li>
           <li>
-            Hosts are responsible for how their rooms are used and for complying with applicable
-            law and third-party terms, including YouTube&apos;s Terms of Service.
+            Hosts are responsible for how their rooms are used and for complying with applicable law
+            and third-party terms, including YouTube&apos;s Terms of Service.
           </li>
           <li>
-            We do not guarantee continuous availability of any room. Rooms may become unavailable
-            if inactive, deleted, or affected by infrastructure limits.
+            We do not guarantee continuous availability of any room. Rooms may become unavailable if
+            inactive, deleted, or affected by infrastructure limits.
           </li>
         </ul>
       </section>
@@ -107,9 +105,13 @@ export default function TermsPage() {
           <li>Use Together for unlawful, harmful, harassing, hateful, or abusive activity</li>
           <li>Infringe intellectual property or privacy rights of others</li>
           <li>Attempt to bypass room access controls, bans, or security measures</li>
-          <li>Disrupt the service, overload systems, scrape excessively, or probe for vulnerabilities</li>
+          <li>
+            Disrupt the service, overload systems, scrape excessively, or probe for vulnerabilities
+          </li>
           <li>Impersonate others or misrepresent your affiliation</li>
-          <li>Upload malware, spam automated requests, or interfere with other users&apos; experience</li>
+          <li>
+            Upload malware, spam automated requests, or interfere with other users&apos; experience
+          </li>
           <li>Use the service to stream or distribute content you do not have rights to share</li>
         </ul>
         <p>
@@ -122,13 +124,13 @@ export default function TermsPage() {
         <h2>6. User content</h2>
         <p>
           You retain ownership of content you submit, such as chat messages, display names, room
-          titles, and saved playlists. You grant us a non-exclusive, worldwide, royalty-free
-          license to host, store, reproduce, and display that content solely as needed to operate
-          and provide Together.
+          titles, and saved playlists. You grant us a non-exclusive, worldwide, royalty-free license
+          to host, store, reproduce, and display that content solely as needed to operate and
+          provide Together.
         </p>
         <p>
-          You represent that you have the rights necessary to submit your content and that doing
-          so does not violate these Terms or any third-party rights.
+          You represent that you have the rights necessary to submit your content and that doing so
+          does not violate these Terms or any third-party rights.
         </p>
       </section>
 
@@ -160,18 +162,17 @@ export default function TermsPage() {
         <p>
           We do not own third-party videos, music, or other media played in rooms. Rights holders
           and platform operators control availability, takedowns, and geographic restrictions. We
-          are not responsible for third-party content, outages, policy changes, or removal of
-          media.
+          are not responsible for third-party content, outages, policy changes, or removal of media.
         </p>
       </section>
 
       <section>
         <h2>8. Intellectual property</h2>
         <p>
-          The Together name, branding, website, and original software are owned by the operator
-          or licensors and protected by applicable intellectual property laws. The project source
-          code is available under the Apache License 2.0 where published, which governs use of
-          the code separately from these Terms for use of the hosted service.
+          The Together name, branding, website, and original software are owned by the operator or
+          licensors and protected by applicable intellectual property laws. The project source code
+          is available under the Apache License 2.0 where published, which governs use of the code
+          separately from these Terms for use of the hosted service.
         </p>
         <p>
           You may not copy, modify, distribute, or reverse engineer the hosted service except as
@@ -183,13 +184,13 @@ export default function TermsPage() {
         <h2>9. Disclaimers</h2>
         <p>
           TO THE FULLEST EXTENT PERMITTED BY LAW, TOGETHER IS PROVIDED WITHOUT WARRANTIES OF ANY
-          KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY,
-          FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+          KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+          FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
         </p>
         <p>
-          We do not warrant that the service will be uninterrupted, error-free, secure, or free
-          of harmful components, or that playback will remain synchronized in all network
-          conditions or on all devices.
+          We do not warrant that the service will be uninterrupted, error-free, secure, or free of
+          harmful components, or that playback will remain synchronized in all network conditions or
+          on all devices.
         </p>
       </section>
 
@@ -197,29 +198,28 @@ export default function TermsPage() {
         <h2>10. Limitation of liability</h2>
         <p>
           TO THE FULLEST EXTENT PERMITTED BY LAW, CHTNNH AND TOGETHER WILL NOT BE LIABLE FOR ANY
-          INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF
-          PROFITS, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES, ARISING FROM YOUR USE OF OR
-          INABILITY TO USE THE SERVICE.
+          INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS,
+          DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES, ARISING FROM YOUR USE OF OR INABILITY TO USE
+          THE SERVICE.
         </p>
         <p>
-          TO THE FULLEST EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY FOR ANY CLAIM RELATING TO
-          THE SERVICE WILL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID US FOR THE SERVICE
-          IN THE TWELVE MONTHS BEFORE THE CLAIM OR (B) USD $100. TOGETHER IS CURRENTLY OFFERED
-          FREE OF CHARGE, SO THIS LIMIT WILL TYPICALLY BE USD $100.
+          TO THE FULLEST EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY FOR ANY CLAIM RELATING TO THE
+          SERVICE WILL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID US FOR THE SERVICE IN THE
+          TWELVE MONTHS BEFORE THE CLAIM OR (B) USD $100. TOGETHER IS CURRENTLY OFFERED FREE OF
+          CHARGE, SO THIS LIMIT WILL TYPICALLY BE USD $100.
         </p>
         <p>
-          Some jurisdictions do not allow certain limitations of liability, so some of the above
-          may not apply to you.
+          Some jurisdictions do not allow certain limitations of liability, so some of the above may
+          not apply to you.
         </p>
       </section>
 
       <section>
         <h2>11. Indemnification</h2>
         <p>
-          You agree to indemnify and hold harmless chtnnh and Together from claims, damages,
-          losses, and expenses (including reasonable legal fees) arising from your use of the
-          service, your content, your rooms, or your violation of these Terms or third-party
-          rights.
+          You agree to indemnify and hold harmless chtnnh and Together from claims, damages, losses,
+          and expenses (including reasonable legal fees) arising from your use of the service, your
+          content, your rooms, or your violation of these Terms or third-party rights.
         </p>
       </section>
 
@@ -227,8 +227,7 @@ export default function TermsPage() {
         <h2>12. Termination</h2>
         <p>
           You may stop using Together at any time. We may suspend or terminate your access if you
-          violate these Terms, create risk for other users or the service, or where required by
-          law.
+          violate these Terms, create risk for other users or the service, or where required by law.
         </p>
         <p>
           Sections that by their nature should survive termination — including disclaimers,
@@ -249,9 +248,9 @@ export default function TermsPage() {
       <section>
         <h2>14. Changes to these Terms</h2>
         <p>
-          We may update these Terms from time to time. When we do, we will revise the effective
-          date at the top of this page. Material changes may also be highlighted on the site.
-          Continued use after changes take effect constitutes acceptance of the updated Terms.
+          We may update these Terms from time to time. When we do, we will revise the effective date
+          at the top of this page. Material changes may also be highlighted on the site. Continued
+          use after changes take effect constitutes acceptance of the updated Terms.
         </p>
       </section>
 

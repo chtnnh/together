@@ -26,10 +26,7 @@ export function slugify(input: string): string {
     .slice(0, 32);
 }
 
-export function getThemeVars(
-  theme: string,
-  accent?: string,
-): Record<string, string> {
+export function getThemeVars(theme: string, accent?: string): Record<string, string> {
   const themes: Record<string, Record<string, string>> = {
     midnight: {
       "--bg": "#0f0f14",
@@ -77,8 +74,6 @@ export function getThemeVars(
 
   const base = themes[theme] ?? themes.midnight!;
   const resolvedAccent =
-    accent ??
-    THEME_ACCENTS[theme as keyof typeof THEME_ACCENTS] ??
-    THEME_ACCENTS.midnight;
+    accent ?? THEME_ACCENTS[theme as keyof typeof THEME_ACCENTS] ?? THEME_ACCENTS.midnight;
   return { ...base, "--accent": resolvedAccent };
 }

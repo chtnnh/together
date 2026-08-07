@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import HomePageClient from "./home-client";
 import { absoluteUrl, githubUrl, personalSiteUrl, siteUrl } from "@/lib/seo";
+import HomePageClient from "./home-client";
 
 const title = "Together — Watch & Listen Together";
 const description =
@@ -71,7 +71,9 @@ export default function HomePage() {
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={<div className="flex min-h-dvh items-center justify-center">Loading...</div>}>
+      <Suspense
+        fallback={<div className="flex min-h-dvh items-center justify-center">Loading...</div>}
+      >
         <HomePageClient />
       </Suspense>
     </>

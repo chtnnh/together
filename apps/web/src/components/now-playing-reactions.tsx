@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { REACTION_EMOJIS, type ReactionEmoji, type RoomReaction } from "@together/shared";
 import { Button } from "@together/ui";
+import { useEffect, useRef, useState } from "react";
 
 interface FloatingReaction extends RoomReaction {
   offsetX: number;
@@ -64,10 +64,7 @@ export function NowPlayingReactions({
   }, [incoming, reducedMotion]);
 
   return (
-    <div
-      className={`relative ${inline ? "shrink-0" : ""}`}
-      data-testid="now-playing-reactions"
-    >
+    <div className={`relative ${inline ? "shrink-0" : ""}`} data-testid="now-playing-reactions">
       {!reducedMotion && (
         <div className="pointer-events-none absolute inset-x-0 bottom-full mb-1 h-12 overflow-hidden">
           {floating.map((reaction) => (

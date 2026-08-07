@@ -12,7 +12,8 @@
     "generate": "drizzle-kit generate",
     "migrate": "node scripts/migrate.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "biome check .",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@together/shared": "workspace:*",

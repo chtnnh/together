@@ -7,7 +7,10 @@ export default function OfflinePage() {
       <p className="max-w-sm text-[var(--text-muted)]">
         Open a room when you&apos;re back online. Cached pages may still load from your device.
       </p>
-      <Link href="/" className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white">
+      <Link
+        href="/"
+        className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+      >
         Back to home
       </Link>
     </div>

@@ -1,12 +1,12 @@
-import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getRoomBySlug } from "@/lib/rooms";
-import { hasPasswordCookie, verifyRoomAccess } from "@/lib/room-access";
+import { notFound, redirect } from "next/navigation";
 import { RoomClient } from "@/components/room-client";
-import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { isUserGloballyBanned } from "@/lib/admin-data";
 import { postRealtimeJson } from "@/lib/realtime-server";
+import { hasPasswordCookie, verifyRoomAccess } from "@/lib/room-access";
+import { getRoomBySlug } from "@/lib/rooms";
 import { absoluteUrl } from "@/lib/seo";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 
 interface RoomPageProps {
   params: Promise<{ slug: string }>;

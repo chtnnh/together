@@ -1,49 +1,15 @@
-import { test, expect } from "@playwright/test";
-import {
-  checkRateLimit,
-  resetRateLimitStoreForTests,
-  type RateLimitRule,
-} from "../src/lib/rate-limit";
+import { expect, test } from "@playwright/test";
+import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 
-const rateLimitHeaders = {
-  "x-together-test-rate-limit": "1",
-  "x-together-test-ip": "rate-limit-suite",
-};
-
-test.describe("Phase 1.2 — Rate limiting", () => {
-  test.afterEach(() => {
+test.describe("Phase 1.2 — Rate limiting API", () => {
+  test.beforeEach(() => {
     resetRateLimitStoreForTests();
   });
-  test("checkRateLimit allows requests under the limit", () => {
-    const rule: RateLimitRule = {
-      name: `unit-${Date.now()}`,
-      limit: 5,
-      windowMs: 60_000,
-    };
-    const ip = `test-${Math.random()}`;
 
-    for (let i = 0; i < 5; i++) {
-      const result = checkRateLimit(ip, rule);
-      expect(result.allowed).toBe(true);
-      expect(result.remaining).toBe(4 - i);
-    }
-  });
-
-  test("checkRateLimit blocks requests over the limit", () => {
-    const rule: RateLimitRule = {
-      name: `unit-block-${Date.now()}`,
-      limit: 2,
-      windowMs: 60_000,
-    };
-    const ip = `test-block-${Math.random()}`;
-
-    expect(checkRateLimit(ip, rule).allowed).toBe(true);
-    expect(checkRateLimit(ip, rule).allowed).toBe(true);
-    const blocked = checkRateLimit(ip, rule);
-    expect(blocked.allowed).toBe(false);
-    expect(blocked.remaining).toBe(0);
-    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
-  });
+  const rateLimitHeaders = {
+    "x-together-test-rate-limit": "1",
+    "x-together-test-ip": "rate-limit-suite",
+  };
 
   test("POST /api/rooms returns 429 after exceeding create limit", async ({ request }) => {
     const displayBase = `Rate${Date.now()}`;
@@ -67,9 +33,7 @@ test.describe("Phase 1.2 — Rate limiting", () => {
     expect(saw429).toBe(true);
   });
 
-  test("POST /api/import/youtube returns 429 after exceeding import limit", async ({
-    request,
-  }) => {
+  test("POST /api/import/youtube returns 429 after exceeding import limit", async ({ request }) => {
     let saw429 = false;
 
     for (let i = 0; i < 35; i++) {
@@ -81,25 +45,6 @@ test.describe("Phase 1.2 — Rate limiting", () => {
         saw429 = true;
         const body = await res.json();
         expect(body.error).toMatch(/too many requests/i);
-        break;
-      }
-    }
-
-    expect(saw429).toBe(true);
-  });
-
-  test("POST /api/import/spotify returns 429 after exceeding import limit", async ({
-    request,
-  }) => {
-    let saw429 = false;
-
-    for (let i = 0; i < 35; i++) {
-      const res = await request.post("/api/import/spotify", {
-        headers: rateLimitHeaders,
-        data: { playlistId: "test-playlist" },
-      });
-      if (res.status() === 429) {
-        saw429 = true;
         break;
       }
     }

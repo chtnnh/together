@@ -1,4 +1,4 @@
-import { RoomDurableObject, type Env } from "./room-do";
+import { type Env, RoomDurableObject } from "./room-do";
 
 export { RoomDurableObject };
 

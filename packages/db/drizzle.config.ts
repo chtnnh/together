@@ -1,9 +1,10 @@
 import dns from "node:dns";
+
 dns.setDefaultResultOrder("ipv4first");
 
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
 import { defineConfig } from "drizzle-kit";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");

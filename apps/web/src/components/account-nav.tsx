@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { ListMusic, LogIn, User } from "lucide-react";
 import { Button } from "@together/ui";
+import { ListMusic, LogIn, User } from "lucide-react";
+import Link from "next/link";
 
 interface AccountNavProps {
   signedIn: boolean;
@@ -66,11 +66,7 @@ export function AccountNav({
           </Button>
         ) : (
           <Link href="/playlists">
-            <Button
-              variant="ghost"
-              size={compact ? "icon" : "default"}
-              aria-label="Playlists"
-            >
+            <Button variant="ghost" size={compact ? "icon" : "default"} aria-label="Playlists">
               {compact ? <ListMusic className="h-4 w-4" /> : "Playlists"}
             </Button>
           </Link>
@@ -86,11 +82,7 @@ export function AccountNav({
         </Button>
       ) : (
         <Link href="/settings">
-          <Button
-            variant="ghost"
-            size={compact ? "icon" : "default"}
-            aria-label="Account"
-          >
+          <Button variant="ghost" size={compact ? "icon" : "default"} aria-label="Account">
             {compact ? <User className="h-4 w-4" /> : "Account"}
           </Button>
         </Link>

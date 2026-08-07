@@ -2,9 +2,7 @@ const REALTIME_FETCH_TIMEOUT_MS = 3_000;
 
 /** HTTP base URL for server-side calls to the Cloudflare realtime worker. */
 export function getRealtimeHttpBase(): string | null {
-  const raw =
-    process.env.REALTIME_HTTP_URL?.trim() ||
-    process.env.NEXT_PUBLIC_REALTIME_URL?.trim();
+  const raw = process.env.REALTIME_HTTP_URL?.trim() || process.env.NEXT_PUBLIC_REALTIME_URL?.trim();
   if (!raw) return null;
 
   const base = raw.replace(/^wss:\/\//i, "https://").replace(/^ws:\/\//i, "http://");
