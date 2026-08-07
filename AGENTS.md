@@ -22,13 +22,20 @@ Monorepo for **Together** (synced YouTube watch/listen rooms). Default branch: *
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm lint              # Biome check
+pnpm format            # Biome write
 pnpm typecheck
-pnpm lint
+pnpm test:unit         # Vitest (all packages)
+pnpm ci:local          # Full merge gate (same as CI)
+pnpm ci:pre-commit     # Hook: incremental checks
+pnpm ci:pre-push       # Hook: smoke + affected E2E
 pnpm --filter @together/web test:install   # first time / CI
 pnpm --filter @together/web test
 pnpm --filter @together/realtime dev       # requires Node 22+
 pnpm --filter @together/web dev
 ```
+
+See **`CONTRIBUTING.md`** for merge gate contract, hook tiers, and viewing CI Playwright artifacts.
 
 Env is loaded from repo root `.env` (see `.env.example`). Do not commit secrets.
 

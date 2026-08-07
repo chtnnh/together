@@ -71,7 +71,9 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 - Service worker caches the app shell; offline fallback page
 
 ### Quality
-- Playwright E2E and **visual regression** tests (Linux Docker baselines in CI)
+- **Biome** lint/format, **Vitest** unit tests, Playwright **E2E** (desktop + mobile), and **visual regression** (Linux Docker baselines in CI)
+- Tiered **git hooks**: fast pre-commit, smoke+affected pre-push; full `pnpm ci:local` in CI
+- CI uploads Playwright HTML reports and failure screenshots — see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### Optional (requires Supabase auth)
 - Sign in to save room settings, **save/load playlists**, and **sync preferences** across devices
@@ -206,8 +208,13 @@ pnpm --filter @together/web dev
 | `pnpm db:migrate` | Apply Drizzle migrations |
 | `pnpm db:generate` | Generate migration from schema changes |
 | `pnpm --filter @together/web build` | Production build |
-| `pnpm --filter @together/web test` | Playwright E2E tests |
+| `pnpm lint` | Biome check (format + lint) |
+| `pnpm format` | Biome auto-fix |
+| `pnpm test:unit` | Vitest unit tests (all packages) |
+| `pnpm ci:local` | Full CI merge gate locally |
 | `pnpm typecheck` | Typecheck all packages |
+| `pnpm --filter @together/web test` | Playwright E2E (desktop + mobile) |
+| `pnpm --filter @together/web test:visual` | Visual regression (Docker / Linux) |
 
 ---
 
