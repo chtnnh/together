@@ -31,14 +31,9 @@ export function Textarea({
   );
 }
 
-export function Label({
-  className,
-  ...props
-}: React.LabelHTMLAttributes<HTMLLabelElement>) {
+export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <label
-      className={cn("text-sm font-medium text-[var(--text-muted)]", className)}
-      {...props}
-    />
+    // biome-ignore lint/a11y/noLabelWithoutControl: composable label primitive; pair with htmlFor at call site
+    <label className={cn("text-sm font-medium text-[var(--text-muted)]", className)} {...props} />
   );
 }

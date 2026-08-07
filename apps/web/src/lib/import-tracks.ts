@@ -1,5 +1,5 @@
-import { resolveTrackWithCache } from "@/lib/youtube";
 import { shouldAutoQueue } from "@together/track-resolver";
+import { resolveTrackWithCache } from "@/lib/youtube";
 
 export interface RawImportTrack {
   title: string;

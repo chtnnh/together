@@ -1,9 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { embedErrorMessage, isEmbedBlockedError } from "../src/lib/playback-embed-error";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
-import {
-  embedErrorMessage,
-  isEmbedBlockedError,
-} from "../src/lib/playback-embed-error";
 
 test.describe("Phase 3.2 — YouTube embed error UX", () => {
   test.beforeEach(() => {

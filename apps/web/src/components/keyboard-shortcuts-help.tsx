@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { Button } from "@together/ui";
 import { X } from "lucide-react";
+import { useEffect } from "react";
 
 const SHORTCUTS = [
   { keys: "Space", action: "Play / pause" },

@@ -39,12 +39,7 @@ export const PRIVACY_LEVELS = ["public", "unlisted", "private"] as const;
 
 export const TRACK_SOURCES = ["youtube", "spotify", "apple", "manual"] as const;
 
-export const RESOLVER_STATUSES = [
-  "pending",
-  "resolving",
-  "resolved",
-  "needs_pick",
-] as const;
+export const RESOLVER_STATUSES = ["pending", "resolving", "resolved", "needs_pick"] as const;
 
 export const PARTICIPANT_ROLES = ["host", "co-host", "guest"] as const;
 
@@ -54,11 +49,4 @@ export const SKIP_VOTE_PRESETS = {
   supermajority: 0.66,
 } as const;
 
-export const PROFANITY_WORDS = [
-  "damn",
-  "hell",
-  "shit",
-  "fuck",
-  "ass",
-  "bitch",
-];
+export const PROFANITY_WORDS = ["damn", "hell", "shit", "fuck", "ass", "bitch"];

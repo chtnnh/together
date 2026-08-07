@@ -1,15 +1,12 @@
+import { PASSWORD_LOCKOUT_ATTEMPTS, PASSWORD_LOCKOUT_MINUTES } from "@together/shared";
 import { NextResponse } from "next/server";
 import { withApiHandler } from "@/lib/api-log";
-import { verifyRoomPassword, getRoomBySlug } from "@/lib/rooms";
-import {
-  PASSWORD_LOCKOUT_ATTEMPTS,
-  PASSWORD_LOCKOUT_MINUTES,
-} from "@together/shared";
+import { getRoomBySlug, verifyRoomPassword } from "@/lib/rooms";
 
 export const POST = withApiHandler(
   "POST /api/rooms/[slug]/verify",
   async (_log, request, context) => {
-    const { slug } = await context!.params!;
+    const { slug } = await context?.params!;
     const { password } = (await request.json()) as { password: string };
 
     const room = await getRoomBySlug(slug);

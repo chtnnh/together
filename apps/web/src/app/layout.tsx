@@ -2,11 +2,11 @@ import "@together/ui/globals.css";
 import type { Metadata, Viewport } from "next";
 import { AuthConfigProvider } from "@/components/auth-config-provider";
 import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
-import { ToastProvider } from "@/components/toast";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ThemeBootstrap } from "@/components/theme-bootstrap";
-import { getSupabasePublicConfig } from "@/lib/supabase/public-config";
+import { ToastProvider } from "@/components/toast";
 import { absoluteUrl, siteUrl } from "@/lib/seo";
+import { getSupabasePublicConfig } from "@/lib/supabase/public-config";
 
 const title = "Together — Watch & Listen Together";
 const description =
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const authConfig = getSupabasePublicConfig();
 
   return (
-    <html lang="en">
+    <html lang="en" dir="ltr">
       <body className="min-h-dvh antialiased">
         <AuthConfigProvider config={authConfig}>
           <ThemeBootstrap />

@@ -1,11 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("Together landing page", () => {
   test("shows create and join forms", async ({ page }) => {
     await page.goto("/");
-    await expect(
-      page.getByRole("heading", { name: /watch and listen together/i }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /watch and listen together/i })).toBeVisible();
     await page.locator("#get-started").scrollIntoViewIfNeeded();
     await expect(page.getByRole("heading", { name: "Create a room" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Join a room" })).toBeVisible();

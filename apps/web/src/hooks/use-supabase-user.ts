@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 import { useAuthConfig } from "@/components/auth-config-provider";
+import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 
 export function useSupabaseUser() {
   const { configured, url, anonKey } = useAuthConfig();

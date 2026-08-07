@@ -1,3 +1,4 @@
+import type { TrackMetadata, YoutubeCandidate } from "@together/shared";
 import {
   buildSourceKey,
   parseDuration,
@@ -6,7 +7,6 @@ import {
   resolveTrack,
   type YouTubeSearchClient,
 } from "@together/track-resolver";
-import type { TrackMetadata, YoutubeCandidate } from "@together/shared";
 import { getCachedResolution, setCachedResolution } from "./rooms";
 import { getYouTubeApiKey } from "./youtube-env";
 
@@ -22,9 +22,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
       key: this.apiKey,
     });
 
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?${params}`,
-    );
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as {
         error?: { message?: string; errors?: Array<{ reason?: string }> };
@@ -74,9 +72,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
       key: this.apiKey,
     });
 
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?${params}`,
-    );
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`);
     if (!res.ok) return null;
 
     const data = (await res.json()) as {
@@ -110,9 +106,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
       key: this.apiKey,
     });
 
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/playlists?${params}`,
-    );
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/playlists?${params}`);
     if (!res.ok) return null;
 
     const data = (await res.json()) as {
@@ -150,9 +144,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
         ...(pageToken ? { pageToken } : {}),
       });
 
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/playlistItems?${params}`,
-      );
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?${params}`);
       if (!res.ok) break;
 
       const data = (await res.json()) as {
@@ -183,9 +175,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
     return items;
   }
 
-  private async getDurations(
-    videoIds: string[],
-  ): Promise<Record<string, number>> {
+  private async getDurations(videoIds: string[]): Promise<Record<string, number>> {
     if (videoIds.length === 0) return {};
 
     const params = new URLSearchParams({
@@ -194,9 +184,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
       key: this.apiKey,
     });
 
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?${params}`,
-    );
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`);
     if (!res.ok) return {};
 
     const data = (await res.json()) as {
@@ -223,9 +211,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
         key: this.apiKey,
       });
 
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?${params}`,
-      );
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`);
       if (!res.ok) continue;
 
       const data = (await res.json()) as {
@@ -242,9 +228,7 @@ export class YouTubeApiClient implements YouTubeSearchClient {
     return available;
   }
 
-  async filterAvailableCandidates(
-    candidates: YoutubeCandidate[],
-  ): Promise<YoutubeCandidate[]> {
+  async filterAvailableCandidates(candidates: YoutubeCandidate[]): Promise<YoutubeCandidate[]> {
     const ids = candidates.map((c) => c.videoId).filter(Boolean);
     const available = await this.filterAvailableVideoIds(ids);
     return candidates.filter((c) => available.has(c.videoId));
@@ -285,7 +269,7 @@ export async function resolveTrackWithCache(metadata: TrackMetadata) {
   return result;
 }
 
-export { parseYouTubeVideoId, parseYouTubePlaylistId };
+export { parseYouTubePlaylistId, parseYouTubeVideoId };
 
 async function isYouTubeVideoAvailableViaOEmbed(videoId: string): Promise<boolean> {
   try {

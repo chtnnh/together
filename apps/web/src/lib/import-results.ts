@@ -25,7 +25,12 @@ export function isImportPlaylist(item: ImportResult): item is ImportPlaylistResu
 
 export function normalizeImportResponse(data: unknown): ImportResult[] {
   if (Array.isArray(data)) return data as ImportResult[];
-  if (data && typeof data === "object" && "kind" in data && (data as ImportPlaylistResult).kind === "playlist") {
+  if (
+    data &&
+    typeof data === "object" &&
+    "kind" in data &&
+    (data as ImportPlaylistResult).kind === "playlist"
+  ) {
     return [data as ImportPlaylistResult];
   }
   if (data && typeof data === "object") return [data as ImportTrackResult];
@@ -33,7 +38,11 @@ export function normalizeImportResponse(data: unknown): ImportResult[] {
 }
 
 /** Show a picker unless there is exactly one track from a direct video URL. */
-export function shouldShowImportPicker(items: ImportResult[], query: string, isUrl: boolean): boolean {
+export function shouldShowImportPicker(
+  items: ImportResult[],
+  _query: string,
+  isUrl: boolean,
+): boolean {
   if (items.length === 0) return false;
   if (items.some(isImportPlaylist)) return true;
   if (items.length > 1) return true;

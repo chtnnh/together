@@ -11,11 +11,7 @@ import {
   TRACK_SOURCES,
 } from "./constants";
 
-export const displayNameSchema = z
-  .string()
-  .min(1)
-  .max(MAX_DISPLAY_NAME_LENGTH)
-  .trim();
+export const displayNameSchema = z.string().min(1).max(MAX_DISPLAY_NAME_LENGTH).trim();
 
 export const roomSettingsSchema = z.object({
   audioOnly: z.boolean().default(false),
@@ -214,12 +210,7 @@ export const resolutionResultSchema = z.object({
 
 export type ResolutionResult = z.infer<typeof resolutionResultSchema>;
 
-export const playlistSourceSchema = z.enum([
-  "spotify",
-  "apple",
-  "youtube",
-  "mixed",
-]);
+export const playlistSourceSchema = z.enum(["spotify", "apple", "youtube", "mixed"]);
 
 export const savedPlaylistSchema = z.object({
   id: z.string(),

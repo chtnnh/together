@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import { withApiHandler } from "@/lib/api-log";
+import { cookieOptions, roomAccessCookieName, roomPasswordCookieName } from "@/lib/room-access";
 import { getRoomBySlug, verifyRoomPassword } from "@/lib/rooms";
-import {
-  cookieOptions,
-  roomAccessCookieName,
-  roomPasswordCookieName,
-} from "@/lib/room-access";
 import { verifyRoomToken } from "@/lib/utils";
 
 /** Private rooms — verify password or invite token and set session cookie */
 export const POST = withApiHandler(
   "POST /api/rooms/[slug]/access",
   async (_log, request, context) => {
-    const { slug } = await context!.params!;
+    const { slug } = await context?.params!;
     const body = (await request.json()) as { password?: string; token?: string };
 
     const room = await getRoomBySlug(slug);
@@ -31,11 +27,7 @@ export const POST = withApiHandler(
       }
 
       const response = NextResponse.json({ ok: true });
-      response.cookies.set(
-        roomAccessCookieName(slug),
-        body.token,
-        cookieOptions(`/r/${slug}`),
-      );
+      response.cookies.set(roomAccessCookieName(slug), body.token, cookieOptions(`/r/${slug}`));
       return response;
     }
 

@@ -1,10 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientEvent, RoomActivity, RoomReaction, RoomState, ServerEvent } from "@together/shared";
+import type {
+  ClientEvent,
+  RoomActivity,
+  RoomReaction,
+  RoomState,
+  ServerEvent,
+} from "@together/shared";
 import { SYNC_CHECK_INTERVAL_MS, SYNC_DRIFT_THRESHOLD_MS } from "@together/shared";
-import { getAnonId, getRealtimeUrl } from "@/lib/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { applyServerTimestamp } from "@/lib/clock-sync";
+import { getAnonId, getRealtimeUrl } from "@/lib/utils";
 
 interface UseRoomSocketOptions {
   roomId: string;
@@ -152,9 +158,7 @@ export function useRoomSocket({
             if (data.serverNow !== undefined) {
               applyServerNow(data.serverNow);
             }
-            setRoomState((prev) =>
-              prev ? { ...prev, playback: data.playback } : prev,
-            );
+            setRoomState((prev) => (prev ? { ...prev, playback: data.playback } : prev));
             break;
           case "queue":
             setRoomState((prev) =>
@@ -193,14 +197,10 @@ export function useRoomSocket({
             });
             break;
           case "skip-votes":
-            setRoomState((prev) =>
-              prev ? { ...prev, skipVotes: data.skipVotes } : prev,
-            );
+            setRoomState((prev) => (prev ? { ...prev, skipVotes: data.skipVotes } : prev));
             break;
           case "settings":
-            setRoomState((prev) =>
-              prev ? { ...prev, settings: data.settings } : prev,
-            );
+            setRoomState((prev) => (prev ? { ...prev, settings: data.settings } : prev));
             break;
           case "error":
             if (data.message === "Excited much?") {
@@ -283,7 +283,7 @@ export function useRoomSocket({
         userId: userIdRef.current ?? null,
       } satisfies ClientEvent),
     );
-  }, [userId, enabled, roomId]);
+  }, [enabled, roomId]);
 
   useEffect(() => {
     if (!enabled || !roomId) return;
@@ -298,8 +298,7 @@ export function useRoomSocket({
     (p) => p.anonId === anonId || (userId && p.userId === userId),
   );
 
-  const isHostish =
-    participant?.role === "host" || participant?.role === "co-host";
+  const isHostish = participant?.role === "host" || participant?.role === "co-host";
 
   const controlsLocked = roomState?.settings.controlsLocked ?? true;
   const canControlPlayback = !!participant && (isHostish || !controlsLocked);

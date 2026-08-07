@@ -8,10 +8,7 @@ type LoopMode = RoomSettings["loopMode"];
 
 const LOOP_CYCLE: LoopMode[] = ["off", "queue", "track"];
 
-const LOOP_CONFIG: Record<
-  LoopMode,
-  { icon: typeof Repeat; label: string; tooltip: string }
-> = {
+const LOOP_CONFIG: Record<LoopMode, { icon: typeof Repeat; label: string; tooltip: string }> = {
   off: {
     icon: ListOrdered,
     label: "Go through queue",

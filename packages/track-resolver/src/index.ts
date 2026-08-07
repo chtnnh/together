@@ -1,12 +1,8 @@
+import type { ResolutionResult, TrackMetadata, YoutubeCandidate } from "@together/shared";
 import {
   DURATION_TOLERANCE_MS,
   RESOLUTION_AUTO_QUEUE_THRESHOLD,
   RESOLUTION_PROMPT_THRESHOLD,
-} from "@together/shared";
-import type {
-  ResolutionResult,
-  TrackMetadata,
-  YoutubeCandidate,
 } from "@together/shared";
 
 const PENALTY_PATTERNS = [
@@ -37,10 +33,7 @@ export function buildSearchQuery(metadata: TrackMetadata): string {
   return `${artist}${metadata.title} official audio`.trim();
 }
 
-export function scoreCandidate(
-  metadata: TrackMetadata,
-  candidate: YoutubeCandidate,
-): number {
+export function scoreCandidate(metadata: TrackMetadata, candidate: YoutubeCandidate): number {
   let score = 50;
 
   const metaTitle = metadata.title.toLowerCase();
@@ -110,7 +103,7 @@ export function resolveFromCandidates(
   const alternates = ranked.slice(0, 3);
 
   return {
-    videoId: topScore >= RESOLUTION_PROMPT_THRESHOLD ? ranked[0]!.videoId : null,
+    videoId: topScore >= RESOLUTION_PROMPT_THRESHOLD ? ranked[0]?.videoId : null,
     confidence: topScore,
     alternates,
     matchedTitle: ranked[0]?.title,
@@ -122,10 +115,7 @@ export function shouldAutoQueue(confidence: number): boolean {
 }
 
 export function needsUserPick(confidence: number): boolean {
-  return (
-    confidence >= RESOLUTION_PROMPT_THRESHOLD &&
-    confidence < RESOLUTION_AUTO_QUEUE_THRESHOLD
-  );
+  return confidence >= RESOLUTION_PROMPT_THRESHOLD && confidence < RESOLUTION_AUTO_QUEUE_THRESHOLD;
 }
 
 export interface YouTubeSearchClient {

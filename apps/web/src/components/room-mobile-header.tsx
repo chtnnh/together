@@ -1,14 +1,8 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@together/ui";
-import {
-  MessageSquareQuote,
-  MoreHorizontal,
-  RefreshCw,
-  Settings,
-  Share2,
-} from "lucide-react";
+import { MessageSquareQuote, MoreHorizontal, Settings, Share2 } from "lucide-react";
+import { type ReactNode, useRef, useState } from "react";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
 
 interface RoomMobileMoreMenuProps {

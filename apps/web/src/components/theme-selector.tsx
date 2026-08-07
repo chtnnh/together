@@ -1,7 +1,7 @@
 "use client";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@together/ui";
 import { THEME_PRESETS } from "@together/shared";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@together/ui";
 import type { UserPreferences } from "@/hooks/use-user-preferences";
 
 function themeLabel(theme: (typeof THEME_PRESETS)[number]): string {
@@ -18,7 +18,10 @@ interface ThemeSelectorProps {
 export function ThemeSelector({ value, onChange, className }: ThemeSelectorProps) {
   return (
     <div className="w-full">
-      <Select value={value ?? "midnight"} onValueChange={(v) => onChange(v as NonNullable<UserPreferences["theme"]>)}>
+      <Select
+        value={value ?? "midnight"}
+        onValueChange={(v) => onChange(v as NonNullable<UserPreferences["theme"]>)}
+      >
         <SelectTrigger className={className ?? "w-full"}>
           <SelectValue />
         </SelectTrigger>

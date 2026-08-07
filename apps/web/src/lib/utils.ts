@@ -1,8 +1,6 @@
-import { SignJWT, jwtVerify } from "jose";
+import { jwtVerify, SignJWT } from "jose";
 
-const secret = new TextEncoder().encode(
-  process.env.ROOM_TOKEN_SECRET ?? "dev-secret-change-me",
-);
+const secret = new TextEncoder().encode(process.env.ROOM_TOKEN_SECRET ?? "dev-secret-change-me");
 
 export async function signRoomToken(roomId: string, slug: string): Promise<string> {
   return new SignJWT({ roomId, slug })

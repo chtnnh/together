@@ -1,7 +1,7 @@
-import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { getDb, users } from "@together/db";
 import { eq } from "drizzle-orm";
 import { runSpan } from "@/lib/api-log";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 
 function getSuperadminEmails(): Set<string> {
   const raw = process.env.SUPERADMIN_EMAILS ?? "";

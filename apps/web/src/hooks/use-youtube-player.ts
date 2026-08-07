@@ -1,20 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlaybackState } from "@together/shared";
 import {
   getEffectivePlaybackPosition,
   SYNC_CHECK_INTERVAL_MS,
   SYNC_DRIFT_THRESHOLD_MS,
 } from "@together/shared";
-import {
-  shouldAttemptBackgroundResume,
-} from "@/lib/playback-visibility";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CROSSFADE_MS } from "@/lib/playback-crossfade";
-import {
-  pickBestAvailableQuality,
-  qualityPreferenceToYoutubeQuality,
-} from "@/lib/youtube-quality";
+import { shouldAttemptBackgroundResume } from "@/lib/playback-visibility";
+import { pickBestAvailableQuality, qualityPreferenceToYoutubeQuality } from "@/lib/youtube-quality";
 
 declare global {
   interface Window {
@@ -236,12 +231,7 @@ export function useYouTubePlayer({
   );
 
   const crossfadeToVideo = useCallback(
-    async (
-      player: YT.Player,
-      videoId: string,
-      positionSec: number,
-      shouldPlay: boolean,
-    ) => {
+    async (player: YT.Player, videoId: string, positionSec: number, shouldPlay: boolean) => {
       if (crossfadeInProgressRef.current) {
         loadVideoAtPosition(player, videoId, positionSec, shouldPlay);
         return;
@@ -289,8 +279,9 @@ export function useYouTubePlayer({
     safePlayerCall(player, (p) => {
       if (q === "max") {
         const levels =
-          (p as YT.Player & { getAvailableQualityLevels?: () => string[] }).getAvailableQualityLevels?.() ??
-          [];
+          (
+            p as YT.Player & { getAvailableQualityLevels?: () => string[] }
+          ).getAvailableQualityLevels?.() ?? [];
         const picked = pickBestAvailableQuality(levels, "max");
         if (picked) p.setPlaybackQuality(picked);
         return;
@@ -322,10 +313,7 @@ export function useYouTubePlayer({
       }
 
       const positionSec =
-        clampSeekMs(
-          effectivePositionMs(pb, clockOffsetRef.current),
-          durationMsRef.current,
-        ) / 1000;
+        clampSeekMs(effectivePositionMs(pb, clockOffsetRef.current), durationMsRef.current) / 1000;
 
       let currentVideoId: string | undefined;
       safePlayerCall(player, (p) => {
@@ -342,9 +330,7 @@ export function useYouTubePlayer({
         let wasPlaying = false;
         safePlayerCall(player, (p) => {
           wasPlaying =
-            pb.playing &&
-            !!currentVideoId &&
-            p.getPlayerState() === window.YT.PlayerState.PLAYING;
+            pb.playing && !!currentVideoId && p.getPlayerState() === window.YT.PlayerState.PLAYING;
         });
         if (wasPlaying) {
           void crossfadeToVideo(player, pb.videoId, positionSec, pb.playing);
@@ -412,7 +398,7 @@ export function useYouTubePlayer({
     endedForItemRef.current = null;
     bufferingSinceRef.current = null;
     setDurationMs(0);
-  }, [playback?.queueItemId]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -497,7 +483,7 @@ export function useYouTubePlayer({
       safePlayerCall(playerRef.current, (player) => player.destroy());
       playerRef.current = null;
     };
-  }, [containerId, refreshDuration, applyVolume]);
+  }, [containerId, refreshDuration, applyVolume, applyQualityToPlayer]);
 
   const resyncView = useCallback(() => {
     const pb = playbackRef.current;
@@ -592,12 +578,12 @@ export function useYouTubePlayer({
   useEffect(() => {
     if (!ready) return;
     applyPlaybackToPlayer();
-  }, [ready, playback, quality, audioOnly, applyPlaybackToPlayer]);
+  }, [ready, applyPlaybackToPlayer]);
 
   useEffect(() => {
     if (!ready) return;
     applyVolume();
-  }, [ready, volume, muted, applyVolume]);
+  }, [ready, applyVolume]);
 
   useEffect(() => {
     if (!ready) return;
@@ -663,10 +649,7 @@ export function useYouTubePlayer({
         if (!pb) return;
 
         if (state === window.YT.PlayerState.ENDED) {
-          if (
-            shouldRestartEndedTrack(pb, clockOffsetRef.current) &&
-            autoplayUnlockedRef.current
-          ) {
+          if (shouldRestartEndedTrack(pb, clockOffsetRef.current) && autoplayUnlockedRef.current) {
             const restartMs = clampSeekMs(
               effectivePositionMs(pb, clockOffsetRef.current),
               durationMsRef.current,
@@ -699,11 +682,7 @@ export function useYouTubePlayer({
         if (state === window.YT.PlayerState.BUFFERING) {
           const since = bufferingSinceRef.current ?? Date.now();
           bufferingSinceRef.current = since;
-          if (
-            Date.now() - since > 10_000 &&
-            pb.playing &&
-            autoplayUnlockedRef.current
-          ) {
+          if (Date.now() - since > 10_000 && pb.playing && autoplayUnlockedRef.current) {
             bufferingSinceRef.current = Date.now();
             player.seekTo(expected / 1000, true);
             tryPlay(player);
@@ -716,7 +695,10 @@ export function useYouTubePlayer({
         }
 
         if (pb.playing) {
-          if (state !== window.YT.PlayerState.PLAYING && state !== window.YT.PlayerState.BUFFERING) {
+          if (
+            state !== window.YT.PlayerState.PLAYING &&
+            state !== window.YT.PlayerState.BUFFERING
+          ) {
             if (autoplayUnlockedRef.current) {
               tryPlay(player);
             } else if (pendingPlayRef.current && drift > GESTURE_DRIFT_MS) {
@@ -732,7 +714,7 @@ export function useYouTubePlayer({
     }, SYNC_CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [ready, playback?.playing, playback?.videoId, clockOffsetMs, tryPlay]);
+  }, [ready, tryPlay]);
 
   return { ready, resyncView, needsUserGesture, unlockPlayback, durationMs };
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import type { Participant } from "@together/shared";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Crown, Shield, ShieldOff, UserX } from "lucide-react";
 
 interface ParticipantsPanelProps {
@@ -34,7 +34,7 @@ export function ParticipantsPanel({
   );
 
   return (
-    <div className="space-y-1 p-3">
+    <div className="space-y-1 p-3" data-testid="participants-panel">
       {isRoomOwner && (
         <p className="mb-2 px-1 text-xs text-[var(--text-muted)]">
           {transferTargets.length > 0
@@ -52,7 +52,9 @@ export function ParticipantsPanel({
               {p.displayName}
               {p.id === currentId && " (you)"}
             </p>
-            <p className="text-xs capitalize text-[var(--text-muted)]">{p.role.replace("-", " ")}</p>
+            <p className="text-xs capitalize text-[var(--text-muted)]">
+              {p.role.replace("-", " ")}
+            </p>
           </div>
           {isHost && p.id !== currentId && p.role !== "host" && (
             <div className="flex shrink-0 items-center gap-0.5">

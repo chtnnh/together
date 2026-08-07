@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { withApiHandler } from "@/lib/api-log";
-import { listPublicRooms } from "@/lib/rooms";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { fetchRealtimeJson } from "@/lib/realtime-server";
+import { listPublicRooms } from "@/lib/rooms";
 
 async function fetchParticipantCount(roomId: string): Promise<number> {
-  const result = await fetchRealtimeJson<{ participantCount?: number }>(
-    `/room/${roomId}/stats`,
-  );
+  const result = await fetchRealtimeJson<{ participantCount?: number }>(`/room/${roomId}/stats`);
   if (!result.ok) return 0;
   return result.data.participantCount ?? 0;
 }
@@ -33,7 +31,5 @@ export const GET = withApiHandler("GET /api/rooms/public", async (_log, request)
     })),
   );
 
-  return NextResponse.json(
-    withCounts.filter((r) => r.participantCount > 0),
-  );
+  return NextResponse.json(withCounts.filter((r) => r.participantCount > 0));
 });

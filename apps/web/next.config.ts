@@ -1,6 +1,6 @@
-import type { NextConfig } from "next";
-import { config as loadEnv } from "dotenv";
 import path from "node:path";
+import { config as loadEnv } from "dotenv";
+import type { NextConfig } from "next";
 
 // Load monorepo root .env so YOUTUBE_API_KEY etc. work without duplicating into apps/web
 if (process.env.TOGETHER_SKIP_ENV_FILE !== "1") {
@@ -24,7 +24,12 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN: publicEnv("NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN"),
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: publicEnv("NEXT_PUBLIC_SPOTIFY_CLIENT_ID"),
   },
-  transpilePackages: ["@together/ui", "@together/shared", "@together/db", "@together/track-resolver"],
+  transpilePackages: [
+    "@together/ui",
+    "@together/shared",
+    "@together/db",
+    "@together/track-resolver",
+  ],
   headers: async () => [
     {
       source: "/(.*)",

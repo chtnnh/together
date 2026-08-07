@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-log";
-import { createRoom } from "@/lib/rooms";
-import { roomPasswordCookieName, cookieOptions } from "@/lib/room-access";
-import { enforceRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-log";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { cookieOptions, roomPasswordCookieName } from "@/lib/room-access";
+import { createRoom } from "@/lib/rooms";
 
 const createRoomRateLimit = {
   name: "rooms:create",
@@ -14,7 +14,12 @@ const createRoomRateLimit = {
 const createRoomSchema = z.object({
   displayName: z.string().min(1).max(24),
   title: z.string().min(1).max(64).trim().optional(),
-  slug: z.string().min(3).max(32).regex(/^[a-z0-9-]+$/).optional(),
+  slug: z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   privacy: z.enum(["public", "unlisted", "private"]).default("unlisted"),
   password: z.string().min(4).max(64).optional(),
   settings: z.record(z.unknown()).optional(),
@@ -54,8 +59,7 @@ export const POST = withApiHandler("POST /api/rooms", async (log, request) => {
     return response;
   } catch (err) {
     log.error("create room failed:", err);
-    const message =
-      err instanceof Error ? err.message : "Failed to create room";
+    const message = err instanceof Error ? err.message : "Failed to create room";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 });

@@ -1,0 +1,20 @@
+# Copy to .husky/pre-push.local to enable (file is gitignored).
+#
+# [know-code](https://kc.chtnnhfoundation.org) blocks push until the range is sealed
+# and comprehension checks pass. Runs after shared ci:pre-push checks.
+#
+#   cp .husky/pre-push.local.example .husky/pre-push.local
+
+run_know_code_check() {
+  ROOT="$(git rev-parse --show-toplevel)"
+  if [ -x "$ROOT/node_modules/.bin/know-code" ]; then
+    "$ROOT/node_modules/.bin/know-code" check
+  elif command -v know-code >/dev/null 2>&1; then
+    know-code check
+  else
+    echo "know-code: CLI not found. Install: npm i -g @chtnnh/know-code" >&2
+    exit 1
+  fi
+}
+
+run_know_code_check

@@ -26,12 +26,7 @@ export function PlaybackEmbedErrorBanner({
       <div className="min-w-0 flex-1">
         <p>{message}</p>
         {canPickAlternate && onPickAlternate && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="mt-2 h-7"
-            onClick={onPickAlternate}
-          >
+          <Button variant="secondary" size="sm" className="mt-2 h-7" onClick={onPickAlternate}>
             Pick alternate
           </Button>
         )}

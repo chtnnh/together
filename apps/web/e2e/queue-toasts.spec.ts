@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 import { addUrlInput } from "./helpers/room";
 
@@ -32,8 +32,8 @@ test.describe("Phase 3.1 — Queue add toasts", () => {
     await addUrlInput(page).fill("lofi hip hop");
     await addUrlInput(page).press("Enter");
 
-    await expect(
-      page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i }),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("status").filter({ hasText: /YOUTUBE_API_KEY/i })).toBeVisible({
+      timeout: 5000,
+    });
   });
 });

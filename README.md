@@ -71,7 +71,9 @@ Most watch-party apps assume desktop, always-on video, and one look for everyone
 - Service worker caches the app shell; offline fallback page
 
 ### Quality
-- Playwright E2E and **visual regression** tests (Linux Docker baselines in CI)
+- **Biome** lint/format, **Vitest** unit tests, Playwright **E2E** (desktop + mobile), and **visual regression** (Linux Docker baselines in CI)
+- Tiered **git hooks**: fast pre-commit, smoke+affected pre-push; full `pnpm ci:local` in CI
+- CI uploads Playwright HTML reports and failure screenshots — see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### Optional (requires Supabase auth)
 - Sign in to save room settings, **save/load playlists**, and **sync preferences** across devices
@@ -194,20 +196,69 @@ pnpm --filter @together/web dev
 - Realtime health: [http://127.0.0.1:8787/health](http://127.0.0.1:8787/health)
 - DB health: [http://localhost:3000/api/health/db](http://localhost:3000/api/health/db)
 
+### 6. Git hooks (after `pnpm install`)
+
+Husky installs shared hooks automatically (`prepare` script).
+
+| Hook | Command | Typical time |
+|------|---------|--------------|
+| **pre-commit** | `pnpm ci:pre-commit` | ~30–90s |
+| **pre-push** | `pnpm ci:pre-push` | ~1-5 min (incremental) or ~10 min (large/infra diffs) |
+
+**pre-commit:** `lint-staged` (Biome), Biome on changed files, affected typecheck, Vitest `--changed`, DB guard if `schema.ts` changed.
+
+**pre-push:** Biome (full repo), affected typecheck/unit/build, DB guard if schema changed. Diffs over 30 files vs `main` or CI infra changes run full quality + build + unit + db. E2E and visual run in CI only (`pnpm ci:local`). When the hook exits 0, `git push` continues automatically.
+
+Optional [know-code](https://kc.chtnnhfoundation.org) gate: `bash scripts/enable-know-code-hooks.sh` (machine-local). See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+SKIP_HOOKS=1 git commit    # bypass hooks (you own CI)
+git push --no-verify
+```
+
 ---
 
 ## Scripts
 
+### Day-to-day
+
 | Command | Description |
 |---|---|
 | `pnpm dev` | Start all apps via Turborepo |
-| `pnpm --filter @together/web dev` | Next.js dev server |
-| `pnpm --filter @together/realtime dev` | Cloudflare Worker (Wrangler dev) |
+| `pnpm --filter @together/web dev` | Next.js dev server (`:3000`) |
+| `pnpm --filter @together/realtime dev` | Cloudflare Worker via Wrangler (`:8787`, Node 22+) |
 | `pnpm db:migrate` | Apply Drizzle migrations |
 | `pnpm db:generate` | Generate migration from schema changes |
-| `pnpm --filter @together/web build` | Production build |
-| `pnpm --filter @together/web test` | Playwright E2E tests |
-| `pnpm typecheck` | Typecheck all packages |
+| `pnpm lint` | Biome check (format + lint, fails on warnings) |
+| `pnpm format` | Biome auto-fix |
+| `pnpm typecheck` | Typecheck all packages (Turborepo) |
+| `pnpm test:unit` | Vitest unit tests (all packages) |
+
+### CI parity (`ci:*`)
+
+Same scripts GitHub Actions runs — use `pnpm ci:local` for the full merge gate:
+
+| Command | Description |
+|---|---|
+| `pnpm ci:local` | Full pipeline: quality → build → unit → db → e2e → visual |
+| `pnpm ci:quality` | Biome + typecheck |
+| `pnpm ci:build` | Next.js + realtime worker build |
+| `pnpm ci:unit` | Vitest (all packages) |
+| `pnpm ci:db` | Drizzle journal / migration guard |
+| `pnpm ci:e2e` | Playwright E2E (mobile-chrome + chromium) |
+| `pnpm ci:visual` | Visual regression (Linux Docker baselines) |
+| `pnpm ci:pre-commit` | Hook: incremental (what pre-commit runs) |
+| `pnpm ci:pre-push` | Hook: quality + affected unit/build (what pre-push runs) |
+
+### E2E & visual
+
+| Command | Description |
+|---|---|
+| `pnpm --filter @together/web test:install` | Install Playwright browsers (first time / CI) |
+| `pnpm --filter @together/web test` | Playwright E2E (mobile-chrome, then chromium) |
+| `pnpm --filter @together/web test:visual` | Visual regression (Docker / Linux) |
+| `pnpm --filter @together/web test:visual:update` | Regenerate visual baselines (Docker) |
+| `pnpm --filter @together/web build` | Production Next.js build |
 
 ---
 
@@ -251,12 +302,51 @@ together/
 
 ## Testing
 
+Together uses three layers: **Vitest** (unit), **Playwright E2E** (desktop + mobile), and **visual regression** (Linux Docker baselines in CI).
+
+### Unit (Vitest)
+
 ```bash
-pnpm --filter @together/web test:install   # first time / CI: install Playwright browsers
-pnpm --filter @together/web test           # starts web + realtime via Playwright webServer
+pnpm test:unit              # all packages (root vitest workspace)
+pnpm ci:unit                # same, CI job
 ```
 
-Playwright specs live in `apps/web/e2e/`. Requires **Node.js 22+** (Wrangler dev server).
+Vitest projects: `packages/shared`, `packages/ui`, `packages/db`, `packages/track-resolver`, `services/realtime`, `apps/web`.
+
+### E2E (Playwright)
+
+```bash
+pnpm --filter @together/web test:install   # first time / CI: browsers + deps
+pnpm --filter @together/web test           # mobile-chrome, then chromium
+pnpm ci:e2e                                # CI job (same as above)
+```
+
+Specs live in `apps/web/e2e/`. Playwright starts the web app and realtime worker via `webServer` config. Requires **Node.js 22+** (Wrangler).
+
+Run a subset:
+
+```bash
+pnpm --filter @together/web exec playwright test --project=chromium --grep @smoke
+pnpm --filter @together/web exec playwright test apps/web/e2e/room.spec.ts
+```
+
+### Visual regression
+
+```bash
+pnpm --filter @together/web test:visual          # compare against baselines
+pnpm --filter @together/web test:visual:update   # regenerate (Docker)
+pnpm ci:visual                                   # CI job
+```
+
+Baselines live under `apps/web/e2e/visual-regression.spec.ts-snapshots/`. CI runs in Linux Docker for deterministic pixels.
+
+### Full merge gate
+
+```bash
+pnpm ci:local    # runs ci:quality → build → unit → db → e2e → visual
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the GitHub Actions job mapping and hook behavior.
 
 ---
 

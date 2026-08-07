@@ -1,8 +1,8 @@
 import type { RoomSettings } from "@together/shared";
 import { roomSettingsSchema } from "@together/shared";
 import bcrypt from "bcryptjs";
-import { generateSlug, signRoomToken } from "./utils";
 import { formatPublicDbError } from "./db-errors";
+import { generateSlug, signRoomToken } from "./utils";
 
 export interface MemoryRoom {
   id: string;
@@ -115,9 +115,7 @@ export async function createRoom(input: {
     privacy: input.privacy,
   });
 
-  const passwordHash = input.password
-    ? await bcrypt.hash(input.password, 10)
-    : null;
+  const passwordHash = input.password ? await bcrypt.hash(input.password, 10) : null;
 
   try {
     const [room] = await db
@@ -161,9 +159,7 @@ async function createMemoryRoom(input: {
     privacy: input.privacy,
   });
 
-  const passwordHash = input.password
-    ? await bcrypt.hash(input.password, 10)
-    : null;
+  const passwordHash = input.password ? await bcrypt.hash(input.password, 10) : null;
 
   const inviteToken = await signRoomToken(id, slug);
 
@@ -393,11 +389,7 @@ export async function getPlaylistWithItems(playlistId: string) {
   const { getDb, playlists, playlistItems } = await import("@together/db");
   const { eq } = await import("drizzle-orm");
   const db = getDb();
-  const [playlist] = await db
-    .select()
-    .from(playlists)
-    .where(eq(playlists.id, playlistId))
-    .limit(1);
+  const [playlist] = await db.select().from(playlists).where(eq(playlists.id, playlistId)).limit(1);
 
   if (!playlist) return null;
 

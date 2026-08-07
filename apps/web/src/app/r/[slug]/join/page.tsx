@@ -1,5 +1,5 @@
-import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { JoinGateClient } from "@/components/join-gate";
 import { getRoomBySlug } from "@/lib/rooms";
@@ -29,7 +29,9 @@ export default async function JoinPage({ params }: JoinPageProps) {
   }
 
   return (
-    <Suspense fallback={<div className="flex min-h-dvh items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex min-h-dvh items-center justify-center">Loading...</div>}
+    >
       <JoinGateClient slug={slug} />
     </Suspense>
   );

@@ -14,6 +14,30 @@ const webServerEnv = {
   NEXT_PUBLIC_REALTIME_URL: "ws://127.0.0.1:8787",
 };
 
+const MOBILE_ONLY_SPECS = [
+  "**/mobile-queue.spec.ts",
+  "**/mobile-empty-states.spec.ts",
+  "**/chat-mobile.spec.ts",
+  "**/keyboard-shortcuts-mobile.spec.ts",
+];
+
+const MOBILE_E2E_SPECS = [
+  ...MOBILE_ONLY_SPECS,
+  "**/mobile-room.spec.ts",
+  "**/join-private.spec.ts",
+  "**/playback-two-clients.spec.ts",
+  "**/skip-vote.spec.ts",
+  "**/pwa-offline.spec.ts",
+  "**/settings-in-room.spec.ts",
+  "**/participants-moderation.spec.ts",
+  "**/chat-bidi.spec.ts",
+  "**/chat-mentions.spec.ts",
+  "**/chat-ephemeral.spec.ts",
+  "**/democratic-promote-flow.spec.ts",
+  "**/history-tab.spec.ts",
+  "**/smoke.spec.ts",
+];
+
 const visualProjects = [
   {
     name: "visual-desktop-chrome",
@@ -48,24 +72,27 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: "list",
-  // Canonical baselines are Linux amd64 (see scripts/visual-regression-linux.sh).
-  snapshotPathTemplate:
-    "{testDir}/{testFilePath}-snapshots/{projectName}/{arg}{ext}",
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }], ["github"]]
+    : [["list"]],
+  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{projectName}/{arg}{ext}",
   use: {
     baseURL: "http://127.0.0.1:3002",
-    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+    trace: "retain-on-failure",
   },
   projects: [
     {
-      name: "chromium",
-      testIgnore: ["**/visual-regression.spec.ts", "**/mobile-room.spec.ts"],
-      use: { ...devices["Desktop Chrome"] },
+      name: "mobile-chrome",
+      testMatch: MOBILE_E2E_SPECS,
+      testIgnore: ["**/visual-regression.spec.ts", "**/keyboard-shortcuts.spec.ts"],
+      use: { ...devices["Pixel 5"] },
     },
     {
-      name: "mobile-chrome",
-      testMatch: "**/mobile-room.spec.ts",
-      use: { ...devices["Pixel 5"] },
+      name: "chromium",
+      testIgnore: ["**/visual-regression.spec.ts", "**/mobile-room.spec.ts", ...MOBILE_ONLY_SPECS],
+      use: { ...devices["Desktop Chrome"] },
     },
     ...visualProjects,
   ],

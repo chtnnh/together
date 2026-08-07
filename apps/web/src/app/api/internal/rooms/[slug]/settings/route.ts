@@ -1,7 +1,7 @@
+import { roomSettingsSchema } from "@together/shared";
 import { NextResponse } from "next/server";
 import { withApiHandler } from "@/lib/api-log";
 import { getRoomBySlug, updateRoomSettings } from "@/lib/rooms";
-import { roomSettingsSchema } from "@together/shared";
 
 function authorizeInternalSync(request: Request): boolean {
   const secret = process.env.ROOM_TOKEN_SECRET;
@@ -17,7 +17,7 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { slug } = await context!.params!;
+    const { slug } = await context?.params!;
     const room = await getRoomBySlug(slug);
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });

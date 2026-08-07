@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-log";
 import { requireSuperadmin } from "@/lib/admin-auth";
 import { listAdminAuditLog } from "@/lib/admin-data";
+import { withApiHandler } from "@/lib/api-log";
 
 export const GET = withApiHandler("GET /api/admin/audit", async (log) => {
   const auth = await log.span("requireSuperadmin", () => requireSuperadmin());

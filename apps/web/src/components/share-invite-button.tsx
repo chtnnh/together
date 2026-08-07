@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Check, Link2, Share2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useShareInvite({
   slug,

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@together/ui";
 import { X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAuthConfig } from "@/components/auth-config-provider";
-import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 
 interface SignInModalProps {
   open: boolean;
@@ -57,7 +57,9 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!configured) {
-      setMessage("Sign-in isn't available on this server. You can still listen in rooms without an account.");
+      setMessage(
+        "Sign-in isn't available on this server. You can still listen in rooms without an account.",
+      );
       return;
     }
 
@@ -107,7 +109,8 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
 
         {!configured ? (
           <p className="text-sm text-[var(--text-muted)]">
-            Sign-in isn&apos;t available on this server. You can still listen in rooms without an account.
+            Sign-in isn&apos;t available on this server. You can still listen in rooms without an
+            account.
           </p>
         ) : (
           <div className="space-y-4">
@@ -144,9 +147,7 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
           </div>
         )}
 
-        {message && (
-          <p className="mt-4 text-center text-sm text-[var(--text-muted)]">{message}</p>
-        )}
+        {message && <p className="mt-4 text-center text-sm text-[var(--text-muted)]">{message}</p>}
       </div>
     </div>
   );
