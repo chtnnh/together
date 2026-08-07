@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@together/ui";
+import { useCallback, useEffect, useState } from "react";
 
 interface AdminRoom {
   id: string;
@@ -17,7 +17,7 @@ export default function AdminRoomsPage() {
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     fetch("/api/admin/rooms")
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to load rooms");
@@ -26,11 +26,11 @@ export default function AdminRoomsPage() {
       })
       .then(setRooms)
       .catch(() => setError("Failed to load rooms"));
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const handlePurge = async (slug: string) => {
     if (!confirm(`Purge live state for ${slug}? Connected users will be disconnected.`)) return;
@@ -74,9 +74,7 @@ export default function AdminRoomsPage() {
                 <td className="px-4 py-3">{room.title ?? "—"}</td>
                 <td className="px-4 py-3">{room.ownerUserId ? "Yes" : "No"}</td>
                 <td className="px-4 py-3">
-                  {room.lastActiveAt
-                    ? new Date(room.lastActiveAt).toLocaleString()
-                    : "—"}
+                  {room.lastActiveAt ? new Date(room.lastActiveAt).toLocaleString() : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">

@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { expect, test } from "@playwright/test";
 
 const repoRoot = path.join(__dirname, "../../..");
 
@@ -34,18 +34,29 @@ test.describe("Phase 1.1 — CI and deploy", () => {
     };
     expect(rootPkg.scripts?.["build:realtime"]).toContain("@together/realtime");
     expect(rootPkg.scripts?.["deploy:realtime"]).toContain("wrangler deploy --env production");
-
-    const realtimePkg = JSON.parse(readRepoFile("services/realtime/package.json")) as {
-      scripts?: Record<string, string>;
-    };
-    expect(realtimePkg.scripts?.build).toBeTruthy();
-    expect(realtimePkg.scripts?.deploy).toContain("wrangler deploy --env production");
+    expect(rootPkg.scripts?.["ci:local"]).toContain("ci-local.sh");
+    expect(rootPkg.scripts?.["ci:pre-commit"]).toBeTruthy();
+    expect(rootPkg.scripts?.["ci:pre-push"]).toBeTruthy();
   });
 
-  test("CI workflow runs typecheck, lint, and Playwright tests", () => {
+  test("CI workflow runs merge gate jobs and uploads Playwright artifacts", () => {
     const ci = readWorkflow("ci.yml");
-    expect(ci).toContain("pnpm typecheck");
-    expect(ci).toContain("pnpm lint");
-    expect(ci).toContain("pnpm --filter @together/web test");
+    expect(ci).toContain("pnpm ci:quality");
+    expect(ci).toContain("pnpm ci:build");
+    expect(ci).toContain("pnpm ci:unit");
+    expect(ci).toContain("pnpm ci:e2e");
+    expect(ci).toContain("pnpm ci:visual");
+    expect(ci).toContain("pnpm ci:db");
+    expect(ci).toContain("actions/upload-artifact@v4");
+    expect(ci).toContain("playwright-report");
+    expect(ci).toContain("test-results");
+  });
+
+  test("Biome is the linter", () => {
+    expect(fs.existsSync(path.join(repoRoot, "biome.json"))).toBe(true);
+    const rootPkg = JSON.parse(readRepoFile("package.json")) as {
+      scripts?: Record<string, string>;
+    };
+    expect(rootPkg.scripts?.lint).toContain("biome");
   });
 });

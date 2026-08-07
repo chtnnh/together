@@ -42,6 +42,7 @@ export function AlternatePicker({ request, onPick, onClose }: AlternatePickerPro
           ) : (
             alternates.map((alt) => (
               <button
+                type="button"
                 key={alt.videoId}
                 onClick={() => onPick(alt.videoId, alt.title)}
                 className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] p-3 text-left hover:bg-[var(--bg-secondary)]"

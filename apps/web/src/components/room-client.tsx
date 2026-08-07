@@ -1,76 +1,80 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
+import {
+  getEffectivePlaybackPosition,
+  type RoomSettings,
+  roomSettingsSchema,
+} from "@together/shared";
 import {
   Button,
+  HistoryList,
+  Input,
+  Label,
   QueueList,
   RequestList,
-  HistoryList,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-  Input,
-  Label,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@together/ui";
 import {
-  Settings,
-  Users,
-  Plus,
-  Music2,
+  FolderOpen,
+  History,
   ListMusic,
   LogIn,
   MessageSquare,
-  History,
+  Music2,
+  Plus,
   RefreshCw,
   Save,
-  FolderOpen,
+  Settings,
   User,
+  Users,
 } from "lucide-react";
-import { PlaybackEmbedErrorBanner } from "@/components/playback-embed-error-banner";
-import { ConnectionStatus } from "@/components/connection-status";
-import { embedErrorMessage, isEmbedBlockedError } from "@/lib/playback-embed-error";
-import { useRoomSocket } from "@/hooks/use-room-socket";
-import { useYouTubePlayer } from "@/hooks/use-youtube-player";
-import { ChatInput, ChatMessages } from "@/components/emoji-chat";
-import { NowPlayingBar } from "@/components/now-playing-bar";
-import { QueueLoopButton } from "@/components/queue-loop-button";
-import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
-import { SettingsDrawer } from "@/components/room-settings";
-import { useUserPreferences } from "@/hooks/use-user-preferences";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { useVisualViewportHeight } from "@/hooks/use-visual-viewport-height";
-import { AlternatePicker } from "@/components/alternate-picker";
-import { ParticipantsPanel } from "@/components/participants-panel";
-import { getDisplayName, setDisplayName } from "@/lib/utils";
-import { ShareInviteButton, useShareInvite } from "@/components/share-invite-button";
-import { DiscordStatusButton, useDiscordStatus } from "@/components/discord-status-button";
-import { SavePlaylistDialog } from "@/components/save-playlist-dialog";
-import { PlaylistsModal } from "@/components/playlists-modal";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AccountNav } from "@/components/account-nav";
 import { AccountSettingsModal } from "@/components/account-settings-modal";
-import { importRequestForQuery, isLikelyUrl } from "@/lib/import-url";
+import { AlternatePicker } from "@/components/alternate-picker";
+import { ConnectionStatus } from "@/components/connection-status";
+import { DiscordStatusButton, useDiscordStatus } from "@/components/discord-status-button";
+import { ChatInput, ChatMessages } from "@/components/emoji-chat";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
+import { NowPlayingBar } from "@/components/now-playing-bar";
+import { ParticipantsPanel } from "@/components/participants-panel";
+import { PlaybackEmbedErrorBanner } from "@/components/playback-embed-error-banner";
+import { PlaylistsModal } from "@/components/playlists-modal";
+import { QueueLoopButton } from "@/components/queue-loop-button";
+import { RoomMobileMoreMenu } from "@/components/room-mobile-header";
+import { SettingsDrawer } from "@/components/room-settings";
+import { SavePlaylistDialog } from "@/components/save-playlist-dialog";
+import { ShareInviteButton, useShareInvite } from "@/components/share-invite-button";
+import { SignInModal } from "@/components/sign-in-modal";
+import { useToast } from "@/components/toast";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useOnClickOutside } from "@/hooks/use-on-click-outside";
+import { useRoomSocket } from "@/hooks/use-room-socket";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useVisualViewportHeight } from "@/hooks/use-visual-viewport-height";
+import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import {
+  type ImportResult,
+  type ImportTrackResult,
   isImportPlaylist,
   normalizeImportResponse,
   shouldShowImportPicker,
-  type ImportResult,
-  type ImportTrackResult,
 } from "@/lib/import-results";
-import { useOnClickOutside } from "@/hooks/use-on-click-outside";
-import { useToast } from "@/components/toast";
-import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { importRequestForQuery, isLikelyUrl } from "@/lib/import-url";
+import { embedErrorMessage, isEmbedBlockedError } from "@/lib/playback-embed-error";
 import { recordRecentRoom } from "@/lib/recent-rooms";
-import { SignInModal } from "@/components/sign-in-modal";
-import { AccountNav } from "@/components/account-nav";
-import { RoomMobileMoreMenu } from "@/components/room-mobile-header";
-import type { HistoryItem, RequestItem, RoomActivity, RoomReaction } from "@together/shared";
-import { getEffectivePlaybackPosition, roomSettingsSchema, type RoomSettings } from "@together/shared";
 import { shouldToastTrackSkipped } from "@/lib/skip-feedback";
+import { getDisplayName, setDisplayName } from "@/lib/utils";
 
 function ImportResultRow({
   item,
@@ -203,7 +207,20 @@ export function RoomClient({
   const { prefs: userPrefs, setPrefs: setUserPrefs } = useUserPreferences(signedIn);
   const viewportHeight = useVisualViewportHeight();
 
-  const { connected, synced, roomState, send, participant, isHost, canControlPlayback, error, offline, clockOffsetMs, chatNotice, dismissChatNotice } = useRoomSocket({
+  const {
+    connected,
+    synced,
+    roomState,
+    send,
+    participant,
+    isHost,
+    canControlPlayback,
+    error,
+    offline,
+    clockOffsetMs,
+    chatNotice,
+    dismissChatNotice,
+  } = useRoomSocket({
     roomId,
     displayName,
     userId,
@@ -275,7 +292,7 @@ export function RoomClient({
   useEffect(() => {
     lastEndedReportRef.current = null;
     setEmbedError(null);
-  }, [playback?.queueItemId]);
+  }, []);
 
   const currentQueueItem =
     playback?.queueItemId != null
@@ -291,23 +308,28 @@ export function RoomClient({
     [toast],
   );
 
-  const { ready, resyncView, needsUserGesture, unlockPlayback, durationMs: playerDurationMs } =
-    useYouTubePlayer({
-      containerId: "youtube-player",
-      playback,
-      clockOffsetMs,
-      quality: userPrefs.quality,
-      audioOnly: userPrefs.audioOnly,
-      volume: userPrefs.volume,
-      muted: userPrefs.muted,
-      onEnded: handlePlaybackEnded,
-      onError: handleYouTubeError,
-    });
+  const {
+    ready,
+    resyncView,
+    needsUserGesture,
+    unlockPlayback,
+    durationMs: playerDurationMs,
+  } = useYouTubePlayer({
+    containerId: "youtube-player",
+    playback,
+    clockOffsetMs,
+    quality: userPrefs.quality,
+    audioOnly: userPrefs.audioOnly,
+    volume: userPrefs.volume,
+    muted: userPrefs.muted,
+    onEnded: handlePlaybackEnded,
+    onError: handleYouTubeError,
+  });
 
   // Keep player aligned when toggling audio/video view without changing play/pause
   useEffect(() => {
     if (ready) resyncView();
-  }, [userPrefs.audioOnly, ready, resyncView]);
+  }, [ready, resyncView]);
 
   const handleSyncPlayback = useCallback(() => {
     send({ type: "playback:sync", positionMs: 0 });
@@ -319,7 +341,7 @@ export function RoomClient({
 
   useEffect(() => {
     didInitialPlaybackSyncRef.current = false;
-  }, [playback?.queueItemId]);
+  }, []);
 
   useEffect(() => {
     if (!ready || !connected || didInitialPlaybackSyncRef.current) return;
@@ -700,10 +722,7 @@ export function RoomClient({
   const queueTabToolbar = (
     <div className="mb-2 flex items-center justify-between gap-2">
       {canEditLoop ? (
-        <QueueLoopButton
-          loopMode={settings?.loopMode ?? "off"}
-          onChange={handleLoopModeChange}
-        />
+        <QueueLoopButton loopMode={settings?.loopMode ?? "off"} onChange={handleLoopModeChange} />
       ) : (
         <span />
       )}
@@ -749,8 +768,7 @@ export function RoomClient({
   };
 
   const canSkip =
-    !!roomState?.queue.some((i) => i.id === playback?.queueItemId) ||
-    !!roomState?.skipVotes;
+    !!roomState?.queue.some((i) => i.id === playback?.queueItemId) || !!roomState?.skipVotes;
 
   const nowPlayingBar = (
     <NowPlayingBar
@@ -759,9 +777,7 @@ export function RoomClient({
       artist={currentTrack?.artist}
       thumbnailUrl={
         currentTrack?.thumbnailUrl ??
-        (playback?.videoId
-          ? `https://i.ytimg.com/vi/${playback.videoId}/default.jpg`
-          : undefined)
+        (playback?.videoId ? `https://i.ytimg.com/vi/${playback.videoId}/default.jpg` : undefined)
       }
       durationMs={trackDurationMs}
       clockOffsetMs={clockOffsetMs}
@@ -844,7 +860,11 @@ export function RoomClient({
     searchResults && searchResults.length > 0 ? (
       <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1">
         {searchResults.map((item) => (
-          <ImportResultRow key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)} item={item} onPick={handlePickSearchResult} />
+          <ImportResultRow
+            key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)}
+            item={item}
+            onPick={handlePickSearchResult}
+          />
         ))}
       </ul>
     ) : null;
@@ -872,23 +892,18 @@ export function RoomClient({
             onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
             className="min-w-0 flex-1"
           />
-          <Button
-            size="icon"
-            onClick={handleAddUrl}
-            disabled={loading}
-            title="Add to queue"
-          >
+          <Button size="icon" onClick={handleAddUrl} disabled={loading} title="Add to queue">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        {addError && (
-          <p className="mt-2 text-xs text-red-400">{addError}</p>
-        )}
+        {addError && <p className="mt-2 text-xs text-red-400">{addError}</p>}
         {searchResults && searchResults.length > 0 && (
           <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1">
             {searchResults.map((item) => (
               <ImportResultRow
-                key={isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)}
+                key={
+                  isImportPlaylist(item) ? `playlist-${item.title}` : (item.videoId ?? item.title)
+                }
                 item={item}
                 onPick={handlePickSearchResult}
               />
@@ -901,9 +916,7 @@ export function RoomClient({
               variant="secondary"
               size="sm"
               className="shrink-0 whitespace-nowrap"
-              onClick={() =>
-                signedIn ? setPlaylistsModalOpen(true) : openSignIn()
-              }
+              onClick={() => (signedIn ? setPlaylistsModalOpen(true) : openSignIn())}
             >
               <FolderOpen className="mr-1.5 size-4" />
               Load Saved Playlists
@@ -912,14 +925,16 @@ export function RoomClient({
         </div>
       </div>
 
-      <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex flex-1 flex-col overflow-hidden">
+      <Tabs
+        value={sidebarTab}
+        onValueChange={setSidebarTab}
+        className="flex flex-1 flex-col overflow-hidden"
+      >
         <TabsList className="mx-3 mt-2">
           <TabsTrigger value="requests">Requests</TabsTrigger>
           <TabsTrigger value="queue">Queue</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="chat">
-            Chat{tabBadge(unreadChat)}
-          </TabsTrigger>
+          <TabsTrigger value="chat">Chat{tabBadge(unreadChat)}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests" className="flex-1 overflow-y-auto px-2">
@@ -929,18 +944,16 @@ export function RoomClient({
         <TabsContent value="queue" className="flex flex-1 flex-col overflow-hidden px-2">
           {queueTabToolbar}
           <div className="flex-1 overflow-y-auto">
-          <QueueList
-            items={roomState?.queue ?? []}
-            currentItemId={playback?.queueItemId}
-            canManage={isHost}
-            canPlay={canControlPlayback}
-            onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
-            hideClearAll
-            onPlay={(id) => send({ type: "queue:play", itemId: id })}
-            onReorder={(itemId, newIndex) =>
-              send({ type: "queue:reorder", itemId, newIndex })
-            }
-          />
+            <QueueList
+              items={roomState?.queue ?? []}
+              currentItemId={playback?.queueItemId}
+              canManage={isHost}
+              canPlay={canControlPlayback}
+              onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
+              hideClearAll
+              onPlay={(id) => send({ type: "queue:play", itemId: id })}
+              onReorder={(itemId, newIndex) => send({ type: "queue:reorder", itemId, newIndex })}
+            />
           </div>
         </TabsContent>
 
@@ -964,12 +977,8 @@ export function RoomClient({
         isRoomOwner={isRoomHost}
         onKick={(id) => send({ type: "moderation:kick", participantId: id })}
         onBan={(id) => send({ type: "moderation:ban", participantId: id })}
-        onPromote={(id) =>
-          send({ type: "moderation:promote", participantId: id, role: "co-host" })
-        }
-        onDemote={(id) =>
-          send({ type: "moderation:promote", participantId: id, role: "guest" })
-        }
+        onPromote={(id) => send({ type: "moderation:promote", participantId: id, role: "co-host" })}
+        onDemote={(id) => send({ type: "moderation:promote", participantId: id, role: "guest" })}
         onTransferOwnership={handleTransferOwnership}
       />
     </div>
@@ -1020,308 +1029,309 @@ export function RoomClient({
 
   return (
     <TooltipProvider>
-    <div
-      className="flex h-dvh flex-col md:flex-row"
-      style={
-        viewportHeight != null
-          ? { height: viewportHeight, maxHeight: viewportHeight }
-          : undefined
-      }
-    >
-      <div className="flex min-h-0 flex-1 flex-col">
-        <header className="shrink-0 border-b border-[var(--border)] px-4 py-2.5 md:py-3">
-          <div className="flex items-start gap-2 md:items-center">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base font-semibold leading-snug line-clamp-2 break-words md:truncate">
-                {roomTitle}
-              </h1>
-              <ConnectionStatus
-                className="mt-1"
-                offline={offline}
-                connected={connected}
-                synced={synced}
-                participantCount={roomState?.participants.length ?? 0}
-                slug={slug}
-                showSlug={false}
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-0.5 md:gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-9 md:size-10"
-                    aria-label="Sync playback"
-                    onClick={handleSyncPlayback}
-                  >
-                    <RefreshCw className="size-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Sync playback</TooltipContent>
-              </Tooltip>
-              <div className="relative" ref={participantsRef}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 px-2"
-                  onClick={() => setParticipantsOpen((open) => !open)}
-                  aria-label="View participants"
-                  aria-expanded={participantsOpen}
-                >
-                  <Users className="h-4 w-4 shrink-0" />
-                  <span className="text-sm tabular-nums">{roomState?.participants.length ?? 0}</span>
-                </Button>
-                {participantsOpen && participantsPanel}
-              </div>
-              <div className="md:hidden">
-                <RoomMobileMoreMenu
-                  onShare={shareInvite}
-                  shareLabel={shareActionLabel}
-                  onDiscordStatus={copyDiscordStatus}
-                  discordLabel={discordCopied ? "Copied!" : "Copy Discord status"}
-                  onSettings={() => setSettingsOpen(true)}
-                  menuExtras={mobileMenuExtras}
-                />
-              </div>
-              <div className="hidden items-center gap-2 md:flex">
-                <DiscordStatusButton
-                  title={currentTrack?.title ?? playback?.title}
-                  artist={currentTrack?.artist}
+      <div
+        className="flex h-dvh flex-col md:flex-row"
+        style={
+          viewportHeight != null ? { height: viewportHeight, maxHeight: viewportHeight } : undefined
+        }
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
+          <header className="shrink-0 border-b border-[var(--border)] px-4 py-2.5 md:py-3">
+            <div className="flex items-start gap-2 md:items-center">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base font-semibold leading-snug line-clamp-2 break-words md:truncate">
+                  {roomTitle}
+                </h1>
+                <ConnectionStatus
+                  className="mt-1"
+                  offline={offline}
+                  connected={connected}
+                  synced={synced}
+                  participantCount={roomState?.participants.length ?? 0}
                   slug={slug}
+                  showSlug={false}
                 />
-                <ShareInviteButton slug={slug} title={roomTitle} privacy={privacy} />
-                <AccountNav
-                  signedIn={signedIn}
-                  authLoading={authLoading}
-                  onSignIn={openSignIn}
-                  onPlaylistsClick={() =>
-                    signedIn ? setPlaylistsModalOpen(true) : openSignIn()
-                  }
-                  onAccountClick={() => setAccountModalOpen(true)}
-                />
+              </div>
+              <div className="flex shrink-0 items-center gap-0.5 md:gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Settings"
-                      onClick={() => setSettingsOpen(true)}
+                      className="size-9 md:size-10"
+                      aria-label="Sync playback"
+                      onClick={handleSyncPlayback}
                     >
-                      <Settings className="h-5 w-5" />
+                      <RefreshCw className="size-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Settings</TooltipContent>
+                  <TooltipContent>Sync playback</TooltipContent>
                 </Tooltip>
+                <div className="relative" ref={participantsRef}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2"
+                    onClick={() => setParticipantsOpen((open) => !open)}
+                    aria-label="View participants"
+                    aria-expanded={participantsOpen}
+                  >
+                    <Users className="h-4 w-4 shrink-0" />
+                    <span className="text-sm tabular-nums">
+                      {roomState?.participants.length ?? 0}
+                    </span>
+                  </Button>
+                  {participantsOpen && participantsPanel}
+                </div>
+                <div className="md:hidden">
+                  <RoomMobileMoreMenu
+                    onShare={shareInvite}
+                    shareLabel={shareActionLabel}
+                    onDiscordStatus={copyDiscordStatus}
+                    discordLabel={discordCopied ? "Copied!" : "Copy Discord status"}
+                    onSettings={() => setSettingsOpen(true)}
+                    menuExtras={mobileMenuExtras}
+                  />
+                </div>
+                <div className="hidden items-center gap-2 md:flex">
+                  <DiscordStatusButton
+                    title={currentTrack?.title ?? playback?.title}
+                    artist={currentTrack?.artist}
+                    slug={slug}
+                  />
+                  <ShareInviteButton slug={slug} title={roomTitle} privacy={privacy} />
+                  <AccountNav
+                    signedIn={signedIn}
+                    authLoading={authLoading}
+                    onSignIn={openSignIn}
+                    onPlaylistsClick={() => (signedIn ? setPlaylistsModalOpen(true) : openSignIn())}
+                    onAccountClick={() => setAccountModalOpen(true)}
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Settings"
+                        onClick={() => setSettingsOpen(true)}
+                      >
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Settings</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <div
-          className={`relative w-full shrink-0 bg-black ${
-            userPrefs.audioOnly ? "hidden" : "aspect-video md:min-h-0 md:flex-1 md:aspect-auto"
-          }`}
-        >
-          <div id="youtube-player" className="h-full w-full" />
           <div
-            className={`absolute inset-0 z-10 ${needsUserGesture ? "pointer-events-auto cursor-pointer" : "pointer-events-none"}`}
-            aria-hidden={!needsUserGesture}
-            onContextMenu={(e) => e.preventDefault()}
-            onClick={needsUserGesture ? unlockPlayback : undefined}
-          />
-          {needsUserGesture && playback?.playing && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 p-4">
-              <button
-                type="button"
-                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white shadow-lg"
-                onClick={unlockPlayback}
-              >
-                Tap to sync playback
-              </button>
+            className={`relative w-full shrink-0 bg-black ${
+              userPrefs.audioOnly ? "hidden" : "aspect-video md:min-h-0 md:flex-1 md:aspect-auto"
+            }`}
+          >
+            <div id="youtube-player" className="h-full w-full" />
+            <div
+              className={`absolute inset-0 z-10 ${needsUserGesture ? "pointer-events-auto cursor-pointer" : "pointer-events-none"}`}
+              aria-hidden={!needsUserGesture}
+              onContextMenu={(e) => e.preventDefault()}
+              onClick={needsUserGesture ? unlockPlayback : undefined}
+            />
+            {needsUserGesture && playback?.playing && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 p-4">
+                <button
+                  type="button"
+                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white shadow-lg"
+                  onClick={unlockPlayback}
+                >
+                  Tap to sync playback
+                </button>
+              </div>
+            )}
+            {embedError && (
+              <PlaybackEmbedErrorBanner
+                message={embedError.message}
+                canPickAlternate={
+                  isEmbedBlockedError(embedError.code) &&
+                  !!currentQueueItem?.alternates?.length &&
+                  canControlPlayback
+                }
+                onPickAlternate={() => {
+                  if (!currentQueueItem) return;
+                  setPickRequest({
+                    ...currentQueueItem,
+                    status: "needs_pick",
+                  } as RequestItem);
+                }}
+                onDismiss={() => setEmbedError(null)}
+              />
+            )}
+          </div>
+
+          {userPrefs.audioOnly && (
+            <div className="flex shrink-0 flex-col items-center justify-center gap-2 py-6 md:flex-1">
+              <Music2 className="h-12 w-12 text-[var(--accent)] md:h-16 md:w-16" />
+              <p className="px-4 text-center text-lg font-medium">
+                {playback?.title ?? "Nothing playing"}
+              </p>
             </div>
           )}
-          {embedError && (
-            <PlaybackEmbedErrorBanner
-              message={embedError.message}
-              canPickAlternate={
-                isEmbedBlockedError(embedError.code) &&
-                !!currentQueueItem?.alternates?.length &&
-                canControlPlayback
-              }
-              onPickAlternate={() => {
-                if (!currentQueueItem) return;
-                setPickRequest({
-                  ...currentQueueItem,
-                  status: "needs_pick",
-                } as RequestItem);
-              }}
-              onDismiss={() => setEmbedError(null)}
-            />
-          )}
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:hidden">
+            {mobileTab === "chat" ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{chatPanel}</div>
+            ) : (
+              <>
+                <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2">
+                  {mobileTab === "requests" && <RequestList {...requestListProps} />}
+                  {mobileTab === "queue" && (
+                    <>
+                      {queueTabToolbar}
+                      <QueueList
+                        items={roomState?.queue ?? []}
+                        currentItemId={playback?.queueItemId}
+                        canManage={isHost}
+                        canPlay={canControlPlayback}
+                        onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
+                        hideClearAll
+                        onPlay={(id) => send({ type: "queue:play", itemId: id })}
+                        onReorder={(itemId, newIndex) =>
+                          send({ type: "queue:reorder", itemId, newIndex })
+                        }
+                      />
+                    </>
+                  )}
+                  {mobileTab === "history" && (
+                    <HistoryList items={roomState?.history ?? []} onReAdd={reAddFromHistory} />
+                  )}
+                </div>
+                {(mobileTab === "requests" || mobileTab === "queue") && addTrackFooter}
+              </>
+            )}
+          </div>
+
+          <div className="shrink-0 border-t border-[var(--border)] p-3 md:p-4">
+            {playbackControls}
+          </div>
+
+          <nav
+            className="flex shrink-0 border-t border-[var(--border)] pb-[env(safe-area-inset-bottom,0px)] md:hidden"
+            data-testid="mobile-nav"
+          >
+            {[
+              { id: "requests", icon: ListMusic, label: "Requests" },
+              { id: "queue", icon: ListMusic, label: "Queue" },
+              { id: "history", icon: History, label: "History" },
+              { id: "chat", icon: MessageSquare, label: "Chat", badge: unreadChat },
+            ].map(({ id, icon: Icon, label, badge }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMobileTab(id)}
+                className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
+                  mobileTab === id ? "text-[var(--accent)]" : "text-[var(--text-muted)]"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="flex items-center">
+                  {label}
+                  {badge ? tabBadge(badge) : null}
+                </span>
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {userPrefs.audioOnly && (
-          <div className="flex shrink-0 flex-col items-center justify-center gap-2 py-6 md:flex-1">
-            <Music2 className="h-12 w-12 text-[var(--accent)] md:h-16 md:w-16" />
-            <p className="px-4 text-center text-lg font-medium">{playback?.title ?? "Nothing playing"}</p>
-          </div>
+        <div className="hidden w-96 min-h-0 flex-col border-l border-[var(--border)] md:flex">
+          {sidebar}
+        </div>
+
+        {shortcutsOpen && <KeyboardShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
+
+        {settingsOpen && (
+          <SettingsDrawer
+            roomSettings={settings ?? roomSettingsSchema.parse({})}
+            roomTitle={localRoomTitle}
+            userPrefs={userPrefs}
+            isHost={isHost}
+            canEditLoop={isHost || !settings?.controlsLocked}
+            hasOwner={roomHasOwner}
+            signedIn={signedIn}
+            authLoading={authLoading}
+            userEmail={email}
+            claiming={claimingRoom}
+            onRoomUpdate={(s) => {
+              send({ type: "settings:update", settings: s });
+              if (isHost) {
+                void fetch(`/api/rooms/${slug}/settings`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(s),
+                });
+              }
+            }}
+            onRoomTitleUpdate={handleRoomTitleUpdate}
+            onUserPrefsUpdate={setUserPrefs}
+            onClose={closeSettings}
+            onSignIn={openSignIn}
+            onClaim={handleClaimRoom}
+          />
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:hidden">
-          {mobileTab === "chat" ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{chatPanel}</div>
-          ) : (
-            <>
-              <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2">
-                {mobileTab === "requests" && (
-                  <RequestList {...requestListProps} />
-                )}
-                {mobileTab === "queue" && (
-                  <>
-                    {queueTabToolbar}
-                    <QueueList
-                      items={roomState?.queue ?? []}
-                      currentItemId={playback?.queueItemId}
-                      canManage={isHost}
-                      canPlay={canControlPlayback}
-                      onRemove={(id) => send({ type: "queue:remove", itemId: id, lane: "queue" })}
-                      hideClearAll
-                      onPlay={(id) => send({ type: "queue:play", itemId: id })}
-                      onReorder={(itemId, newIndex) =>
-                        send({ type: "queue:reorder", itemId, newIndex })
-                      }
-                    />
-                  </>
-                )}
-                {mobileTab === "history" && (
-                  <HistoryList items={roomState?.history ?? []} onReAdd={reAddFromHistory} />
-                )}
-              </div>
-              {(mobileTab === "requests" || mobileTab === "queue") && addTrackFooter}
-            </>
-          )}
-        </div>
+        <SignInModal
+          open={signInOpen}
+          onClose={() => setSignInOpen(false)}
+          returnTo={`/r/${slug}`}
+        />
 
-        <div className="shrink-0 border-t border-[var(--border)] p-3 md:p-4">
-          {playbackControls}
-        </div>
+        {pickRequest && (
+          <AlternatePicker
+            request={pickRequest}
+            onPick={(videoId, title) => {
+              if (playback && pickRequest.id === playback.queueItemId) {
+                onPlaybackChange({ videoId, title });
+                setEmbedError(null);
+              } else {
+                send({
+                  type: "resolve:pick",
+                  requestId: pickRequest.id,
+                  videoId,
+                  title,
+                });
+              }
+              setPickRequest(null);
+            }}
+            onClose={() => setPickRequest(null)}
+          />
+        )}
 
-        <nav className="flex shrink-0 border-t border-[var(--border)] pb-[env(safe-area-inset-bottom,0px)] md:hidden">
-          {[
-            { id: "requests", icon: ListMusic, label: "Requests" },
-            { id: "queue", icon: ListMusic, label: "Queue" },
-            { id: "history", icon: History, label: "History" },
-            { id: "chat", icon: MessageSquare, label: "Chat", badge: unreadChat },
-          ].map(({ id, icon: Icon, label, badge }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setMobileTab(id)}
-              className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
-                mobileTab === id ? "text-[var(--accent)]" : "text-[var(--text-muted)]"
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="flex items-center">
-                {label}
-                {badge ? tabBadge(badge) : null}
-              </span>
-            </button>
-          ))}
-        </nav>
-      </div>
+        <SavePlaylistDialog
+          open={savePlaylistOpen}
+          queue={roomState?.queue ?? []}
+          onClose={() => setSavePlaylistOpen(false)}
+          onSaved={(name) => toast(`Saved "${name}"`, "success")}
+        />
 
-      <div className="hidden w-96 min-h-0 flex-col border-l border-[var(--border)] md:flex">
-        {sidebar}
-      </div>
-
-      {shortcutsOpen && <KeyboardShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
-
-      {settingsOpen && (
-        <SettingsDrawer
-          roomSettings={settings ?? roomSettingsSchema.parse({})}
-          roomTitle={localRoomTitle}
-          userPrefs={userPrefs}
-          isHost={isHost}
-          canEditLoop={isHost || !settings?.controlsLocked}
-          hasOwner={roomHasOwner}
-          signedIn={signedIn}
-          authLoading={authLoading}
-          userEmail={email}
-          claiming={claimingRoom}
-          onRoomUpdate={(s) => {
-            send({ type: "settings:update", settings: s });
-            if (isHost) {
-              void fetch(`/api/rooms/${slug}/settings`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(s),
-              });
-            }
-          }}
-          onRoomTitleUpdate={handleRoomTitleUpdate}
-          onUserPrefsUpdate={setUserPrefs}
-          onClose={closeSettings}
+        <PlaylistsModal
+          open={playlistsModalOpen}
+          onClose={() => setPlaylistsModalOpen(false)}
+          onLoad={importPlaylistItems}
           onSignIn={openSignIn}
-          onClaim={handleClaimRoom}
         />
-      )}
 
-      <SignInModal
-        open={signInOpen}
-        onClose={() => setSignInOpen(false)}
-        returnTo={`/r/${slug}`}
-      />
-
-      {pickRequest && (
-        <AlternatePicker
-          request={pickRequest}
-          onPick={(videoId, title) => {
-            if (playback && pickRequest.id === playback.queueItemId) {
-              onPlaybackChange({ videoId, title });
-              setEmbedError(null);
-            } else {
-              send({
-                type: "resolve:pick",
-                requestId: pickRequest.id,
-                videoId,
-                title,
-              });
-            }
-            setPickRequest(null);
-          }}
-          onClose={() => setPickRequest(null)}
+        <AccountSettingsModal
+          open={accountModalOpen}
+          onClose={() => setAccountModalOpen(false)}
+          userPrefs={userPrefs}
+          onUserPrefsUpdate={setUserPrefs}
         />
-      )}
 
-      <SavePlaylistDialog
-        open={savePlaylistOpen}
-        queue={roomState?.queue ?? []}
-        onClose={() => setSavePlaylistOpen(false)}
-        onSaved={(name) => toast(`Saved "${name}"`, "success")}
-      />
-
-      <PlaylistsModal
-        open={playlistsModalOpen}
-        onClose={() => setPlaylistsModalOpen(false)}
-        onLoad={importPlaylistItems}
-        onSignIn={openSignIn}
-      />
-
-      <AccountSettingsModal
-        open={accountModalOpen}
-        onClose={() => setAccountModalOpen(false)}
-        userPrefs={userPrefs}
-        onUserPrefsUpdate={setUserPrefs}
-      />
-
-      {error && (
-        <div className="fixed bottom-4 left-4 z-50 rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
-          {error}
-        </div>
-      )}
-    </div>
+        {error && (
+          <div className="fixed bottom-4 left-4 z-50 rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
+            {error}
+          </div>
+        )}
+      </div>
     </TooltipProvider>
   );
 }
