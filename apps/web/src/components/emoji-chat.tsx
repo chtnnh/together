@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import React, { useCallback, useEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
@@ -100,7 +100,7 @@ export function ChatMessages({
       ref={containerRef}
       onScroll={handleScroll}
       dir="ltr"
-      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2 text-left [direction:ltr]"
+      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
     >
       {joinNotice ? (
         <p
@@ -119,7 +119,7 @@ export function ChatMessages({
         const mentionedYou =
           !!currentParticipantId &&
           participants.some(
-            (p) =>
+            (p: Participant) =>
               p.id === currentParticipantId &&
               msg.body.toLowerCase().includes(`@${p.displayName.toLowerCase()}`)
           );
@@ -127,15 +127,18 @@ export function ChatMessages({
         return (
           <div
             key={msg.id}
-            dir="ltr"
-            className={`text-sm text-left [direction:ltr] [transform:none] ${
+            className={`text-sm ${
               mentionedYou ? "rounded-md bg-[var(--accent)]/10 px-2 py-1" : ""
             }`}
           >
             <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
             <span className="mx-1 text-[var(--text-muted)]">·</span>
-            <span dir="ltr" className="inline-block [direction:ltr] [transform:none]">
-              {renderMessageBody(msg.body, currentParticipantId, participants)}
+            <span className="inline-block [unicode-bidi:isolate]">
+              {renderMessageBody(
+                msg.body,
+                currentParticipantId,
+                participants
+              )}
             </span>
           </div>
         );
@@ -149,11 +152,11 @@ interface EmojiPickerButtonProps {
 }
 
 export function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   useEffect(() => setMounted(true), []);
 
@@ -203,7 +206,7 @@ export function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
         ref={buttonRef}
         type="button"
         onClick={() => {
-          setOpen((v) => !v);
+          setOpen((v: boolean) => !v);
           if (!open) updatePosition();
         }}
         className="rounded-lg px-2 py-1 text-lg hover:bg-[var(--bg-secondary)]"
@@ -246,10 +249,10 @@ export function ChatInput({
   lastChatAt?: number;
   participants?: Participant[];
 }) {
-  const [message, setMessage] = useState("");
-  const [now, setNow] = useState(() => Date.now());
+  const [message, setMessage] = useState<string>("");
+  const [now, setNow] = useState<number>(() => Date.now());
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionIndex, setMentionIndex] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -271,7 +274,7 @@ export function ChatInput({
     mentionQuery === null
       ? []
       : participants
-          .filter((p) =>
+          .filter((p: Participant) =>
             mentionQuery === ""
               ? true
               : p.displayName.toLowerCase().includes(mentionQuery.toLowerCase())
@@ -315,7 +318,7 @@ export function ChatInput({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const body = message.trim();
     if (!body || slowModeActive) return;
@@ -326,7 +329,7 @@ export function ChatInput({
 
   const appendEmoji = (emoji: string) => {
     if (slowModeActive) return;
-    setMessage((prev) => prev + emoji);
+    setMessage((prev: string) => prev + emoji);
   };
 
   const mentionOpen = mentionQuery !== null && mentionMatches.length > 0;
@@ -339,6 +342,8 @@ export function ChatInput({
       <EmojiPickerButton onSelect={appendEmoji} />
       <input
         ref={inputRef}
+        type="text"
+        dir="ltr"
         value={message}
         onChange={(e) => {
           setMessage(e.target.value);
@@ -348,12 +353,12 @@ export function ChatInput({
           if (mentionOpen) {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setMentionIndex((i) => (i + 1) % mentionMatches.length);
+              setMentionIndex((i: number) => (i + 1) % mentionMatches.length);
               return;
             }
             if (e.key === "ArrowUp") {
               e.preventDefault();
-              setMentionIndex((i) => (i - 1 + mentionMatches.length) % mentionMatches.length);
+              setMentionIndex((i: number) => (i - 1 + mentionMatches.length) % mentionMatches.length);
               return;
             }
             if (e.key === "Enter" || e.key === "Tab") {
@@ -395,7 +400,7 @@ export function ChatInput({
           role="listbox"
           className="absolute bottom-full left-12 z-10 mb-1 max-h-40 w-56 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-lg"
         >
-          {mentionMatches.map((p, index) => (
+          {mentionMatches.map((p: Participant, index: number) => (
             <li key={p.id} role="option" aria-selected={index === mentionIndex}>
               <button
                 type="button"
