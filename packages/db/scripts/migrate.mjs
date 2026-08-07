@@ -1,12 +1,13 @@
 import dns from "node:dns";
+
 dns.setDefaultResultOrder("ipv4first");
 
-import { config } from "dotenv";
 import { execSync } from "node:child_process";
 import { lookup } from "node:dns/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { config } from "dotenv";
 import postgres from "postgres";
 
 function findRepoRoot(startDir) {

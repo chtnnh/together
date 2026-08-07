@@ -1,6 +1,6 @@
+import type { RoomSettings } from "@together/shared";
 import { relations } from "drizzle-orm";
 import {
-  boolean,
   integer,
   jsonb,
   pgEnum,
@@ -10,16 +10,10 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { RoomSettings } from "@together/shared";
 
 export const privacyEnum = pgEnum("privacy", ["public", "unlisted", "private"]);
 export const roleEnum = pgEnum("role", ["host", "co-host", "guest"]);
-export const trackSourceEnum = pgEnum("track_source", [
-  "youtube",
-  "spotify",
-  "apple",
-  "manual",
-]);
+export const trackSourceEnum = pgEnum("track_source", ["youtube", "spotify", "apple", "manual"]);
 export const playlistSourceEnum = pgEnum("playlist_source", [
   "spotify",
   "apple",

@@ -1,5 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
+import { openRoomTab } from "./helpers/room";
 
 test.describe("v0.3 — Ephemeral chat", () => {
   test.beforeEach(() => {
@@ -13,10 +14,8 @@ test.describe("v0.3 — Ephemeral chat", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole("tab", { name: "Chat" }).click();
-    await expect(
-      page.getByText(/Messages aren't saved/i),
-    ).toBeVisible({ timeout: 10000 });
+    await openRoomTab(page, "Chat");
+    await expect(page.getByText(/Messages aren't saved/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/No messages yet. Say hi!/i)).not.toBeVisible();
   });
 
@@ -27,12 +26,12 @@ test.describe("v0.3 — Ephemeral chat", () => {
     await page.waitForURL(/\/r\//);
     await expect(page.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole("tab", { name: "Chat" }).click();
+    await openRoomTab(page, "Chat");
     await expect(page.getByText(/Messages aren't saved/i)).toBeVisible({
       timeout: 10000,
     });
 
-    await page.getByPlaceholder("Type a message").fill("hello");
+    await page.getByTestId("chat-input").fill("hello");
     await page.getByRole("button", { name: "Send" }).click();
     await expect(page.getByText(/Messages aren't saved/i)).not.toBeVisible();
     await expect(page.getByText("hello")).toBeVisible();

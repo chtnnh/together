@@ -1,8 +1,8 @@
 import "server-only";
 
-import { config } from "dotenv";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { config } from "dotenv";
 
 let loaded = false;
 

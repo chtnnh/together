@@ -1,9 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { RoomSettings } from "@together/shared";
+import { QUALITY_OPTIONS } from "@together/shared";
 import {
   Button,
+  getThemeVars,
+  Input,
   Label,
   Select,
   SelectContent,
@@ -11,16 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
   Switch,
-  Input,
-  getThemeVars,
 } from "@together/ui";
-import type { RoomSettings } from "@together/shared";
-import { QUALITY_OPTIONS } from "@together/shared";
-import type { UserPreferences } from "@/hooks/use-user-preferences";
+import { X } from "lucide-react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
 import { ThemeSelector } from "@/components/theme-selector";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
-import { X } from "lucide-react";
+import type { UserPreferences } from "@/hooks/use-user-preferences";
 
 interface SettingsDrawerProps {
   roomSettings: RoomSettings;
@@ -59,9 +59,7 @@ function SettingRow({
     <div className="flex items-start justify-between gap-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3">
       <div className="min-w-0 flex-1">
         <Label className="text-sm font-medium">{label}</Label>
-        {description && (
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</p>
-        )}
+        {description && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</p>}
       </div>
       <div className="shrink-0 pt-0.5">{children}</div>
     </div>
@@ -109,6 +107,7 @@ export function SettingsDrawer({
     >
       <div
         ref={drawerRef}
+        data-testid="settings-drawer"
         className="h-full w-full max-w-md overflow-y-auto bg-[var(--bg)] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -210,9 +209,7 @@ export function SettingsDrawer({
                   <Label className="mb-2 block">Privacy</Label>
                   <Select
                     value={roomSettings.privacy}
-                    onValueChange={(p) =>
-                      onRoomUpdate({ privacy: p as RoomSettings["privacy"] })
-                    }
+                    onValueChange={(p) => onRoomUpdate({ privacy: p as RoomSettings["privacy"] })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -279,9 +276,7 @@ export function SettingsDrawer({
                     max="1"
                     step="0.01"
                     value={roomSettings.skipThreshold}
-                    onChange={(e) =>
-                      onRoomUpdate({ skipThreshold: parseFloat(e.target.value) })
-                    }
+                    onChange={(e) => onRoomUpdate({ skipThreshold: parseFloat(e.target.value) })}
                     className="w-full accent-[var(--accent)]"
                   />
                 </div>
@@ -293,7 +288,7 @@ export function SettingsDrawer({
                   <Label className="mb-2 block">Slow mode (seconds)</Label>
                   <Select
                     value={String(roomSettings.slowModeSeconds)}
-                    onValueChange={(v) => onRoomUpdate({ slowModeSeconds: parseInt(v) })}
+                    onValueChange={(v) => onRoomUpdate({ slowModeSeconds: parseInt(v, 10) })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -355,9 +350,7 @@ export function SettingsDrawer({
                 <Label className="mb-2 block">Loop mode</Label>
                 <Select
                   value={roomSettings.loopMode}
-                  onValueChange={(v) =>
-                    onRoomUpdate({ loopMode: v as RoomSettings["loopMode"] })
-                  }
+                  onValueChange={(v) => onRoomUpdate({ loopMode: v as RoomSettings["loopMode"] })}
                 >
                   <SelectTrigger>
                     <SelectValue />

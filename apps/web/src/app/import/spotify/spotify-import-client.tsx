@@ -2,9 +2,9 @@
 
 // TODO(v0.3): Spotify import page — not linked from room UI until OAuth flow is production-ready.
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@together/ui";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Playlist {
   id: string;
@@ -53,9 +53,7 @@ export default function SpotifyImportClient() {
       });
       const items = await res.json();
       if (!res.ok) {
-        throw new Error(
-          typeof items.error === "string" ? items.error : "Spotify import failed",
-        );
+        throw new Error(typeof items.error === "string" ? items.error : "Spotify import failed");
       }
 
       sessionStorage.setItem("together_import_items", JSON.stringify(items));
@@ -100,11 +98,7 @@ export default function SpotifyImportClient() {
               <p className="font-medium">{p.name}</p>
               <p className="text-sm text-[var(--text-muted)]">{p.trackCount} tracks</p>
             </div>
-            <Button
-              size="sm"
-              onClick={() => handleImport(p.id)}
-              disabled={importing === p.id}
-            >
+            <Button size="sm" onClick={() => handleImport(p.id)} disabled={importing === p.id}>
               {importing === p.id ? "Importing..." : "Import"}
             </Button>
           </div>

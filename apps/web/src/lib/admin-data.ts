@@ -3,7 +3,6 @@ import {
   getDb,
   passwordAttempts,
   playlists,
-  playlistItems,
   roomBans,
   rooms,
   users,
@@ -59,7 +58,8 @@ export async function getAdminStats() {
         WHERE last_active_at >= ${recentlyActiveSince.toISOString()}::timestamptz
       `);
       recentlyActiveRooms =
-        (recentRows[0] as { recently_active_rooms: number } | undefined)?.recently_active_rooms ?? 0;
+        (recentRows[0] as { recently_active_rooms: number } | undefined)?.recently_active_rooms ??
+        0;
     } catch {
       recentlyActiveRooms = 0;
     }
@@ -145,11 +145,7 @@ export async function purgeRoomDurableObject(roomId: string): Promise<boolean> {
 export async function deleteRoomBySlug(slug: string) {
   if (!process.env.DATABASE_URL) return false;
   const db = getDb();
-  const [room] = await db
-    .select({ id: rooms.id })
-    .from(rooms)
-    .where(eq(rooms.slug, slug))
-    .limit(1);
+  const [room] = await db.select({ id: rooms.id }).from(rooms).where(eq(rooms.slug, slug)).limit(1);
   if (!room) return false;
 
   await db.delete(rooms).where(eq(rooms.slug, slug));
@@ -212,12 +208,7 @@ export async function listAbuseSignals(limit = 50) {
   const suspiciousAttempts = await db
     .select()
     .from(passwordAttempts)
-    .where(
-      or(
-        gte(passwordAttempts.attempts, 3),
-        gt(passwordAttempts.lockedUntil, now),
-      ),
-    )
+    .where(or(gte(passwordAttempts.attempts, 3), gt(passwordAttempts.lockedUntil, now)))
     .orderBy(desc(passwordAttempts.updatedAt))
     .limit(limit);
 

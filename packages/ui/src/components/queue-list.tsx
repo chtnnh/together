@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import type { HistoryItem, QueueItem, RequestItem } from "@together/shared";
-import { Music, Trash2, ArrowUp, AlertCircle, Clock, GripVertical, Play, Plus, Check } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowUp,
+  Check,
+  Clock,
+  GripVertical,
+  Music,
+  Play,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { formatDuration } from "../lib/utils";
 import { Button } from "./button";
 import { PromoteVoteBar } from "./chat-panel";
@@ -135,12 +145,22 @@ function QueueItemRow({
           </Button>
         )}
         {requestItem.status === "needs_pick" && onPickAlternate && (
-          <Button size="icon" variant="ghost" onClick={() => onPickAlternate(item.id)} title="Pick alternate">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onPickAlternate(item.id)}
+            title="Pick alternate"
+          >
             <AlertCircle className="h-4 w-4" />
           </Button>
         )}
         {onPromote && (
-          <Button size="icon" variant="ghost" onClick={() => onPromote(item.id)} title="Promote to queue">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onPromote(item.id)}
+            title="Promote to queue"
+          >
             <ArrowUp className="h-4 w-4" />
           </Button>
         )}
@@ -248,10 +268,15 @@ export function QueueList({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" data-testid="queue-list">
       {canManage && onClearAll && !hideClearAll && clearableCount > 0 && (
         <div className="flex justify-end px-1 pb-1">
-          <Button variant="ghost" size="sm" onClick={onClearAll} className="text-xs text-[var(--text-muted)]">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearAll}
+            className="text-xs text-[var(--text-muted)]"
+          >
             Clear all
           </Button>
         </div>
@@ -322,7 +347,12 @@ export function RequestList({
     <div className="space-y-1">
       {canManage && onClearAll && (
         <div className="flex justify-end px-1 pb-1">
-          <Button variant="ghost" size="sm" onClick={onClearAll} className="text-xs text-[var(--text-muted)]">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearAll}
+            className="text-xs text-[var(--text-muted)]"
+          >
             Clear all
           </Button>
         </div>
@@ -419,7 +449,11 @@ export function HistoryList({
           className="flex items-center gap-3 rounded-lg px-3 py-2 opacity-75 hover:bg-[var(--bg-secondary)]"
         >
           {item.thumbnailUrl ? (
-            <img src={item.thumbnailUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
+            <img
+              src={item.thumbnailUrl}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded object-cover"
+            />
           ) : (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--bg-secondary)]">
               <Clock className="h-5 w-5 text-[var(--text-muted)]" />
@@ -431,9 +465,7 @@ export function HistoryList({
               {item.artist ?? item.addedBy} · {item.reason}
             </p>
           </div>
-          {onReAdd && item.videoId && (
-            <HistoryReAddButton item={item} onReAdd={onReAdd} />
-          )}
+          {onReAdd && item.videoId && <HistoryReAddButton item={item} onReAdd={onReAdd} />}
         </div>
       ))}
     </div>

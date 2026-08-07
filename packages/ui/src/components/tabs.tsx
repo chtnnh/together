@@ -3,10 +3,7 @@ import { cn } from "../lib/utils";
 
 export const Tabs = TabsPrimitive.Root;
 
-export function TabsList({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.List>) {
+export function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
     <TabsPrimitive.List
       className={cn(
@@ -40,6 +37,9 @@ export function TabsContent({
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
-    <TabsPrimitive.Content className={cn("mt-2 focus-visible:outline-none", className)} {...props} />
+    <TabsPrimitive.Content
+      className={cn("mt-2 focus-visible:outline-none", className)}
+      {...props}
+    />
   );
 }

@@ -1,0 +1,7 @@
+# Optional know-code overlay for pre-commit — intentionally empty in range mode.
+#
+# know-code gates push (pre-push.local), not each commit. While a range is open,
+# land all commits first, then teach → quiz → pass → range seal → push.
+#
+# If you use index mode (quiz per commit) instead of range mode, copy the check
+# from pre-push.local.example here — see CONTRIBUTING.md.

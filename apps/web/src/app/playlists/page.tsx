@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@together/ui";
 import Link from "next/link";
-import { useSupabaseUser } from "@/hooks/use-supabase-user";
-import { SignInModal } from "@/components/sign-in-modal";
+import { useEffect, useState } from "react";
 import { AccountNav } from "@/components/account-nav";
+import { SignInModal } from "@/components/sign-in-modal";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
 
 interface Playlist {
   id: string;
@@ -125,11 +125,7 @@ export default function PlaylistsPage() {
         ))}
       </div>
 
-      <SignInModal
-        open={signInOpen}
-        onClose={() => setSignInOpen(false)}
-        returnTo="/playlists"
-      />
+      <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} returnTo="/playlists" />
     </div>
   );
 }

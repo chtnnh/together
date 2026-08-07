@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Input, Label } from "@together/ui";
 import type { QueueItem } from "@together/shared";
+import { Button, Input, Label } from "@together/ui";
+import { useState } from "react";
 
 interface SavePlaylistDialogProps {
   open: boolean;
@@ -25,12 +25,7 @@ function queueToPlaylistItems(queue: QueueItem[]) {
   }));
 }
 
-export function SavePlaylistDialog({
-  open,
-  queue,
-  onClose,
-  onSaved,
-}: SavePlaylistDialogProps) {
+export function SavePlaylistDialog({ open, queue, onClose, onSaved }: SavePlaylistDialogProps) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

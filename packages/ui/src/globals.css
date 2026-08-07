@@ -96,14 +96,14 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .reaction-float-anim {
-    animation: none !important;
+    animation: none;
     opacity: 0.85;
   }
 }
 
 html[data-reduced-motion="true"] .reaction-float-anim,
 html[data-reduced-motion="system"] .reaction-float-anim {
-  animation: none !important;
+  animation: none;
   opacity: 0.85;
 }
 

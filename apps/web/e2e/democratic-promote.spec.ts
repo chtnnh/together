@@ -1,6 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
-import { addUrlInput } from "./helpers/room";
+import {
+  addUrlInput,
+  expectPromoteVoteBarVisible,
+  openRoomSettings,
+  promoteVoteBar,
+} from "./helpers/room";
 
 test.describe("Phase 5.1 — Democratic promote UI", () => {
   test.beforeEach(() => {
@@ -20,7 +25,7 @@ test.describe("Phase 5.1 — Democratic promote UI", () => {
     const roomUrl = hostPage.url();
     await expect(hostPage.getByText(/\d+ listening/)).toBeVisible({ timeout: 15000 });
 
-    await hostPage.getByRole("button", { name: "Settings", exact: true }).click();
+    await openRoomSettings(hostPage);
     await hostPage.getByRole("switch", { name: /democratic promote/i }).click();
     await hostPage.getByRole("button", { name: "Close settings" }).click();
 
@@ -36,8 +41,10 @@ test.describe("Phase 5.1 — Democratic promote UI", () => {
       timeout: 10000,
     });
 
-    await expect(hostPage.getByTestId("promote-vote-bar")).toBeVisible({ timeout: 10000 });
-    await expect(hostPage.getByRole("button", { name: "Vote to promote" })).toBeVisible();
+    await expectPromoteVoteBarVisible(hostPage);
+    await expect(
+      promoteVoteBar(hostPage).getByRole("button", { name: "Vote to promote" }),
+    ).toBeVisible();
 
     await hostContext.close();
     await guestContext.close();

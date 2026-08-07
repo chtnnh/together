@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-log";
-import {
-  getUserPlaylists,
-  savePlaylist,
-} from "@/lib/rooms";
-import { formatPublicDbError } from "@/lib/db-errors";
-import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-log";
+import { formatPublicDbError } from "@/lib/db-errors";
+import { getUserPlaylists, savePlaylist } from "@/lib/rooms";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 
 export const GET = withApiHandler("GET /api/playlists", async (log) => {
   try {

@@ -8,12 +8,15 @@ interface ChatPanelProps {
   lastChatAt?: number;
 }
 
-export function ChatPanel({ messages, onSend, slowModeSeconds = 0, lastChatAt = 0 }: ChatPanelProps) {
+export function ChatPanel({
+  messages,
+  onSend,
+  slowModeSeconds = 0,
+  lastChatAt = 0,
+}: ChatPanelProps) {
   const now = Date.now();
   const cooldownRemaining =
-    slowModeSeconds > 0
-      ? Math.max(0, slowModeSeconds * 1000 - (now - lastChatAt))
-      : 0;
+    slowModeSeconds > 0 ? Math.max(0, slowModeSeconds * 1000 - (now - lastChatAt)) : 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -85,7 +88,9 @@ export function SkipVoteBar({
   stacked?: boolean;
 }) {
   const pct = required > 0 ? Math.min(100, (voteCount / required) * 100) : 0;
-  const voteLabel = compact ? `Skip ${voteCount}/${required}` : `Skip votes: ${voteCount} / ${required}`;
+  const voteLabel = compact
+    ? `Skip ${voteCount}/${required}`
+    : `Skip votes: ${voteCount} / ${required}`;
   const progressBar = (
     <div className={`overflow-hidden rounded-full bg-[var(--border)] ${compact ? "h-1" : "h-1.5"}`}>
       <div className="h-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
@@ -121,9 +126,7 @@ export function SkipVoteBar({
         </div>
       ) : (
         <>
-          <div
-            className={`flex items-center gap-2 ${compact ? "mb-1 text-xs" : "mb-2 text-sm"}`}
-          >
+          <div className={`flex items-center gap-2 ${compact ? "mb-1 text-xs" : "mb-2 text-sm"}`}>
             <span className={compact ? "whitespace-nowrap tabular-nums" : "truncate"}>
               {voteLabel}
             </span>

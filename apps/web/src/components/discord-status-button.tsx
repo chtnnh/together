@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Check, MessageSquareQuote } from "lucide-react";
+import { useCallback, useState } from "react";
 
 interface DiscordStatusButtonProps {
   title?: string;
@@ -14,7 +14,7 @@ export function useDiscordStatus({ title, artist, slug }: DiscordStatusButtonPro
   const [copied, setCopied] = useState(false);
 
   const copyStatus = useCallback(async () => {
-    const track = artist && title ? `${artist} - ${title}` : title ?? "Together room";
+    const track = artist && title ? `${artist} - ${title}` : (title ?? "Together room");
     const origin = window.location.origin;
     const text = `${track} | ${origin}/r/${slug}`;
     await navigator.clipboard.writeText(text);

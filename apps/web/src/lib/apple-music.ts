@@ -8,7 +8,9 @@ export function isAppleMusicConfigured(): boolean {
   );
 }
 
-export function parseAppleMusicPlaylistUrl(input: string): { storefront: string; id: string } | null {
+export function parseAppleMusicPlaylistUrl(
+  input: string,
+): { storefront: string; id: string } | null {
   const trimmed = input.trim();
   try {
     const url = new URL(trimmed);
@@ -66,15 +68,12 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
 export async function getAppleMusicPlaylists(userToken: string) {
   const developerToken = await generateAppleMusicToken();
 
-  const res = await fetch(
-    "https://api.music.apple.com/v1/me/library/playlists",
-    {
-      headers: {
-        Authorization: `Bearer ${developerToken}`,
-        "Music-User-Token": userToken,
-      },
+  const res = await fetch("https://api.music.apple.com/v1/me/library/playlists", {
+    headers: {
+      Authorization: `Bearer ${developerToken}`,
+      "Music-User-Token": userToken,
     },
-  );
+  });
 
   if (!res.ok) return [];
 
@@ -92,10 +91,7 @@ export async function getAppleMusicPlaylists(userToken: string) {
   }));
 }
 
-export async function getAppleMusicPlaylistTracks(
-  userToken: string,
-  playlistId: string,
-) {
+export async function getAppleMusicPlaylistTracks(userToken: string, playlistId: string) {
   const developerToken = await generateAppleMusicToken();
   const tracks: Array<{
     title: string;
@@ -105,7 +101,8 @@ export async function getAppleMusicPlaylistTracks(
     isrc?: string;
   }> = [];
 
-  let url: string | null = `https://api.music.apple.com/v1/me/library/playlists/${playlistId}/tracks?limit=100`;
+  let url: string | null =
+    `https://api.music.apple.com/v1/me/library/playlists/${playlistId}/tracks?limit=100`;
 
   while (url && tracks.length < 200) {
     const res = await fetch(url, {

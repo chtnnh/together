@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface RoomBanSignal {
   id: string;
@@ -141,7 +141,7 @@ function SignalTable({
           {rows.map((row) => (
             <tr key={row.key} className="border-t border-[var(--border)]">
               {row.cells.map((cell, index) => (
-                <td key={`${row.key}-${index}`} className="px-4 py-3">
+                <td key={`${row.key}-${headers[index] ?? "cell"}`} className="px-4 py-3">
                   {cell}
                 </td>
               ))}
@@ -149,7 +149,10 @@ function SignalTable({
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={headers.length} className="px-4 py-6 text-center text-[var(--text-muted)]">
+              <td
+                colSpan={headers.length}
+                className="px-4 py-6 text-center text-[var(--text-muted)]"
+              >
                 {empty}
               </td>
             </tr>

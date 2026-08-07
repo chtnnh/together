@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@together/ui";
+import { useEffect, useState } from "react";
 
 interface PlaylistSummary {
   id: string;
@@ -12,15 +12,17 @@ interface PlaylistSummary {
 interface PlaylistPickerDialogProps {
   open: boolean;
   onClose: () => void;
-  onLoad: (items: Array<{
-    source: string;
-    videoId: string | null;
-    title: string;
-    artist?: string;
-    durationMs?: number;
-    confidence?: number;
-    alternates?: unknown;
-  }>) => void;
+  onLoad: (
+    items: Array<{
+      source: string;
+      videoId: string | null;
+      title: string;
+      artist?: string;
+      durationMs?: number;
+      confidence?: number;
+      alternates?: unknown;
+    }>,
+  ) => void;
 }
 
 export function PlaylistPickerDialog({ open, onClose, onLoad }: PlaylistPickerDialogProps) {

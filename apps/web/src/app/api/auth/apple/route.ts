@@ -1,6 +1,6 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { withApiHandler } from "@/lib/api-log";
-import { cookies } from "next/headers";
 import { generateAppleMusicToken } from "@/lib/apple-music";
 
 export const GET = withApiHandler("GET /api/auth/apple", async (_log, request) => {

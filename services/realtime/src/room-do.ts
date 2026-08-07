@@ -1,23 +1,23 @@
 import {
   CHAT_BUFFER_SIZE,
-  HISTORY_BUFFER_SIZE,
-  PROFANITY_WORDS,
-  roomSettingsSchema,
   type ChatMessage,
   type ClientEvent,
+  HISTORY_BUFFER_SIZE,
   type HistoryItem,
   type Participant,
   type PlaybackState,
+  PROFANITY_WORDS,
   type QueueItem,
+  type ReactionEmoji,
   type RequestItem,
   type RoomSettings,
   type RoomState,
-  type SkipVotes,
-  type ReactionEmoji,
+  roomSettingsSchema,
 } from "@together/shared";
 import { parseClientEvent } from "@together/shared/events";
 import { trackRealtimeEvent } from "./analytics";
 import { generateId } from "./utils";
+import { requiredVoteCount } from "./vote-math";
 
 const EMPTY_ROOM_GRACE_MS = 5 * 60 * 1000;
 const CHAT_NOTICE =
@@ -75,11 +75,7 @@ export class RoomDurableObject implements DurableObject {
     return this.memberRoles.get(this.memberRoleKey(userId, anonId)) ?? null;
   }
 
-  private setRememberedRole(
-    userId: string | null,
-    anonId: string,
-    role: RememberedRole | null,
-  ) {
+  private setRememberedRole(userId: string | null, anonId: string, role: RememberedRole | null) {
     const key = this.memberRoleKey(userId, anonId);
     if (role) this.memberRoles.set(key, role);
     else this.memberRoles.delete(key);
@@ -153,8 +149,7 @@ export class RoomDurableObject implements DurableObject {
         this.state.title = body.title;
       }
       if (body.settings) {
-        const shouldApplyInitSettings =
-          !previousRoomId || previousRoomId !== body.roomId;
+        const shouldApplyInitSettings = !previousRoomId || previousRoomId !== body.roomId;
         if (shouldApplyInitSettings) {
           this.state.settings = roomSettingsSchema.parse({
             ...this.state.settings,
@@ -163,11 +158,7 @@ export class RoomDurableObject implements DurableObject {
         }
       }
       this.state.passwordRequired = body.passwordRequired ?? false;
-      if (
-        body.snapshot &&
-        this.state.queue.length === 0 &&
-        !this.state.playback.videoId
-      ) {
+      if (body.snapshot && this.state.queue.length === 0 && !this.state.playback.videoId) {
         this.state.playback = body.snapshot.playback;
         this.state.queue = body.snapshot.queue;
         this.state.requests = body.snapshot.requests;
@@ -228,7 +219,7 @@ export class RoomDurableObject implements DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  private handleSession(ws: WebSocket, url: URL) {
+  private handleSession(ws: WebSocket, _url: URL) {
     ws.accept();
     let participantId: string | null = null;
 
@@ -249,15 +240,17 @@ export class RoomDurableObject implements DurableObject {
             return;
           }
           if (this.isBanned(parsed.anonId, parsed.userId ?? null)) {
-            this.send(ws, { type: "error", code: "BANNED", message: "You are banned from this room" });
+            this.send(ws, {
+              type: "error",
+              code: "BANNED",
+              message: "You are banned from this room",
+            });
             ws.close(4003, "Banned");
             return;
           }
 
           const existing = this.state.participants.find(
-            (p) =>
-              p.anonId === parsed.anonId ||
-              (parsed.userId && p.userId === parsed.userId),
+            (p) => p.anonId === parsed.anonId || (parsed.userId && p.userId === parsed.userId),
           );
 
           // Drop stale sockets for the same user — prevents duplicate "ghost" users
@@ -265,8 +258,7 @@ export class RoomDurableObject implements DurableObject {
             const stale = this.state.participants.find((p) => p.id === session.participantId);
             if (
               stale &&
-              (stale.anonId === parsed.anonId ||
-                (parsed.userId && stale.userId === parsed.userId))
+              (stale.anonId === parsed.anonId || (parsed.userId && stale.userId === parsed.userId))
             ) {
               this.sessions.delete(oldWs);
               try {
@@ -292,9 +284,7 @@ export class RoomDurableObject implements DurableObject {
             );
           } else {
             this.state.participants = this.state.participants.filter(
-              (p) =>
-                p.anonId !== parsed.anonId &&
-                !(parsed.userId && p.userId === parsed.userId),
+              (p) => p.anonId !== parsed.anonId && !(parsed.userId && p.userId === parsed.userId),
             );
 
             participantId = generateId();
@@ -350,7 +340,9 @@ export class RoomDurableObject implements DurableObject {
             );
           }
           if (becameHost) {
-            trackRealtimeEvent(this.env.ANALYTICS, "room.host_joined", { roomSlug: this.state.slug });
+            trackRealtimeEvent(this.env.ANALYTICS, "room.host_joined", {
+              roomSlug: this.state.slug,
+            });
           }
           return;
         }
@@ -467,10 +459,7 @@ export class RoomDurableObject implements DurableObject {
             ...this.state.settings,
             ...event.settings,
           });
-        } else if (
-          !this.state.settings.controlsLocked &&
-          event.settings.loopMode !== undefined
-        ) {
+        } else if (!this.state.settings.controlsLocked && event.settings.loopMode !== undefined) {
           this.state.settings = roomSettingsSchema.parse({
             ...this.state.settings,
             loopMode: event.settings.loopMode,
@@ -528,7 +517,9 @@ export class RoomDurableObject implements DurableObject {
     if (this.state.settings.controlsLocked) {
       return participant.role === "host" || participant.role === "co-host";
     }
-    return participant.role === "host" || participant.role === "co-host" || participant.role === "guest";
+    return (
+      participant.role === "host" || participant.role === "co-host" || participant.role === "guest"
+    );
   }
 
   private isHostish(participant: Participant): boolean {
@@ -666,8 +657,7 @@ export class RoomDurableObject implements DurableObject {
     partial: Partial<QueueItem> & { title: string },
     participant: Participant,
   ) {
-    const directToQueue =
-      this.isHostish(participant) || !this.state.settings.controlsLocked;
+    const directToQueue = this.isHostish(participant) || !this.state.settings.controlsLocked;
 
     if (directToQueue) {
       await this.handleAddToQueue(partial, participant);
@@ -820,10 +810,7 @@ export class RoomDurableObject implements DurableObject {
   }
 
   private async playQueueItem(item: QueueItem) {
-    if (
-      this.state.playback.queueItemId &&
-      this.state.playback.queueItemId !== item.id
-    ) {
+    if (this.state.playback.queueItemId && this.state.playback.queueItemId !== item.id) {
       await this.archiveCurrentTrack("skipped");
     }
 
@@ -837,11 +824,7 @@ export class RoomDurableObject implements DurableObject {
     this.broadcastQueue();
   }
 
-  private async handleReorder(
-    itemId: string,
-    newIndex: number,
-    participant: Participant,
-  ) {
+  private async handleReorder(itemId: string, newIndex: number, participant: Participant) {
     if (!this.isHostish(participant)) return;
 
     const oldIndex = this.state.queue.findIndex((i) => i.id === itemId);
@@ -875,9 +858,7 @@ export class RoomDurableObject implements DurableObject {
 
     if (lane === "queue") {
       const currentId = this.state.playback.queueItemId;
-      this.state.queue = currentId
-        ? this.state.queue.filter((i) => i.id === currentId)
-        : [];
+      this.state.queue = currentId ? this.state.queue.filter((i) => i.id === currentId) : [];
     } else {
       this.state.requests = [];
     }
@@ -885,11 +866,7 @@ export class RoomDurableObject implements DurableObject {
     this.broadcastQueue();
   }
 
-  private async handleRemove(
-    itemId: string,
-    lane: "queue" | "requests",
-    participant: Participant,
-  ) {
+  private async handleRemove(itemId: string, lane: "queue" | "requests", participant: Participant) {
     if (lane === "queue") {
       const item = this.state.queue.find((i) => i.id === itemId);
       if (!item) return;
@@ -917,7 +894,7 @@ export class RoomDurableObject implements DurableObject {
     };
 
     const participantCount = Math.max(1, this.state.participants.length);
-    const required = Math.ceil(participantCount * this.state.settings.skipThreshold);
+    const required = requiredVoteCount(participantCount, this.state.settings.skipThreshold);
 
     this.broadcast({ type: "skip-votes", skipVotes: this.state.skipVotes });
 
@@ -936,8 +913,7 @@ export class RoomDurableObject implements DurableObject {
     const loopMode = this.state.settings.loopMode ?? "off";
     const currentId = this.state.playback.queueItemId;
     const currentIndex = this.state.queue.findIndex((i) => i.id === currentId);
-    const onLastItem =
-      currentIndex >= 0 && currentIndex >= this.state.queue.length - 1;
+    const onLastItem = currentIndex >= 0 && currentIndex >= this.state.queue.length - 1;
 
     if (loopMode === "off" && onLastItem) {
       await this.handlePlaybackUpdate({ playing: false });
@@ -998,7 +974,7 @@ export class RoomDurableObject implements DurableObject {
   private async handlePromoteVote(requestId: string, participant: Participant) {
     if (!this.state.settings.democraticPromote) return;
 
-    let votes = this.promoteVotes.get(requestId) ?? new Set();
+    const votes = this.promoteVotes.get(requestId) ?? new Set();
     votes.add(participant.id);
     this.promoteVotes.set(requestId, votes);
 
@@ -1006,8 +982,9 @@ export class RoomDurableObject implements DurableObject {
     if (!request) return;
 
     request.promoteVotes = votes.size;
-    const required = Math.ceil(
-      this.state.participants.length * this.state.settings.skipThreshold,
+    const required = requiredVoteCount(
+      this.state.participants.length,
+      this.state.settings.skipThreshold,
     );
 
     if (votes.size >= required) {
@@ -1072,11 +1049,7 @@ export class RoomDurableObject implements DurableObject {
     this.disconnectParticipant(targetId, "Banned from room");
   }
 
-  private async handlePromoteRole(
-    targetId: string,
-    role: "co-host" | "guest",
-    actor: Participant,
-  ) {
+  private async handlePromoteRole(targetId: string, role: "co-host" | "guest", actor: Participant) {
     if (actor.role !== "host") return;
     const target = this.state.participants.find((p) => p.id === targetId);
     if (!target || target.role === "host") return;
@@ -1335,10 +1308,9 @@ export class RoomDurableObject implements DurableObject {
     if (!appUrl || !secret) return false;
 
     try {
-      const res = await fetch(
-        `${appUrl.replace(/\/$/, "")}/api/internal/users/${userId}/banned`,
-        { headers: { Authorization: `Bearer ${secret}` } },
-      );
+      const res = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/users/${userId}/banned`, {
+        headers: { Authorization: `Bearer ${secret}` },
+      });
       if (!res.ok) return false;
       const data = (await res.json()) as { banned?: boolean };
       return data.banned === true;

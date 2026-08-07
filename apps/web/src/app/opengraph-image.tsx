@@ -6,7 +6,8 @@ export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
 export default function Image() {
-  const appHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, "") ?? "together.chtnnhfoundation.org";
+  const appHost =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, "") ?? "together.chtnnhfoundation.org";
 
   return renderOgImage({
     title: "Watch and listen together",

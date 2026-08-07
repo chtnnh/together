@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getEffectivePlaybackPosition } from "@together/shared";
 import type { PlaybackState } from "@together/shared";
+import { getEffectivePlaybackPosition } from "@together/shared";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function formatTime(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));

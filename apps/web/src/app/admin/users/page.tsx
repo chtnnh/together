@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@together/ui";
+import { useCallback, useEffect, useState } from "react";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
 
 interface AdminUser {
@@ -19,7 +19,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     fetch("/api/admin/users")
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to load users");
@@ -28,11 +28,11 @@ export default function AdminUsersPage() {
       })
       .then(setUsers)
       .catch(() => setError("Failed to load users"));
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const toggleBan = async (user: AdminUser) => {
     if (user.id === userId) return;

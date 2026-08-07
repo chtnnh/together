@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { expectLeftBeforeRight, expectNoOverlap } from "./helpers/layout";
-import { createConnectedRoom, waitForRoomUiStable, connectionStatusLocator } from "./helpers/room";
+import { connectionStatusLocator, createConnectedRoom, waitForRoomUiStable } from "./helpers/room";
 
 const MOBILE_PROJECTS = new Set(["visual-pixel-5", "visual-iphone-13"]);
 const DESKTOP_PROJECTS = new Set([
@@ -95,5 +95,33 @@ test.describe("Visual regression — key screens", () => {
     await expect(tabs).toBeVisible();
 
     await expect(tabs).toHaveScreenshot("room-desktop-tabs.png", screenshotOptions);
+  });
+
+  test("offline fallback page", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "visual-desktop-chrome");
+    await page.goto("/offline");
+    await expect(page.getByRole("heading", { name: "You're offline" })).toBeVisible();
+    await expect(page).toHaveScreenshot("offline-page.png", screenshotOptions);
+  });
+
+  test("private join gate", async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name !== "visual-desktop-chrome");
+    const res = await request.post("/api/rooms", {
+      data: { displayName: "VisualGate", privacy: "private", password: "secret" },
+    });
+    const room = await res.json();
+    await page.goto(`/r/${room.slug}/join`);
+    await expect(page.getByRole("heading", { name: "Private room" })).toBeVisible();
+    await expect(page).toHaveScreenshot("join-private-gate.png", {
+      ...screenshotOptions,
+      fullPage: true,
+    });
+  });
+
+  test("settings page smoke", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "visual-desktop-chrome");
+    await page.goto("/settings");
+    await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
+    await expect(page).toHaveScreenshot("settings-page.png", screenshotOptions);
   });
 });

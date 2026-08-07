@@ -1,20 +1,15 @@
-import { NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-log";
-import {
-  updateRoomSettings,
-  getRoomBySlug,
-  isMemoryStoreEnabled,
-  ensureUser,
-} from "@/lib/rooms";
-import { formatPublicDbError } from "@/lib/db-errors";
 import { roomSettingsSchema } from "@together/shared";
-import { getSupabaseServerUser } from "@/lib/supabase-server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-log";
+import { formatPublicDbError } from "@/lib/db-errors";
+import { ensureUser, getRoomBySlug, isMemoryStoreEnabled, updateRoomSettings } from "@/lib/rooms";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 
 export const GET = withApiHandler(
   "GET /api/rooms/[slug]/settings",
   async (_log, _request, context) => {
-    const { slug } = await context!.params!;
+    const { slug } = await context?.params!;
     const room = await getRoomBySlug(slug);
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -27,7 +22,7 @@ export const PATCH = withApiHandler(
   "PATCH /api/rooms/[slug]/settings",
   async (log, request, context) => {
     try {
-      const { slug } = await context!.params!;
+      const { slug } = await context?.params!;
       const room = await getRoomBySlug(slug);
 
       if (!room) {
@@ -65,7 +60,7 @@ export const POST = withApiHandler(
   "POST /api/rooms/[slug]/settings",
   async (log, _request, context) => {
     try {
-      const { slug } = await context!.params!;
+      const { slug } = await context?.params!;
       const room = await getRoomBySlug(slug);
 
       if (!room) {
@@ -93,10 +88,7 @@ export const POST = withApiHandler(
       const { eq } = await import("drizzle-orm");
       const db = getDb();
 
-      await db
-        .update(rooms)
-        .set({ ownerUserId: user.id })
-        .where(eq(rooms.id, room.id));
+      await db.update(rooms).set({ ownerUserId: user.id }).where(eq(rooms.id, room.id));
 
       return NextResponse.json({ ok: true });
     } catch (err) {

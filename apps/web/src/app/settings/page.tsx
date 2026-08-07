@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@together/ui";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuthConfig } from "@/components/auth-config-provider";
-import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 import { ThemeSelector } from "@/components/theme-selector";
-import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { createSupabaseBrowserClient } from "@/lib/supabase-client";
 
 export default function SettingsPage() {
   const { configured, url, anonKey } = useAuthConfig();
@@ -22,10 +22,12 @@ export default function SettingsPage() {
     if (!configured) return;
     try {
       const supabase = createSupabaseBrowserClient(url, anonKey);
-      supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
-        setUser(data.user);
-        if (data.user?.email) setEmail(data.user.email);
-      });
+      supabase.auth
+        .getUser()
+        .then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
+          setUser(data.user);
+          if (data.user?.email) setEmail(data.user.email);
+        });
     } catch {
       // Handled by configured gate in UI.
     }
@@ -94,7 +96,9 @@ export default function SettingsPage() {
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Account</h1>
         <Link href="/">
-          <Button variant="ghost" size="sm">Home</Button>
+          <Button variant="ghost" size="sm">
+            Home
+          </Button>
         </Link>
       </div>
 
@@ -106,13 +110,19 @@ export default function SettingsPage() {
           <div>
             <Label className="mb-2 block text-sm font-medium">Theme</Label>
             <p className="mb-2 text-xs text-[var(--text-muted)]">Applies across the app</p>
-            <ThemeSelector className="w-full" value={prefs.theme} onChange={(theme) => setPrefs({ theme })} />
+            <ThemeSelector
+              className="w-full"
+              value={prefs.theme}
+              onChange={(theme) => setPrefs({ theme })}
+            />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             Your account lets you save playlists and persist room settings.
           </p>
           <Link href="/playlists" className="block">
-            <Button variant="secondary" className="w-full">View playlists</Button>
+            <Button variant="secondary" className="w-full">
+              View playlists
+            </Button>
           </Link>
           <Button variant="destructive" className="w-full" onClick={handleSignOut}>
             Sign out
@@ -121,7 +131,8 @@ export default function SettingsPage() {
       ) : !configured ? (
         <div className="rounded-xl border border-[var(--border)] p-6">
           <p className="text-sm text-[var(--text-muted)]">
-            Sign-in isn&apos;t available on this server. You can still listen in rooms without an account.
+            Sign-in isn&apos;t available on this server. You can still listen in rooms without an
+            account.
           </p>
         </div>
       ) : (
@@ -158,9 +169,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {message && (
-        <p className="mt-4 text-center text-sm text-[var(--text-muted)]">{message}</p>
-      )}
+      {message && <p className="mt-4 text-center text-sm text-[var(--text-muted)]">{message}</p>}
     </div>
   );
 }

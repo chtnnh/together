@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("v0.3 — Internal room snapshot API", () => {
   test("POST /api/internal/rooms/[slug]/snapshot returns 401 without token", async ({
@@ -28,9 +28,7 @@ test.describe("v0.3 — Internal room snapshot API", () => {
     expect(res.status()).toBe(401);
   });
 
-  test("POST /api/internal/rooms/[slug]/bans returns 401 without token", async ({
-    request,
-  }) => {
+  test("POST /api/internal/rooms/[slug]/bans returns 401 without token", async ({ request }) => {
     const res = await request.post("/api/internal/rooms/test-room/bans", {
       data: { anonId: "anon-1" },
     });

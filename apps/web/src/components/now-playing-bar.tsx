@@ -1,12 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { PlaybackState, ReactionEmoji, RoomReaction } from "@together/shared";
 import { SkipVoteBar, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Pause, Play, SkipForward } from "lucide-react";
+import type { ReactNode } from "react";
+import { NowPlayingReactions } from "@/components/now-playing-reactions";
 import { PlaybackSeekBar } from "@/components/playback-seek-bar";
 import { PlaybackVolumeControl } from "@/components/playback-volume-control";
-import { NowPlayingReactions } from "@/components/now-playing-reactions";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface NowPlayingBarProps {
@@ -122,11 +122,7 @@ export function NowPlayingBar({
     >
       <div className="flex items-center gap-3">
         {thumbnailUrl ? (
-          <img
-            src={thumbnailUrl}
-            alt=""
-            className="size-14 shrink-0 rounded-md object-cover"
-          />
+          <img src={thumbnailUrl} alt="" className="size-14 shrink-0 rounded-md object-cover" />
         ) : (
           <div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-[var(--border)] text-xs text-[var(--text-muted)]">
             No art
@@ -136,9 +132,7 @@ export function NowPlayingBar({
           <p className="truncate font-medium" aria-live="polite" aria-atomic="true">
             {displayTitle}
           </p>
-          {artist && (
-            <p className="truncate text-sm text-[var(--text-muted)]">{artist}</p>
-          )}
+          {artist && <p className="truncate text-sm text-[var(--text-muted)]">{artist}</p>}
         </div>
         <PlaybackVolumeControl
           volume={volume}

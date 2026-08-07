@@ -29,16 +29,18 @@ function serializeError(err: unknown): Record<string, unknown> {
 }
 
 function pgCode(err: unknown): { code?: string } | undefined {
-  if (err && typeof err === "object" && "code" in err && typeof (err as { code: unknown }).code === "string") {
+  if (
+    err &&
+    typeof err === "object" &&
+    "code" in err &&
+    typeof (err as { code: unknown }).code === "string"
+  ) {
     return { code: (err as { code: string }).code };
   }
   return undefined;
 }
 
-function writeLog(
-  level: "info" | "warn" | "error",
-  payload: Record<string, unknown>,
-): void {
+function writeLog(level: "info" | "warn" | "error", payload: Record<string, unknown>): void {
   const line = JSON.stringify({ level, service: "together-web", ...payload });
   if (level === "error") {
     console.error(line);

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("v0.3 — Admin API", () => {
   test("GET /api/admin/stats returns 401 without auth", async ({ request }) => {

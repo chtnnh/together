@@ -1,7 +1,7 @@
+import { trackMetadataSchema } from "@together/shared";
 import { NextResponse } from "next/server";
 import { withApiHandler } from "@/lib/api-log";
 import { resolveTrackWithCache } from "@/lib/youtube";
-import { trackMetadataSchema } from "@together/shared";
 
 export const POST = withApiHandler("POST /api/resolve", async (_log, request) => {
   const metadata = trackMetadataSchema.parse(await request.json());

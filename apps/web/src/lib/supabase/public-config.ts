@@ -1,11 +1,11 @@
 import "server-only";
 
-import { loadRootEnv } from "@/lib/supabase/load-root-env";
 import {
   getSupabasePublishableKey,
   getSupabaseUrl,
   isSupabaseEnvConfigured,
 } from "@/lib/supabase/env";
+import { loadRootEnv } from "@/lib/supabase/load-root-env";
 import type { SupabasePublicConfig } from "@/lib/supabase/types";
 
 export type { SupabasePublicConfig };

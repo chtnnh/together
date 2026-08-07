@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-log";
-import { getUserPreferences, saveUserPreferences } from "@/lib/rooms";
-import { formatPublicDbError } from "@/lib/db-errors";
-import { getSupabaseServerUser } from "@/lib/supabase-server";
 import { userAccountPreferencesSchema } from "@together/shared";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-log";
+import { formatPublicDbError } from "@/lib/db-errors";
+import { getUserPreferences, saveUserPreferences } from "@/lib/rooms";
+import { getSupabaseServerUser } from "@/lib/supabase-server";
 
 export const GET = withApiHandler("GET /api/user/preferences", async (log) => {
   try {

@@ -6,7 +6,7 @@ import { signRoomToken } from "@/lib/utils";
 export const GET = withApiHandler(
   "GET /api/rooms/[slug]/invite",
   async (_log, request, context) => {
-    const { slug } = await context!.params!;
+    const { slug } = await context?.params!;
     const room = await getRoomBySlug(slug);
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });

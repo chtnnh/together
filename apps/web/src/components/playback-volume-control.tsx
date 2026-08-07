@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@together/ui";
 import { Volume2, VolumeX } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 interface PlaybackVolumeControlProps {
   volume: number;

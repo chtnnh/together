@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { withApiHandler } from "@/lib/api-log";
 import { z } from "zod";
 import { requireSuperadmin, writeAdminAuditLog } from "@/lib/admin-auth";
 import { setUserBanned } from "@/lib/admin-data";
+import { withApiHandler } from "@/lib/api-log";
 
 const schema = z.object({ banned: z.boolean() });
 
@@ -12,7 +12,7 @@ export const POST = withApiHandler(
     const auth = await log.span("requireSuperadmin", () => requireSuperadmin());
     if (auth.error) return auth.error;
 
-    const { id } = await context!.params!;
+    const { id } = await context?.params!;
     if (auth.user.id === id) {
       return NextResponse.json({ error: "You cannot ban yourself" }, { status: 400 });
     }

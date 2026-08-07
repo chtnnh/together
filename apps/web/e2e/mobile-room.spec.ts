@@ -1,7 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { resetRateLimitStoreForTests } from "../src/lib/rate-limit";
 import { expectLeftBeforeRight, expectNoOverlap } from "./helpers/layout";
-import { createConnectedRoom, connectionStatusLocator, addUrlInput } from "./helpers/room";
+import { addUrlInput, connectionStatusLocator, createConnectedRoom } from "./helpers/room";
 
 const MOBILE_VIEWPORTS = [
   { name: "iphone-13", width: 390, height: 844 },
@@ -36,7 +36,9 @@ test.describe("Mobile room UI", () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await createConnectedRoom(page, `Mobile ${viewport.name}`);
 
-      const mobileNav = page.locator("nav").filter({ has: page.getByText("Queue", { exact: true }) });
+      const mobileNav = page
+        .locator("nav")
+        .filter({ has: page.getByText("Queue", { exact: true }) });
       await expect(mobileNav).toBeVisible();
       await expect(page.getByTestId("now-playing-bar")).toBeVisible();
     });
@@ -45,7 +47,9 @@ test.describe("Mobile room UI", () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await createConnectedRoom(page, `Mobile ${viewport.name}`);
 
-      const bottomNav = page.locator("nav").filter({ has: page.getByText("Queue", { exact: true }) });
+      const bottomNav = page
+        .locator("nav")
+        .filter({ has: page.getByText("Queue", { exact: true }) });
       await bottomNav.getByRole("button", { name: "Requests" }).click();
       await expect(addUrlInput(page)).toBeVisible();
 

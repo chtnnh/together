@@ -1,17 +1,23 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
-import { createPortal } from "react-dom";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import type { ChatMessage, Participant } from "@together/shared";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  filterMentionMatches,
+  isMentionedByYou,
+  matchMentionAt,
+  parseMentionQuery,
+} from "@/lib/chat-mentions";
 
-function renderMessageBody(body: string, currentParticipantId?: string, participants: Participant[] = []) {
+function renderMessageBody(
+  body: string,
+  currentParticipantId?: string,
+  participants: Participant[] = [],
+) {
   if (!body.includes("@") || participants.length === 0) return body;
-
-  const namesByLength = [...participants]
-    .map((p) => p.displayName)
-    .sort((a, b) => b.length - a.length);
 
   const parts: ReactNode[] = [];
   let i = 0;
@@ -25,17 +31,7 @@ function renderMessageBody(body: string, currentParticipantId?: string, particip
       continue;
     }
 
-    let matched: Participant | null = null;
-    for (const name of namesByLength) {
-      const candidate = body.slice(i + 1, i + 1 + name.length);
-      if (candidate.toLowerCase() !== name.toLowerCase()) continue;
-      const next = body[i + 1 + name.length];
-      if (next !== undefined && !/[\s.,!?;:)]/.test(next)) continue;
-      matched =
-        participants.find((p) => p.displayName.toLowerCase() === name.toLowerCase()) ?? null;
-      break;
-    }
-
+    const matched = matchMentionAt(body, i, participants);
     if (matched) {
       const isYou = matched.id === currentParticipantId;
       parts.push(
@@ -48,7 +44,7 @@ function renderMessageBody(body: string, currentParticipantId?: string, particip
           }
         >
           @{matched.displayName}
-        </span>
+        </span>,
       );
       i += 1 + matched.displayName.length;
     } else {
@@ -89,18 +85,20 @@ export function ChatMessages({
     pinnedToBottomRef.current = distanceFromBottom < 48;
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages or join notice change layout
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !pinnedToBottomRef.current) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, joinNotice]);
 
   return (
     <div
       ref={containerRef}
       onScroll={handleScroll}
       dir="ltr"
-      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2"
+      data-testid="chat-messages"
+      className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2 text-left [direction:ltr]"
     >
       {joinNotice ? (
         <p
@@ -116,29 +114,21 @@ export function ChatMessages({
         </p>
       ) : null}
       {messages.map((msg) => {
-        const mentionedYou =
-          !!currentParticipantId &&
-          participants.some(
-            (p: Participant) =>
-              p.id === currentParticipantId &&
-              msg.body.toLowerCase().includes(`@${p.displayName.toLowerCase()}`)
-          );
+        const mentionedYou = isMentionedByYou(msg.body, currentParticipantId, participants);
 
         return (
           <div
             key={msg.id}
-            className={`text-sm ${
+            data-testid="chat-message"
+            dir="ltr"
+            className={`text-sm text-left [direction:ltr] [transform:none] ${
               mentionedYou ? "rounded-md bg-[var(--accent)]/10 px-2 py-1" : ""
             }`}
           >
             <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
             <span className="mx-1 text-[var(--text-muted)]">·</span>
-            <span className="inline-block [unicode-bidi:isolate]">
-              {renderMessageBody(
-                msg.body,
-                currentParticipantId,
-                participants
-              )}
+            <span dir="ltr" className="inline-block [direction:ltr] [transform:none]">
+              {renderMessageBody(msg.body, currentParticipantId, participants)}
             </span>
           </div>
         );
@@ -152,11 +142,11 @@ interface EmojiPickerButtonProps {
 }
 
 export function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
-  const [open, setOpen] = useState<boolean>(false);
-  const [mounted, setMounted] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => setMounted(true), []);
 
@@ -206,7 +196,7 @@ export function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
         ref={buttonRef}
         type="button"
         onClick={() => {
-          setOpen((v: boolean) => !v);
+          setOpen((v) => !v);
           if (!open) updatePosition();
         }}
         className="rounded-lg px-2 py-1 text-lg hover:bg-[var(--bg-secondary)]"
@@ -232,7 +222,7 @@ export function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
               theme="dark"
             />
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );
@@ -249,10 +239,10 @@ export function ChatInput({
   lastChatAt?: number;
   participants?: Participant[];
 }) {
-  const [message, setMessage] = useState<string>("");
-  const [now, setNow] = useState<number>(() => Date.now());
+  const [message, setMessage] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionIndex, setMentionIndex] = useState<number>(0);
+  const [mentionIndex, setMentionIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -265,38 +255,18 @@ export function ChatInput({
   }, [slowModeSeconds, lastChatAt]);
 
   const cooldownRemaining =
-    slowModeSeconds > 0
-      ? Math.max(0, slowModeSeconds * 1000 - (now - lastChatAt))
-      : 0;
+    slowModeSeconds > 0 ? Math.max(0, slowModeSeconds * 1000 - (now - lastChatAt)) : 0;
   const slowModeActive = cooldownRemaining > 0;
 
-  const mentionMatches =
-    mentionQuery === null
-      ? []
-      : participants
-          .filter((p: Participant) =>
-            mentionQuery === ""
-              ? true
-              : p.displayName.toLowerCase().includes(mentionQuery.toLowerCase())
-          )
-          .slice(0, 8);
+  const mentionMatches = filterMentionMatches(participants, mentionQuery);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset keyboard selection when @ filter changes
   useEffect(() => {
     setMentionIndex(0);
   }, [mentionQuery, mentionMatches.length]);
 
   const updateMentionQuery = (value: string, cursor: number) => {
-    const before = value.slice(0, cursor);
-    const at = before.lastIndexOf("@");
-    if (at === -1 || (at > 0 && !/\s/.test(before[at - 1]!))) {
-      setMentionQuery(null);
-      return;
-    }
-    const query = before.slice(at + 1);
-    if (/\s/.test(query)) {
-      setMentionQuery(null);
-      return;
-    }
+    const query = parseMentionQuery(value, cursor);
     setMentionQuery(query);
   };
 
@@ -318,7 +288,7 @@ export function ChatInput({
     });
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const body = message.trim();
     if (!body || slowModeActive) return;
@@ -329,7 +299,7 @@ export function ChatInput({
 
   const appendEmoji = (emoji: string) => {
     if (slowModeActive) return;
-    setMessage((prev: string) => prev + emoji);
+    setMessage((prev) => prev + emoji);
   };
 
   const mentionOpen = mentionQuery !== null && mentionMatches.length > 0;
@@ -342,8 +312,8 @@ export function ChatInput({
       <EmojiPickerButton onSelect={appendEmoji} />
       <input
         ref={inputRef}
-        type="text"
-        dir="ltr"
+        data-testid="chat-input"
+        role="combobox"
         value={message}
         onChange={(e) => {
           setMessage(e.target.value);
@@ -353,12 +323,12 @@ export function ChatInput({
           if (mentionOpen) {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setMentionIndex((i: number) => (i + 1) % mentionMatches.length);
+              setMentionIndex((i) => (i + 1) % mentionMatches.length);
               return;
             }
             if (e.key === "ArrowUp") {
               e.preventDefault();
-              setMentionIndex((i: number) => (i - 1 + mentionMatches.length) % mentionMatches.length);
+              setMentionIndex((i) => (i - 1 + mentionMatches.length) % mentionMatches.length);
               return;
             }
             if (e.key === "Enter" || e.key === "Tab") {
@@ -395,31 +365,32 @@ export function ChatInput({
         Send
       </button>
       {mentionOpen && (
-        <ul
+        <div
           id="mention-listbox"
           role="listbox"
           className="absolute bottom-full left-12 z-10 mb-1 max-h-40 w-56 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-lg"
         >
-          {mentionMatches.map((p: Participant, index: number) => (
-            <li key={p.id} role="option" aria-selected={index === mentionIndex}>
-              <button
-                type="button"
-                className={`flex w-full px-3 py-1.5 text-left text-sm ${
-                  index === mentionIndex
-                    ? "bg-[var(--accent)]/20 text-[var(--text)]"
-                    : "hover:bg-[var(--bg)]"
-                }`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  insertMention(p.displayName);
-                }}
-                onMouseEnter={() => setMentionIndex(index)}
-              >
-                @{p.displayName}
-              </button>
-            </li>
+          {mentionMatches.map((p, index) => (
+            <button
+              key={p.id}
+              type="button"
+              role="option"
+              aria-selected={index === mentionIndex}
+              className={`flex w-full px-3 py-1.5 text-left text-sm ${
+                index === mentionIndex
+                  ? "bg-[var(--accent)]/20 text-[var(--text)]"
+                  : "hover:bg-[var(--bg)]"
+              }`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                insertMention(p.displayName);
+              }}
+              onMouseEnter={() => setMentionIndex(index)}
+            >
+              @{p.displayName}
+            </button>
           ))}
-        </ul>
+        </div>
       )}
     </form>
   );

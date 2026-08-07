@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { withApiHandler } from "@/lib/api-log";
 import { getRoomBySlug, transferRoomOwnership } from "@/lib/rooms";
 import { getSupabaseServerUser } from "@/lib/supabase-server";
-import { z } from "zod";
 
 const bodySchema = z.object({
   targetUserId: z.string().uuid(),
@@ -11,7 +11,7 @@ const bodySchema = z.object({
 export const POST = withApiHandler(
   "POST /api/rooms/[slug]/transfer",
   async (_log, request, context) => {
-    const { slug } = await context!.params!;
+    const { slug } = await context?.params!;
     const room = await getRoomBySlug(slug);
 
     if (!room) {
@@ -25,7 +25,10 @@ export const POST = withApiHandler(
     }
 
     if (room.ownerUserId && room.ownerUserId !== user.id) {
-      return NextResponse.json({ error: "Only the room owner can transfer ownership" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only the room owner can transfer ownership" },
+        { status: 403 },
+      );
     }
 
     const { targetUserId } = bodySchema.parse(await request.json());
