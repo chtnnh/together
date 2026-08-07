@@ -16,3 +16,8 @@ playwright-report
 test-results
 coverage
 .DS_Store
+.husky/pre-commit.local
+.husky/pre-push.local
+# Husky generates .husky/_/ on install (see .husky/_/.gitignore); do not commit that folder.
+# Local know-code state (per developer — not committed)
+.know-code/
