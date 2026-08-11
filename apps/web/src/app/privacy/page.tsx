@@ -113,9 +113,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Service analytics</strong> — aggregated, privacy-oriented usage analytics via
-            Cloudflare Web Analytics (page views on the web app) and Cloudflare Workers Analytics
-            Engine (aggregated realtime events such as joins and skips). We do not use third-party
-            advertising trackers.
+            Umami (page views and events; optional session replays and click/scroll heatmaps when
+            enabled in our Umami settings — inputs are masked by default), loaded through a
+            first-party proxy on our domain, Cloudflare Web Analytics (page views on the web app),
+            and Cloudflare Workers Analytics Engine (aggregated realtime events such as joins and
+            skips). We do not use third-party advertising trackers.
           </li>
           <li>
             <strong>Realtime session data</strong> — while a room is active, playback position,

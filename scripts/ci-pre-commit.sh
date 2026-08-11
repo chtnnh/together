@@ -9,7 +9,11 @@ source "$ROOT/scripts/affected.sh"
 
 pnpm exec lint-staged
 
-pnpm exec biome check --changed --error-on-warnings
+if git diff --cached --quiet; then
+  pnpm exec biome check --changed --error-on-warnings
+else
+  pnpm exec biome check --staged --error-on-warnings
+fi
 
 if git rev-parse origin/main >/dev/null 2>&1; then
   pnpm exec turbo run typecheck --filter=...[origin/main] || pnpm typecheck
