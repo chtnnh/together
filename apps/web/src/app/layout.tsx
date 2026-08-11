@@ -5,6 +5,7 @@ import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ThemeBootstrap } from "@/components/theme-bootstrap";
 import { ToastProvider } from "@/components/toast";
+import { UmamiAnalytics } from "@/components/umami-analytics";
 import { absoluteUrl, siteUrl } from "@/lib/seo";
 import { getSupabasePublicConfig } from "@/lib/supabase/public-config";
 
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div id="main-content">{children}</div>
           </ToastProvider>
           <CloudflareWebAnalytics />
+          <UmamiAnalytics />
         </AuthConfigProvider>
       </body>
     </html>
