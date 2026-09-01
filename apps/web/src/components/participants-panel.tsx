@@ -48,7 +48,7 @@ export function ParticipantsPanel({
           className="flex items-start justify-between gap-3 rounded-lg px-3 py-2 hover:bg-[var(--bg-secondary)]"
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">
+            <p className="rr-mask truncate text-sm font-medium">
               {p.displayName}
               {p.id === currentId && " (you)"}
             </p>
@@ -65,7 +65,7 @@ export function ParticipantsPanel({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      aria-label={`Transfer ownership to ${p.displayName}`}
+                      aria-label="Transfer ownership"
                       onClick={() => onTransferOwnership(p.id, p.userId!)}
                     >
                       <Crown className="h-4 w-4 text-amber-400" />

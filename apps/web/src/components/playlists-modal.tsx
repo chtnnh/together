@@ -131,7 +131,7 @@ export function PlaylistsModal({ open, onClose, onLoad, onSignIn }: PlaylistsMod
                   onClick={() => handleSelect(p.id)}
                   className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--bg-secondary)] disabled:opacity-50"
                 >
-                  <span className="font-medium">{p.name}</span>
+                  <span className="rr-mask font-medium">{p.name}</span>
                   <span className="text-xs text-[var(--text-muted)]">
                     {loadingId === p.id ? "Loading…" : p.source}
                   </span>

@@ -203,6 +203,7 @@ export function SettingsDrawer({
                     onBlur={() => onRoomTitleUpdate(titleDraft)}
                     placeholder="My listening room"
                     maxLength={64}
+                    className="rr-mask"
                   />
                 </div>
                 <div>
@@ -317,7 +318,7 @@ export function SettingsDrawer({
                 <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3">
                   {signedIn && userEmail ? (
                     <p className="text-xs text-[var(--text-muted)]">
-                      Signed in as <span className="text-[var(--text)]">{userEmail}</span>
+                      Signed in as <span className="rr-mask text-[var(--text)]">{userEmail}</span>
                     </p>
                   ) : null}
                   {hasOwner ? (

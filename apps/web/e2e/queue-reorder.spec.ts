@@ -26,7 +26,7 @@ test.describe("Queue reorder", () => {
       });
     }
 
-    await expect(page.getByTestId("queue-list").locator("[data-queue-item-id]")).toHaveCount(2, {
+    await expect(page.getByTestId("queue-list").locator("[data-queue-item-index]")).toHaveCount(2, {
       timeout: 15000,
     });
   });

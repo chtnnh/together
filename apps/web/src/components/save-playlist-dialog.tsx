@@ -93,7 +93,7 @@ export function SavePlaylistDialog({ open, queue, onClose, onSaved }: SavePlayli
             onChange={(e) => setName(e.target.value)}
             maxLength={128}
             required
-            className="mt-1"
+            className="rr-mask mt-1"
             autoFocus
           />
         </div>

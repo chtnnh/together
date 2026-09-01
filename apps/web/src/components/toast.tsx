@@ -70,7 +70,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   : "border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text)]"
             }`}
           >
-            {t.message}
+            <span className="rr-mask">{t.message}</span>
           </div>
         ))}
       </div>

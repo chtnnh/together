@@ -27,7 +27,7 @@ export function AlternatePicker({ request, onPick, onClose }: AlternatePickerPro
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="font-semibold">Pick a match</h3>
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className="rr-mask text-sm text-[var(--text-muted)]">
               {request.title} · {request.confidence}% confidence
             </p>
           </div>
@@ -48,11 +48,15 @@ export function AlternatePicker({ request, onPick, onClose }: AlternatePickerPro
                 className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] p-3 text-left hover:bg-[var(--bg-secondary)]"
               >
                 {alt.thumbnailUrl && (
-                  <img src={alt.thumbnailUrl} alt="" className="h-12 w-12 rounded object-cover" />
+                  <img
+                    src={alt.thumbnailUrl}
+                    alt=""
+                    className="rr-block h-12 w-12 rounded object-cover"
+                  />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{alt.title}</p>
-                  <p className="truncate text-xs text-[var(--text-muted)]">
+                  <p className="rr-mask truncate text-sm font-medium">{alt.title}</p>
+                  <p className="rr-mask truncate text-xs text-[var(--text-muted)]">
                     {alt.channelTitle}
                     {alt.durationMs ? ` · ${formatDuration(alt.durationMs)}` : ""}
                   </p>

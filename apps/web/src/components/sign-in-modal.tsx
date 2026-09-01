@@ -136,7 +136,7 @@ export function SignInModal({ open, onClose, returnTo, onSignedIn }: SignInModal
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="mt-1"
+                  className="rr-mask mt-1"
                   autoFocus
                 />
               </div>

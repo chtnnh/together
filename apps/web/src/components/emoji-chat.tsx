@@ -39,8 +39,8 @@ function renderMessageBody(
           key={`${i}-${matched.id}`}
           className={
             isYou
-              ? "rounded bg-[var(--accent)]/25 font-medium text-[var(--accent)]"
-              : "font-medium text-[var(--accent)]"
+              ? "rr-mask rounded bg-[var(--accent)]/25 font-medium text-[var(--accent)]"
+              : "rr-mask font-medium text-[var(--accent)]"
           }
         >
           @{matched.displayName}
@@ -103,7 +103,7 @@ export function ChatMessages({
       {joinNotice ? (
         <p
           role="status"
-          className="mx-auto max-w-sm px-4 py-8 text-center text-sm leading-relaxed text-[var(--text-muted)]"
+          className="rr-mask mx-auto max-w-sm px-4 py-8 text-center text-sm leading-relaxed text-[var(--text-muted)]"
         >
           {joinNotice}
         </p>
@@ -125,9 +125,9 @@ export function ChatMessages({
               mentionedYou ? "rounded-md bg-[var(--accent)]/10 px-2 py-1" : ""
             }`}
           >
-            <span className="font-medium text-[var(--accent)]">{msg.senderName}</span>
+            <span className="rr-mask font-medium text-[var(--accent)]">{msg.senderName}</span>
             <span className="mx-1 text-[var(--text-muted)]">·</span>
-            <span dir="ltr" className="inline-block [direction:ltr] [transform:none]">
+            <span dir="ltr" className="rr-mask inline-block [direction:ltr] [transform:none]">
               {renderMessageBody(msg.body, currentParticipantId, participants)}
             </span>
           </div>
@@ -352,7 +352,7 @@ export function ChatInput({
             inputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
           });
         }}
-        className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50"
+        className="rr-mask min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50"
         aria-autocomplete={mentionOpen ? "list" : undefined}
         aria-controls={mentionOpen ? "mention-listbox" : undefined}
         aria-expanded={mentionOpen}
@@ -376,7 +376,7 @@ export function ChatInput({
               type="button"
               role="option"
               aria-selected={index === mentionIndex}
-              className={`flex w-full px-3 py-1.5 text-left text-sm ${
+              className={`rr-mask flex w-full px-3 py-1.5 text-left text-sm ${
                 index === mentionIndex
                   ? "bg-[var(--accent)]/20 text-[var(--text)]"
                   : "hover:bg-[var(--bg)]"
