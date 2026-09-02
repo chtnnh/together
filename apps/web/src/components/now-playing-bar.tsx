@@ -122,17 +122,21 @@ export function NowPlayingBar({
     >
       <div className="flex items-center gap-3">
         {thumbnailUrl ? (
-          <img src={thumbnailUrl} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="rr-block size-14 shrink-0 rounded-md object-cover"
+          />
         ) : (
           <div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-[var(--border)] text-xs text-[var(--text-muted)]">
             No art
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium" aria-live="polite" aria-atomic="true">
+          <p className="rr-mask truncate font-medium" aria-live="polite" aria-atomic="true">
             {displayTitle}
           </p>
-          {artist && <p className="truncate text-sm text-[var(--text-muted)]">{artist}</p>}
+          {artist && <p className="rr-mask truncate text-sm text-[var(--text-muted)]">{artist}</p>}
         </div>
         <PlaybackVolumeControl
           volume={volume}

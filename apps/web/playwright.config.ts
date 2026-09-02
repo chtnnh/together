@@ -11,6 +11,7 @@ const webServerEnv = {
   NEXT_PRIVATE_DISABLE_DEV_OVERLAY_UX: "1",
   ROOM_TOKEN_SECRET: "test-secret",
   NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3002",
+  NEXT_PUBLIC_UMAMI_WEBSITE_ID: "playwright-umami-test",
   NEXT_PUBLIC_REALTIME_URL: "ws://127.0.0.1:8787",
 };
 

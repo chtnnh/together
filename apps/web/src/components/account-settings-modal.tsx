@@ -125,7 +125,7 @@ export function AccountSettingsModal({
           {user ? (
             <>
               <p className="text-sm text-[var(--text-muted)]">
-                Signed in as <span className="text-[var(--text)]">{user.email}</span>
+                Signed in as <span className="rr-mask text-[var(--text)]">{user.email}</span>
               </p>
               <Link href="/playlists" onClick={onClose} className="block">
                 <Button variant="secondary" className="w-full">
@@ -165,7 +165,7 @@ export function AccountSettingsModal({
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="mt-1"
+                    className="rr-mask mt-1"
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>

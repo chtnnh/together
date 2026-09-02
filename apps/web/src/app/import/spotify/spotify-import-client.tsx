@@ -95,7 +95,7 @@ export default function SpotifyImportClient() {
             className="flex items-center justify-between rounded-lg border border-[var(--border)] p-4"
           >
             <div>
-              <p className="font-medium">{p.name}</p>
+              <p className="rr-mask font-medium">{p.name}</p>
               <p className="text-sm text-[var(--text-muted)]">{p.trackCount} tracks</p>
             </div>
             <Button size="sm" onClick={() => handleImport(p.id)} disabled={importing === p.id}>

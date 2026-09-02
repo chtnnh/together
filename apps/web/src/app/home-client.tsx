@@ -353,10 +353,10 @@ export default function HomePageClient() {
                 <li key={room.slug}>
                   <Link
                     href={`/r/${room.slug}`}
-                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
+                    className="rr-mask flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
                   >
-                    <span className="truncate font-medium">{room.title}</span>
-                    <span className="ml-2 shrink-0 text-xs text-[var(--text-muted)]">
+                    <span className="rr-mask truncate font-medium">{room.title}</span>
+                    <span className="rr-mask ml-2 shrink-0 text-xs text-[var(--text-muted)]">
                       /r/{room.slug}
                     </span>
                   </Link>
@@ -376,10 +376,10 @@ export default function HomePageClient() {
                 <li key={room.slug}>
                   <Link
                     href={`/r/${room.slug}`}
-                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
+                    className="rr-mask flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
                   >
-                    <span className="truncate font-medium">{room.title}</span>
-                    <span className="ml-2 shrink-0 text-xs text-[var(--text-muted)]">
+                    <span className="rr-mask truncate font-medium">{room.title}</span>
+                    <span className="rr-mask ml-2 shrink-0 text-xs text-[var(--text-muted)]">
                       /r/{room.slug}
                     </span>
                   </Link>
@@ -437,9 +437,9 @@ export default function HomePageClient() {
                 <li key={room.slug}>
                   <Link
                     href={`/r/${room.slug}`}
-                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
+                    className="rr-mask flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]/60 px-4 py-3 transition-colors hover:border-[var(--accent)]/40"
                   >
-                    <span className="truncate font-medium">{room.title}</span>
+                    <span className="rr-mask truncate font-medium">{room.title}</span>
                     <span className="ml-2 shrink-0 text-xs text-[var(--text-muted)]">
                       {room.participantCount} listening
                     </span>
@@ -479,7 +479,7 @@ export default function HomePageClient() {
                     onChange={(e) => setDisplayNameState(e.target.value)}
                     placeholder="Display name"
                     maxLength={24}
-                    className="mt-1"
+                    className="rr-mask mt-1"
                   />
                 </div>
                 <div>
@@ -490,7 +490,7 @@ export default function HomePageClient() {
                     onChange={(e) => setRoomTitle(e.target.value)}
                     placeholder="Friday night vibes"
                     maxLength={64}
-                    className="mt-1"
+                    className="rr-mask mt-1"
                   />
                 </div>
                 <div>
@@ -516,7 +516,7 @@ export default function HomePageClient() {
                       onChange={(e) => setRoomPassword(e.target.value)}
                       placeholder="Min 4 characters"
                       minLength={4}
-                      className="mt-1"
+                      className="rr-block mt-1"
                     />
                   </div>
                 )}
@@ -548,7 +548,7 @@ export default function HomePageClient() {
                     onChange={(e) => setDisplayNameState(e.target.value)}
                     placeholder="Display name"
                     maxLength={24}
-                    className="mt-1"
+                    className="rr-mask mt-1"
                   />
                 </div>
                 <div>
@@ -558,7 +558,7 @@ export default function HomePageClient() {
                     value={roomSlug}
                     onChange={(e) => setRoomSlug(e.target.value.toLowerCase())}
                     placeholder="e.g. abc12345"
-                    className="mt-1"
+                    className="rr-mask mt-1"
                   />
                 </div>
                 <div>
@@ -569,7 +569,7 @@ export default function HomePageClient() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Optional"
-                    className="mt-1"
+                    className="rr-block mt-1"
                   />
                 </div>
                 <Button

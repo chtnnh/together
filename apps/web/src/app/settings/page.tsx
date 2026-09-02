@@ -105,7 +105,7 @@ export default function SettingsPage() {
       {user ? (
         <div className="space-y-3 rounded-xl border border-[var(--border)] p-6">
           <p className="text-sm text-[var(--text-muted)]">
-            Signed in as <span className="text-[var(--text)]">{user.email}</span>
+            Signed in as <span className="rr-mask text-[var(--text)]">{user.email}</span>
           </p>
           <div>
             <Label className="mb-2 block text-sm font-medium">Theme</Label>
@@ -159,7 +159,7 @@ export default function SettingsPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="mt-1"
+                className="rr-mask mt-1"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>

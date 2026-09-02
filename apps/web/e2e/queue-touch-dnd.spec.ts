@@ -24,9 +24,9 @@ test.describe("Phase 5.2 — Touch queue reorder", () => {
     }
 
     await roomSidebar(page).getByRole("tab", { name: "Queue" }).click();
-    const queueItem = roomSidebar(page).locator("[data-queue-item-id]").first();
+    const queueItem = roomSidebar(page).locator("[data-queue-item-index]").first();
     await expect(queueItem).toBeVisible({ timeout: 5000 });
-    const grip = roomSidebar(page).locator("[data-queue-item-id] .touch-none").first();
+    const grip = roomSidebar(page).locator("[data-queue-item-index] .touch-none").first();
     await expect(grip).toBeVisible();
   });
 });

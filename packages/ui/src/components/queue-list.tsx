@@ -72,7 +72,7 @@ function QueueItemRow({
   onDrop,
   onDragEnd,
   onGripPointerDown,
-  queueItemId,
+  queueItemIndex,
 }: {
   item: QueueItem | RequestItem;
   isActive?: boolean;
@@ -92,14 +92,14 @@ function QueueItemRow({
   onDrop?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   onGripPointerDown?: (e: React.PointerEvent) => void;
-  queueItemId?: string;
+  queueItemIndex?: number;
 }) {
   const requestItem = item as RequestItem;
   const canPlayItem = canPlay && onPlay && !isActive && !!item.videoId;
 
   return (
     <div
-      data-queue-item-id={queueItemId ?? item.id}
+      data-queue-item-index={queueItemIndex}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -124,15 +124,19 @@ function QueueItemRow({
         </div>
       )}
       {item.thumbnailUrl ? (
-        <img src={item.thumbnailUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
+        <img
+          src={item.thumbnailUrl}
+          alt=""
+          className="rr-block h-10 w-10 shrink-0 rounded object-cover"
+        />
       ) : (
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--bg-secondary)]">
           <Music className="h-5 w-5 text-[var(--text-muted)]" />
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{item.title}</p>
-        <p className="truncate text-xs text-[var(--text-muted)]">
+        <p className="rr-mask truncate text-sm font-medium">{item.title}</p>
+        <p className="rr-mask truncate text-xs text-[var(--text-muted)]">
           {item.artist ?? item.addedBy} · {formatDuration(item.durationMs)}
           {item.confidence !== undefined && ` · ${item.confidence}% match`}
         </p>
@@ -192,6 +196,13 @@ export function QueueList({
   useEffect(() => {
     if (!onReorder) return;
 
+    const itemIdForRow = (row: Element | null): string | null => {
+      const indexValue = row?.getAttribute("data-queue-item-index");
+      if (indexValue === null || indexValue === undefined) return null;
+      const index = Number(indexValue);
+      return Number.isInteger(index) ? (items[index]?.id ?? null) : null;
+    };
+
     const finishPointerDrag = (targetId: string | null) => {
       const dragged = pointerDragRef.current?.id;
       if (dragged && targetId && dragged !== targetId) {
@@ -207,8 +218,8 @@ export function QueueList({
       const drag = pointerDragRef.current;
       if (!drag || e.pointerId !== drag.pointerId) return;
       const target = document.elementFromPoint(e.clientX, e.clientY);
-      const row = target?.closest("[data-queue-item-id]");
-      const targetId = row?.getAttribute("data-queue-item-id");
+      const row = target?.closest("[data-queue-item-index]");
+      const targetId = itemIdForRow(row ?? null);
       if (targetId && targetId !== drag.id) {
         setDropTargetId(targetId);
       }
@@ -218,8 +229,8 @@ export function QueueList({
       const drag = pointerDragRef.current;
       if (!drag || e.pointerId !== drag.pointerId) return;
       const target = document.elementFromPoint(e.clientX, e.clientY);
-      const row = target?.closest("[data-queue-item-id]");
-      finishPointerDrag(row?.getAttribute("data-queue-item-id") ?? dropTargetId);
+      const row = target?.closest("[data-queue-item-index]");
+      finishPointerDrag(itemIdForRow(row ?? null) ?? dropTargetId);
     };
 
     window.addEventListener("pointermove", onPointerMove);
@@ -281,7 +292,7 @@ export function QueueList({
           </Button>
         </div>
       )}
-      {items.map((item) => (
+      {items.map((item, index) => (
         <QueueItemRow
           key={item.id}
           item={item}
@@ -315,7 +326,7 @@ export function QueueList({
             setDropTargetId(null);
           }}
           onGripPointerDown={(e) => startPointerReorder(item.id, e)}
-          queueItemId={item.id}
+          queueItemIndex={index}
         />
       ))}
     </div>
@@ -452,7 +463,7 @@ export function HistoryList({
             <img
               src={item.thumbnailUrl}
               alt=""
-              className="h-10 w-10 shrink-0 rounded object-cover"
+              className="rr-block h-10 w-10 shrink-0 rounded object-cover"
             />
           ) : (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--bg-secondary)]">
@@ -460,8 +471,8 @@ export function HistoryList({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{item.title}</p>
-            <p className="truncate text-xs text-[var(--text-muted)]">
+            <p className="rr-mask truncate text-sm font-medium">{item.title}</p>
+            <p className="rr-mask truncate text-xs text-[var(--text-muted)]">
               {item.artist ?? item.addedBy} · {item.reason}
             </p>
           </div>

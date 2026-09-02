@@ -101,7 +101,7 @@ export function JoinGateClient({ slug }: JoinGateProps) {
             onChange={(e) => setPassword(e.target.value)}
             required={!tokenFromUrl}
             minLength={4}
-            className="mt-1"
+            className="rr-block mt-1"
           />
         </div>
 

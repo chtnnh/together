@@ -112,12 +112,15 @@ export default function PrivacyPage() {
             attempts and API routes).
           </li>
           <li>
-            <strong>Service analytics</strong> — aggregated, privacy-oriented usage analytics via
-            Umami (page views and events; optional session replays and click/scroll heatmaps when
-            enabled in our Umami settings — inputs are masked by default), loaded through a
-            first-party proxy on our domain, Cloudflare Web Analytics (page views on the web app),
-            and Cloudflare Workers Analytics Engine (aggregated realtime events such as joins and
-            skips). We do not use third-party advertising trackers.
+            <strong>Service analytics</strong> — Umami collects anonymous visitor, session, page,
+            campaign, and referrer metrics. Session replay and click/scroll heatmaps load only when
+            you choose &quot;Analytics and replays&quot; in the app&apos;s Analytics privacy
+            controls. Browser Do Not Track prevents Umami from loading. Before reporting URLs,
+            Together keeps standard UTM campaign parameters, removes other query strings and
+            fragments, and replaces room identities. Umami is loaded through a first-party proxy. We
+            also use Cloudflare Web Analytics (page views on the web app) and Cloudflare Workers
+            Analytics Engine (aggregated realtime events such as joins and skips). We do not use
+            third-party advertising trackers.
           </li>
           <li>
             <strong>Realtime session data</strong> — while a room is active, playback position,
@@ -163,6 +166,11 @@ export default function PrivacyPage() {
           <li>
             <strong>Local storage</strong> — display name, anonymous ID, UI preferences, and recent
             rooms are stored locally in your browser.
+          </li>
+          <li>
+            <strong>Analytics preference</strong> — your choice of essential metrics or analytics
+            with session replay is stored locally in your browser. Changing it reloads the app so
+            that the chosen level applies cleanly.
           </li>
           <li>
             <strong>Service worker cache</strong> — if you install or use the PWA, cached app shell

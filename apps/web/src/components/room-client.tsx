@@ -97,9 +97,13 @@ function ImportResultRow({
         onClick={() => onPick(item)}
       >
         {thumbnailUrl && (
-          <img src={thumbnailUrl} alt="" className="h-8 w-12 shrink-0 rounded object-cover" />
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="rr-block h-8 w-12 shrink-0 rounded object-cover"
+          />
         )}
-        <span className="min-w-0 flex-1 truncate">
+        <span className="rr-mask min-w-0 flex-1 truncate">
           {title}
           {subtitle ? <span className="text-[var(--text-muted)]"> · {subtitle}</span> : null}
         </span>
@@ -680,7 +684,7 @@ export function RoomClient({
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
-          <h1 className="text-xl font-bold">Join {localRoomTitle || slug}</h1>
+          <h1 className="rr-mask text-xl font-bold">Join {localRoomTitle || slug}</h1>
           <div>
             <Label htmlFor="name">Display name</Label>
             <Input
@@ -689,7 +693,7 @@ export function RoomClient({
               onChange={(e) => setDisplayNameState(e.target.value)}
               placeholder="Your name"
               maxLength={24}
-              className="mt-1"
+              className="rr-mask mt-1"
             />
           </div>
           <Button className="w-full" onClick={handleJoin}>
@@ -848,7 +852,7 @@ export function RoomClient({
             addUrlInputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
           });
         }}
-        className="min-w-0 flex-1"
+        className="rr-mask min-w-0 flex-1"
       />
       <Button size="icon" onClick={handleAddUrl} disabled={loading} title="Add to queue">
         <Plus className="h-4 w-4" />
@@ -890,7 +894,7 @@ export function RoomClient({
             }}
             placeholder="Paste a video/playlist link or search…"
             onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
-            className="min-w-0 flex-1"
+            className="rr-mask min-w-0 flex-1"
           />
           <Button size="icon" onClick={handleAddUrl} disabled={loading} title="Add to queue">
             <Plus className="h-4 w-4" />
@@ -1039,7 +1043,7 @@ export function RoomClient({
           <header className="shrink-0 border-b border-[var(--border)] px-4 py-2.5 md:py-3">
             <div className="flex items-start gap-2 md:items-center">
               <div className="min-w-0 flex-1">
-                <h1 className="text-base font-semibold leading-snug line-clamp-2 break-words md:truncate">
+                <h1 className="rr-mask text-base font-semibold leading-snug line-clamp-2 break-words md:truncate">
                   {roomTitle}
                 </h1>
                 <ConnectionStatus
@@ -1130,7 +1134,7 @@ export function RoomClient({
               userPrefs.audioOnly ? "hidden" : "aspect-video md:min-h-0 md:flex-1 md:aspect-auto"
             }`}
           >
-            <div id="youtube-player" className="h-full w-full" />
+            <div id="youtube-player" className="rr-block h-full w-full" />
             <div
               className={`absolute inset-0 z-10 ${needsUserGesture ? "pointer-events-auto cursor-pointer" : "pointer-events-none"}`}
               aria-hidden={!needsUserGesture}
@@ -1171,7 +1175,7 @@ export function RoomClient({
           {userPrefs.audioOnly && (
             <div className="flex shrink-0 flex-col items-center justify-center gap-2 py-6 md:flex-1">
               <Music2 className="h-12 w-12 text-[var(--accent)] md:h-16 md:w-16" />
-              <p className="px-4 text-center text-lg font-medium">
+              <p className="rr-mask px-4 text-center text-lg font-medium">
                 {playback?.title ?? "Nothing playing"}
               </p>
             </div>

@@ -113,7 +113,7 @@ export default function PlaylistsPage() {
             className="flex items-center justify-between rounded-lg border border-[var(--border)] p-4"
           >
             <div>
-              <p className="font-medium">{p.name}</p>
+              <p className="rr-mask font-medium">{p.name}</p>
               <p className="text-sm text-[var(--text-muted)]">
                 {p.source} · {new Date(p.importedAt).toLocaleDateString()}
               </p>

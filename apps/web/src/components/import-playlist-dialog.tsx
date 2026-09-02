@@ -99,7 +99,7 @@ export function ImportPlaylistDialog({ open, onClose, onImport }: ImportPlaylist
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://open.spotify.com/playlist/…"
-            className="mt-1"
+            className="rr-mask mt-1"
             autoFocus
           />
         </div>

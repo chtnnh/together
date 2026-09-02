@@ -41,6 +41,7 @@ test.describe("Mobile room UI", () => {
         .filter({ has: page.getByText("Queue", { exact: true }) });
       await expect(mobileNav).toBeVisible();
       await expect(page.getByTestId("now-playing-bar")).toBeVisible();
+      await expectNoOverlap(page.getByRole("button", { name: "Analytics privacy" }), mobileNav);
     });
 
     test(`can switch mobile tabs (${viewport.name})`, async ({ page }) => {
