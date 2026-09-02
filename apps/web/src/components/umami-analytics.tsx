@@ -113,7 +113,7 @@ export function UmamiAnalytics() {
 
   if (!websiteId || !appUrl) return null;
   return (
-    <div className="fixed bottom-3 left-3 z-[250] max-w-sm text-sm">
+    <div className="fixed bottom-16 left-3 z-[250] max-w-sm text-sm md:bottom-3">
       <button
         type="button"
         className="rounded-md bg-[var(--surface-raised)] px-3 py-2 text-[var(--text-muted)] shadow-lg ring-1 ring-[var(--border)]"
