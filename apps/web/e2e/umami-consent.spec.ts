@@ -67,6 +67,17 @@ test.describe("Umami consent", () => {
     await expect(page.getByRole("radio", { name: /Essential metrics/ })).toBeChecked();
   });
 
+  test("uses an opaque surface for analytics choices", async ({ page }) => {
+    await visitWithAnalyticsPreference(page, "essential");
+    const control = page.getByRole("button", { name: "Analytics privacy" });
+    await expect(control).toHaveCSS("background-color", "rgb(26, 26, 36)");
+    await control.click();
+    await expect(page.getByRole("region", { name: "Analytics privacy choices" })).toHaveCSS(
+      "background-color",
+      "rgb(26, 26, 36)",
+    );
+  });
+
   test("loads tracker and recorder for replay consent on a room route", async ({ page }) => {
     const requestedScripts = await visitWithAnalyticsPreference(page, "replay");
     await expect(page.locator(`#umami-recorder[src="${RECORDER_PATH}"]`)).toHaveCount(1);

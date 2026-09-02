@@ -116,7 +116,7 @@ export function UmamiAnalytics() {
     <div className="fixed bottom-16 left-3 z-[250] max-w-sm text-sm md:bottom-3">
       <button
         type="button"
-        className="rounded-md bg-[var(--surface-raised)] px-3 py-2 text-[var(--text-muted)] shadow-lg ring-1 ring-[var(--border)]"
+        className="rounded-md bg-[var(--bg-secondary)] px-3 py-2 text-[var(--text-muted)] shadow-lg ring-1 ring-[var(--border)]"
         aria-expanded={open}
         aria-controls="analytics-choices"
         onClick={() => setOpen((value) => !value)}
@@ -127,7 +127,7 @@ export function UmamiAnalytics() {
         <section
           id="analytics-choices"
           aria-label="Analytics privacy choices"
-          className="mt-2 rounded-lg bg-[var(--surface-raised)] p-4 shadow-xl ring-1 ring-[var(--border)]"
+          className="mt-2 rounded-lg bg-[var(--bg-secondary)] p-4 shadow-xl ring-1 ring-[var(--border)]"
         >
           <h2 className="font-semibold text-[var(--text)]">Analytics choices</h2>
           {doNotTrack ? (
